@@ -1,4 +1,4 @@
-import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrencesForWeek, weekStats, validateTask, blankData, sanitizeBackup } from './logic.mjs';
+import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrencesForWeek, timeStats, minutesFromParts, formatMinutes, formatDecimalHours, createFromTemplate, validateTask, blankData, sanitizeBackup } from './logic.mjs';
 
 const STORAGE_KEY = 'nedelnik-planner-v1';
 const SHORT_WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
@@ -60,6 +60,7 @@ function filteredOccurrences() {
 function render() {
   const all = allOccurrences(), visible = filteredOccurrences();
   $('weekTitle').textContent = formatWeek(monday);
+  $('jumpDate').value = monday;
   $('weekNote').value = data.weekNotes[monday] || '';
   document.documentElement.dataset.theme = 'dark';
 
@@ -85,6 +86,7 @@ function render() {
         </div>
         <div class="day-actions">
           <button class="add-day" type="button" data-action="add" data-date="${iso}">+ Добавить дело</button>
+          <button class="add-day from-library" type="button" data-action="library" data-date="${iso}">Из общего списка</button>
           <details class="day-extra">
             <summary aria-label="Заметка для ${WEEKDAYS[i]}" title="Заметка для этого дня">${dayNote?'✎ Заметка':'✎'}</summary>
             <textarea id="note-${iso}" data-day-note="${iso}" rows="2" maxlength="10000" placeholder="Заметка для этого дня">${escapeHTML(dayNote)}</textarea>
@@ -95,15 +97,46 @@ function render() {
   }).join('');
 }
 function taskCard(t) {
-  return `<article class="task-card ${t.done?'done':''}">
-    <button class="task-check" type="button" data-action="toggle" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" aria-label="${t.done?'Снять отметку выполнения':'Отметить выполненным'}: ${escapeHTML(t.title)}" aria-pressed="${t.done}">${t.done?'✓':''}</button>
-    <span class="task-time">${t.start}–${t.end}</span>
-    <button class="task-description" type="button" data-action="edit" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" title="Редактировать дело">
-      <span class="task-title">${escapeHTML(t.title)}</span>
-      ${t.repeat==='weekly'?'<span class="task-flag" title="Каждую неделю">↻</span>':''}
-      ${t.priority==='high'?'<span class="task-flag priority" title="Важное">★</span>':''}
-    </button>
-  </article>`;
+  const tags=[];
+  if(t.start)tags.push(t.start);
+  if(t.plannedMinutes>0)tags.push(formatMinutes(t.plannedMinutes));
+  const time=tags.length?'<span class="task-time">'+tags.join(' · ')+'</span>':'';
+  const actual=Number.isInteger(t.actualMinutes)?'<span class="task-fact">Факт '+formatMinutes(t.actualMinutes)+'</span>':'';
+  return '<article class="task-card '+(t.done?'done':'')+'">'
+    +'<button class="task-check" type="button" data-action="toggle" data-id="'+escapeHTML(t.id)
+    +'" data-date="'+t.occurrenceDate+'" aria-label="'+(t.done?'Снять отметку':'Отметить выполненным')+': '+escapeHTML(t.title)
+    +'" aria-pressed="'+t.done+'">'+(t.done?'✓':'')+'</button>'+time
+    +'<button class="task-description" type="button" data-action="edit" data-id="'+escapeHTML(t.id)
+    +'" data-date="'+t.occurrenceDate+'" title="Редактировать дело"><span class="task-title">'+escapeHTML(t.title)+'</span>'
+    +(t.repeat==='weekly'?'<span class="task-flag" title="Повторяется еженедельно">↻</span>':'')
+    +(t.priority==='high'?'<span class="task-flag priority" title="Важное">★</span>':'')
+    +'</button>'+actual+'</article>';
+}
+function setDurationInputs(h,m,value) {
+  $(h).value=Number.isInteger(value)?String(Math.floor(value/60)):'';
+  $(m).value=Number.isInteger(value)?String(value%60):'';
+}
+function readDuration(h,m) {
+  const hours=$(h).value.trim(),minutes=$(m).value.trim();
+  return hours===''&&minutes===''?null:minutesFromParts(hours,minutes);
+}
+function previewDuration(h,m,id,empty) {
+  const n=readDuration(h,m);
+  $(id).textContent=n===null?empty:Number.isNaN(n)?'Проверьте часы и минуты'
+    :formatMinutes(n)+' ('+formatDecimalHours(n)+')';
+}
+function syncScrollLock() {
+  document.body.classList.toggle('overlay-open',
+    Boolean($('moreMenu').open||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open));
+}
+function openModal(id) {
+  $('moreMenu').open=false;
+  $(id).showModal();
+  syncScrollLock();
+}
+function closeModal(id) {
+  $(id).close();
+  syncScrollLock();
 }
 function openTask(task=null, occurrenceDate=null, proposedDate=null) {
   editingId = task?.id || null;
