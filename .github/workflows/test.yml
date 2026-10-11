@@ -15,3 +15,21 @@ jobs:
           node-version: '22'
       - name: Run planner logic tests
         run: node --test weekly-planner/tests/*.test.mjs
+
+  windows-powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate scripts using Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $paths = @('weekly-planner/launcher/install_launcher.ps1', 'weekly-planner/launcher/boot.ps1', 'weekly-planner/launcher/open.ps1')
+          foreach ($path in $paths) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | Out-String | Write-Error
+              exit 1
+            }
+          }
