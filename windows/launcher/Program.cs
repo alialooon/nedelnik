@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace NedelnikLauncher
@@ -152,31 +153,101 @@ namespace NedelnikLauncher
             return "git.exe";
         }
 
-        internal static bool PullUpdates()
+        private static void WriteUpdateLog(string message)
         {
-            if (!Directory.Exists(Path.Combine(Source, ".git"))) return false;
+            try
+            {
+                Directory.CreateDirectory(Home);
+                File.WriteAllText(Path.Combine(Home, "update-status.log"),
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + message);
+            }
+            catch { }
+        }
+
+        internal static string InstalledVersion()
+        {
             try
             {
                 ProcessStartInfo info = new ProcessStartInfo();
                 info.FileName = FindGit();
-                info.Arguments = "-C \"" + Source + "\" pull --ff-only --quiet origin main";
+                info.Arguments = "-C \"" + Source + "\" rev-parse --short=8 HEAD";
                 info.UseShellExecute = false;
                 info.CreateNoWindow = true;
-                info.WindowStyle = ProcessWindowStyle.Hidden;
-                info.EnvironmentVariables["GIT_TERMINAL_PROMPT"] = "0";
+                info.RedirectStandardOutput = true;
                 using (Process process = Process.Start(info))
                 {
-                    if (process == null) return false;
-                    if (!process.WaitForExit(25000))
-                    {
-                        process.Kill();
-                        process.WaitForExit();
-                        return false;
-                    }
-                    return process.ExitCode == 0;
+                    if (process == null || !process.WaitForExit(4000)) return "?";
+                    string sha = process.StandardOutput.ReadToEnd().Trim();
+                    return process.ExitCode == 0 && sha.Length == 8 ? sha : "?";
                 }
             }
-            catch { return false; }
+            catch { return "?"; }
+        }
+
+        internal static bool PullUpdates()
+        {
+            if (!Directory.Exists(Path.Combine(Source, ".git")))
+            {
+                WriteUpdateLog("Source repository is missing.");
+                return false;
+            }
+            // Both the launcher and a direct --planner shortcut may check Git;
+            // serialize them to avoid overlapping Git index.lock operations.
+            using (Mutex mutex = new Mutex(false, "Local\\NedelnikGitUpdate"))
+            {
+                bool locked = false;
+                try
+                {
+                    try { locked = mutex.WaitOne(30000); }
+                    catch (AbandonedMutexException) { locked = true; }
+                    if (!locked)
+                    {
+                        WriteUpdateLog("Another update is still running.");
+                        return false;
+                    }
+                    ProcessStartInfo info = new ProcessStartInfo();
+                    info.FileName = FindGit();
+                    info.Arguments = "-C \"" + Source + "\" pull --ff-only --quiet origin main";
+                    info.UseShellExecute = false;
+                    info.CreateNoWindow = true;
+                    info.WindowStyle = ProcessWindowStyle.Hidden;
+                    info.RedirectStandardError = true;
+                    info.EnvironmentVariables["GIT_TERMINAL_PROMPT"] = "0";
+                    using (Process process = Process.Start(info))
+                    {
+                        if (process == null)
+                        {
+                            WriteUpdateLog("Could not start Git.");
+                            return false;
+                        }
+                        if (!process.WaitForExit(25000))
+                        {
+                            process.Kill();
+                            process.WaitForExit();
+                            WriteUpdateLog("Git update timed out after 25 seconds.");
+                            return false;
+                        }
+                        string error = process.StandardError.ReadToEnd();
+                        if (process.ExitCode != 0)
+                        {
+                            WriteUpdateLog("Git pull failed. Exit: " + process.ExitCode
+                                + Environment.NewLine + error);
+                            return false;
+                        }
+                        WriteUpdateLog("OK; updated to " + InstalledVersion());
+                        return true;
+                    }
+                }
+                catch (Exception error)
+                {
+                    WriteUpdateLog(error.ToString());
+                    return false;
+                }
+                finally
+                {
+                    if (locked) mutex.ReleaseMutex();
+                }
+            }
         }
 
         internal static void OpenPlanner()
@@ -274,6 +345,7 @@ namespace NedelnikLauncher
                 Color.FromArgb(214, 222, 226), Color.FromArgb(19, 22, 24));
             open.Font = new Font("Segoe UI", 13, FontStyle.Bold);
             open.Click += OpenClicked;
+            open.Enabled = false;
             Controls.Add(open);
             AcceptButton = open;
 
@@ -344,10 +416,13 @@ namespace NedelnikLauncher
             if (updating) return;
             updating = true;
             update.Enabled = false;
+            open.Enabled = false;
             status.Text = "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043d\u0430 GitHub...";
             bool succeeded = await Task.Run(() => Program.PullUpdates());
-            status.Text = succeeded ? "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u0433\u043e\u0442\u043e\u0432. \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u044b."
-                : "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u0433\u043e\u0442\u043e\u0432. \u041c\u043e\u0436\u043d\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c \u0431\u0435\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430.";
+            status.Text = succeeded
+                ? "\u0413\u043e\u0442\u043e\u0432\u043e. \u0412\u0435\u0440\u0441\u0438\u044f " + Program.InstalledVersion() + "."
+                : "\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c. \u041c\u043e\u0436\u043d\u043e \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0443\u044e \u0432\u0435\u0440\u0441\u0438\u044e.";
+            open.Enabled = true;
             update.Enabled = true;
             updating = false;
         }
