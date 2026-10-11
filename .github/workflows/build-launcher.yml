@@ -37,7 +37,16 @@ jobs:
         shell: pwsh
         run: |
           & .\windows\NedelnikLauncher.exe --self-test
-          if ($LASTEXITCODE -ne 0) { throw 'The launcher icon self-test failed' }
+          $exitCode = $LASTEXITCODE
+          Write-Host "Launcher self-test exit: $exitCode"
+          Add-Type -AssemblyName System.Drawing
+          $exePath = (Resolve-Path 'windows/NedelnikLauncher.exe').Path
+          try {
+            $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($exePath)
+            if ($null -eq $ico) { Write-Host 'Shell did not return embedded icon' }
+            else { Write-Host "Embedded icon: $($ico.Width)x$($ico.Height)"; $ico.Dispose() }
+          } catch { Write-Host "Icon extraction error: $_" }
+          if ($exitCode -ne 0) { throw 'The launcher icon self-test failed' }
           $appFolder = Join-Path $env:LOCALAPPDATA 'Nedelnik\source\weekly-planner'
           New-Item -ItemType Directory -Path $appFolder -Force | Out-Null
           Set-Content -Path (Join-Path $appFolder 'planner-standalone.html') -Value '<!doctype html><title>Nedelnik</title>'
