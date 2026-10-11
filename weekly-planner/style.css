@@ -333,3 +333,19 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 .week-list.view-week{gap:4px}
 }
 @media(prefers-reduced-motion:reduce){.view-animate{animation:none}}
+
+/* Accessibility and extras for the new compact workspace */
+.brand,.brand-mark{pointer-events:none}
+.stats-count{margin:17px 0 0;border:1px solid #3a454b;border-radius:9px;background:#252d30;color:#d9e1e4;font-size:13px;padding:11px 13px}
+.stats-count strong{color:#eff4f5;font-variant-numeric:tabular-nums}
+.view-day .day-detail{cursor:default}
+.view-week .day-row:focus-visible{outline:2px solid #bbc7cc;outline-offset:2px}
+@media(max-height:650px){
+ .topbar{padding-bottom:7px}
+ .week-section{margin-top:6px}
+ .week-controls{margin-bottom:7px}
+ .week-title-group h1{font-size:20px}
+ .view-week .day-row{padding:8px 7px;gap:7px}
+ .view-week .day-date{padding-bottom:6px}
+ .view-week .task-title{font-size:11px}
+}
