@@ -215,3 +215,121 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
 @media print{
 .stats-grid,.jump-date,.quiet-button,.from-library{display:none!important}
 }
+
+/* Three-level Carbon navigation: weeks / seven horizontal day columns / one day. */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+.app-shell{height:100dvh;min-height:0;overflow:hidden}
+.main-content{height:100%;max-height:100%;display:flex;flex-direction:column;padding:clamp(12px,2vh,23px) 0;overflow:hidden}
+.topbar{padding-bottom:12px;flex:none}
+.week-section{margin-top:12px;min-height:0;flex:1;display:flex;flex-direction:column}
+.week-controls{flex:none;margin-bottom:12px;align-items:center}
+.week-title-group{display:flex;align-items:center;gap:12px}
+.week-title-group h1{font-size:clamp(19px,2.3vw,28px)}
+.view-back{flex:none;display:grid;place-items:center;width:35px;height:35px;background:#22272b;color:#cdd6db;border:1px solid #485158;border-radius:9px;font-size:20px}
+.view-back:hover:not(:disabled){background:#343b40;color:#fff}
+.view-back:disabled{opacity:.3}
+.week-notes-section{flex:0 0 auto;margin-top:4px;max-height:28px}
+.week-notes-section[open]{position:fixed;right:3vw;bottom:3vh;z-index:9;background:#252a2e;border:1px solid #465059;border-radius:10px;padding:12px;max-height:240px;width:min(470px,92vw)}
+.week-notes-section[open] .week-note-input{width:100%}
+.week-notes-section[open] textarea{min-height:80px}
+.week-list{flex:1;min-height:0;max-height:100%;overflow:hidden}
+.week-list.view-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:8px}
+.view-week .day-row{min-height:0;min-width:0;height:100%;display:flex;flex-direction:column;gap:11px;padding:12px 9px;background:#191d20;border:1px solid #343a3e;border-radius:12px;overflow:hidden;cursor:pointer}
+.view-week .day-row:hover{background:#252a2d;border-color:#657079}
+.view-week .day-row.is-today{background:#242a2e;border-color:#879198}
+.view-week .day-row.is-today:before{top:8px;bottom:8px;width:2px}
+.view-week .day-row.is-weekend{background:#252529;border-color:#49494e}
+.view-week .day-row.is-weekend:hover{background:#303036;border-color:#75757d}
+.view-week .day-date{border-right:0;border-bottom:1px solid #384047;padding:0 0 12px;width:100%;display:flex;align-items:flex-start;flex-direction:column;gap:3px;min-height:0;text-align:left;background:transparent;color:inherit;cursor:pointer}
+.view-week .day-date:hover .day-number{color:#fff}
+.view-week .is-weekend .day-date{border-color:#505056}
+.view-week .day-name{font-size:11px;letter-spacing:.11em;color:#acb7be}
+.view-week .is-weekend .day-name{color:#dbb7a9}
+.view-week .day-number{font-size:clamp(20px,2.7vw,31px);margin:0;line-height:1;font-weight:750}
+.view-week .day-month{font-size:11px}
+.view-week .day-content{min-height:0;flex:1;padding:0;overflow:hidden}
+.view-week .day-task-list{display:flex;flex-direction:column;gap:9px;align-items:stretch;overflow:hidden;max-height:100%}
+.view-week .task-card{display:flex;gap:6px;align-items:flex-start;min-height:0;padding:5px 0;border-bottom:1px solid #33393e}
+.view-week .task-description{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.view-week .task-title{font-size:12px;line-height:1.35;max-width:100%;overflow-wrap:anywhere}
+.view-week .task-time,.view-week .task-fact{font-size:10px;color:#89979e;max-width:100%;width:auto;margin:0;white-space:normal;word-break:break-word;line-height:1.25}
+.view-week .task-fact{color:#abc0b0}
+.view-week .task-check{width:16px;height:16px;flex:0 0 16px;font-size:10px}
+.view-week .empty-day{font-size:11px;line-height:1.45;padding:4px;color:#87979f}
+.more-tasks{font-size:11px;color:#d7dee1;border:1px solid #434c52;border-radius:6px;padding:6px 7px;background:#2b3136;text-align:left}
+.more-tasks:hover{background:#41494f}
+.week-picker{position:relative}
+.week-picker>summary{min-width:180px;text-align:center;list-style:none;border:1px solid #535c62;border-radius:9px;background:#24292d;color:#e0e6e9;min-height:36px;padding:8px 14px;cursor:pointer;white-space:nowrap;font-size:13px}
+.week-picker>summary::-webkit-details-marker{display:none}
+.week-picker>summary:hover,.week-picker[open]>summary{background:#343b40;border-color:#9ca8b0}
+.calendar-popover{position:absolute;z-index:22;right:0;top:43px;width:306px;max-height:min(67vh,380px);padding:13px;border:1px solid #4c575e;border-radius:13px;background:#22272b;box-shadow:0 16px 45px #000b}
+.calendar-heading{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:12px}
+.calendar-heading strong{font-size:13px;letter-spacing:-.02em;text-transform:capitalize}
+.calendar-heading button,.calendar-current{color:#e4eaed;border:1px solid #424b52;background:#2d3338;border-radius:7px;padding:5px 10px}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.calendar-weekdays{font-size:10px;color:#859199;margin-bottom:6px}
+.calendar-grid .calendar-date{border:0;border-radius:7px;background:transparent;color:#dfe4e7;height:33px;font-size:12px}
+.calendar-date.outside{color:#637079}
+.calendar-date.selected{background:#465058;color:#fff}
+.calendar-date.calendar-today{outline:1px solid #a3b1ba}
+.calendar-grid .calendar-date:hover{background:#566269}
+.calendar-current{display:block;margin:11px auto 0;font-size:12px}
+.week-list.view-weeks{display:grid;grid-template-columns:1fr;grid-template-rows:repeat(6,minmax(0,1fr));gap:7px}
+.week-overview-item{display:flex;align-items:center;gap:19px;padding:5px 18px;text-align:left;border:1px solid #353c42;border-radius:11px;background:#1a1e21;color:#dfe5e9;min-height:0}
+.week-overview-item:hover,.week-overview-item.active{background:#2c3439;border-color:#65737b}
+.overview-number{font-size:26px;font-weight:730;color:#c3cdd2;font-variant-numeric:tabular-nums}
+.overview-info{display:grid;gap:3px;flex:1;min-width:0}
+.overview-info strong{font-size:14px;font-weight:650}
+.overview-info small{font-size:11px;color:#91a1aa}
+.overview-open{font-size:20px;color:#9ba9b0}
+.week-list.view-day{display:block}
+.day-detail{height:100%;display:flex;flex-direction:column;min-height:0;background:#1a1e21;border:1px solid #414b51;border-radius:14px;padding:12px 18px}
+.day-detail-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex:0 0 42px;border-bottom:1px solid #343c41;margin-bottom:7px;color:#a7b3ba}
+.day-detail-tasks{display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow:hidden}
+.day-detail-tasks .task-card{flex:1;min-height:35px;max-height:62px;padding:6px 8px;border-bottom:1px solid #333b40}
+.day-detail-tasks .task-description{display:flex;gap:13px;align-items:center}
+.day-detail-tasks .task-title{font-size:13px}
+.day-detail-tasks .task-time,.day-detail-tasks .task-fact{font-size:11px}
+.day-add-more{border:1px solid #4e5c64;color:#dce6ec;background:#2b343a;border-radius:7px;padding:6px 13px}
+.day-blank{border:1px dashed #4b5a62;border-radius:10px;color:#afbec6;background:transparent;width:100%;height:100%;min-height:120px}
+.page-controls{min-height:34px;flex:none;display:flex;gap:8px;align-items:center;justify-content:center;color:#b4c2ca}
+.page-controls button{border:1px solid #4b565d;background:#293037;color:#ecf0f1;border-radius:6px;padding:4px 13px}
+.view-animate{animation:carbon-in .22s ease-out}
+@keyframes carbon-in{from{opacity:.6;transform:translateY(5px)}to{opacity:1;transform:none}}
+.priority-indicator{flex:0 0 5px;width:5px;height:13px;border-radius:4px;background:#a7b4bc}
+.priority-high .priority-indicator{background:#e38b72}
+.priority-normal .priority-indicator{background:#8daabf}
+.priority-low .priority-indicator{background:#8bb19e}
+.status-partial .task-check{background:#5a4b2b;border-color:#e3c479;color:#f9e1a2}
+.status-done .task-check{background:#527c67;border-color:#94c0a5;color:#fff}
+.status-done .task-title{text-decoration:line-through;opacity:.53}
+.title-with-picker{display:flex;align-items:stretch;gap:6px}
+.title-with-picker input{flex:1;min-width:0}
+.picker-trigger{flex:0 0 37px;background:#30393f;border:1px solid #505d65;border-radius:8px;color:#d8e1e5;font-size:20px}
+.template-chooser{display:flex;flex-direction:column;gap:4px;background:#272e33;border:1px solid #48555e;border-radius:9px;padding:6px;max-height:146px;overflow-y:auto}
+.template-chooser button{text-align:left;border:0;background:#313b42;color:#e7eeef;border-radius:6px;padding:8px}
+.template-chooser p{font-size:12px;color:#a3afb5;padding:6px}
+.task-main-grid{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:11px}
+.main-fields{gap:11px}
+.measure-fields{display:grid;gap:5px}
+.task-dialog{width:min(600px,calc(100vw - 22px));max-height:92dvh}
+.task-dialog .dialog-content{gap:10px;padding:12px 20px;max-height:calc(92dvh - 125px)}
+.task-dialog .dialog-header{padding:13px 20px}
+.task-dialog .dialog-footer{padding:10px 20px}
+.task-dialog .advanced-content{gap:9px;padding:9px 0}
+.task-dialog .field{gap:4px}
+.task-dialog .field input,.task-dialog .field select,.task-dialog .field textarea{padding:8px 10px}
+.task-dialog .advanced-fields{padding-top:5px}
+.save-template-label{display:flex;gap:8px;align-items:center;color:#cbd6db;font-size:12px}
+.save-template-label input{accent-color:#8daabf}
+.library-dialog .library-readonly{padding:14px 16px}
+.library-dialog .library-readonly .library-name strong{font-size:14px}
+@media(max-width:800px){
+.main-content{width:calc(100% - 20px)}
+.view-week .day-row{padding:10px 6px;gap:6px}
+.view-week .task-title{font-size:10px}
+.view-week .day-number{font-size:22px}
+.view-week .day-name{font-size:10px}
+.week-list.view-week{gap:4px}
+}
+@media(prefers-reduced-motion:reduce){.view-animate{animation:none}}
