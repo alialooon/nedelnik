@@ -19,7 +19,7 @@ namespace NedelnikLauncher
 
         internal PlannerWindow()
         {
-            Text = "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a";
+            Text = "\u0417\u0430\u0434\u0430\u0447\u0438 \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e";
             Width = 1220;
             Height = 820;
             MinimumSize = new Size(750, 560);
