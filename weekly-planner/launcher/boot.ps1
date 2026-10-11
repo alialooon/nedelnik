@@ -31,6 +31,6 @@ try {
 } catch {
     "[$(Get-Date -Format s)] $($_.Exception.Message)" | Add-Content -LiteralPath $Log
     Add-Type -AssemblyName System.Windows.Forms
-    [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'Недельник — ошибка запуска') | Out-Null
+    [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'Nedelnik - launch error') | Out-Null
     exit 1
 }
