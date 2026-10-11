@@ -3,111 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#faf9f7" />
-  <meta name="description" content="Недельник — простой планировщик по дням и часам. Делайте планы, отмечайте выполненное и сохраняйте заметки." />
-  <title>Недельник — планируй легко</title>
+  <meta name="theme-color" content="#fafaf9" />
+  <meta name="description" content="Недельник — спокойный планировщик дел по дням недели." />
+  <title>Недельник — список недели</title>
   <link rel="stylesheet" href="./style.css" />
   <script type="module" src="./app.js"></script>
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar" aria-label="Боковая панель">
-      <a class="brand" href="./" aria-label="Недельник, главная">
-        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-        <span>недельник<span class="brand-period">.</span></span>
-      </a>
-      <div class="sidebar-divider"></div>
-      <div class="sidebar-section-label">ПРОСТРАНСТВО</div>
-      <nav class="side-navigation" aria-label="Навигация">
-        <button class="side-link selected" type="button" id="sideWeek"><span class="side-link-icon" aria-hidden="true">▦</span>Моя неделя<span class="side-active-dot"></span></button>
-        <button class="side-link" type="button" id="sideToday"><span class="side-link-icon" aria-hidden="true">◷</span>Перейти к сегодня</button>
-      </nav>
-      <div class="sidebar-section-label categories-label">КАТЕГОРИИ</div>
-      <div class="category-legend">
-        <button class="category-link" data-filter-category="work" type="button"><span class="color-dot work"></span>Работа</button>
-        <button class="category-link" data-filter-category="personal" type="button"><span class="color-dot personal"></span>Личное</button>
-        <button class="category-link" data-filter-category="study" type="button"><span class="color-dot study"></span>Учёба</button>
-        <button class="category-link" data-filter-category="health" type="button"><span class="color-dot health"></span>Здоровье</button>
-        <button class="category-link" data-filter-category="other" type="button"><span class="color-dot other"></span>Другое</button>
-      </div>
-      <div class="sidebar-spacer"></div>
-      <div class="sidebar-progress" aria-live="polite">
-        <div class="sidebar-progress-caption">НА ЭТОЙ НЕДЕЛЕ</div>
-        <div class="sidebar-progress-count"><span id="sidebarCompleted">0</span><span class="progress-total"> / <span id="sidebarTotal">0</span> дел</span></div>
-        <div class="progress-track"><div id="sidebarProgress" class="progress-fill" style="width:0%"></div></div>
-        <p id="sidebarMessage">Каждое дело — маленький шаг вперёд.</p>
-      </div>
-      <div class="sidebar-footer"><span class="privacy-indicator" aria-hidden="true">●</span> Ваши данные остаются в браузере</div>
-    </aside>
-
     <main class="main-content">
-      <div class="topbar">
-        <div class="eyebrow">УДОБНОЕ ПРОСТРАНСТВО ДЛЯ ВАШИХ ПЛАНОВ <span class="eyebrow-star">✳</span></div>
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Недельник — главная">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          <span>Недельник<span class="brand-period">.</span></span>
+        </a>
         <div class="topbar-actions">
-          <button class="icon-button" id="themeToggle" type="button" title="Сменить тему" aria-label="Сменить тему">☾</button>
-          <div class="topbar-separator"></div>
-          <button class="link-button" id="exportButton" type="button" title="Скачать резервную копию">↓ <span>Экспорт</span></button>
-          <button class="link-button" id="importButton" type="button" title="Восстановить резервную копию">↑ <span>Импорт</span></button>
+          <button class="primary-button" id="newTaskButton" type="button"><span aria-hidden="true">+</span> Новое дело</button>
+          <details class="more-menu" id="moreMenu">
+            <summary aria-label="Дополнительные действия" title="Дополнительные действия">···</summary>
+            <div class="menu-panel">
+              <button id="filtersToggle" type="button" aria-expanded="false">Поиск и фильтры</button>
+              <button id="themeToggle" type="button">Тёмная тема</button>
+              <div class="menu-divider"></div>
+              <button id="exportButton" type="button">Экспорт данных</button>
+              <button id="importButton" type="button">Импорт данных</button>
+            </div>
+          </details>
           <input type="file" id="importFile" accept="application/json,.json" hidden />
         </div>
-      </div>
-
-      <header class="welcome">
-        <div>
-          <p class="today-caption" id="todayCaption">Ваш план на неделю</p>
-          <h1>Планы, которые <em>сбываются.</em></h1>
-          <p class="welcome-subtitle">Место для важных дел и маленьких побед.</p>
-        </div>
-        <button class="primary-button big" type="button" id="newTaskButton"><span class="button-plus">+</span> Новое дело</button>
       </header>
 
       <section class="week-section" aria-labelledby="weekTitle">
         <div class="week-controls">
-          <div class="week-title-group"><span class="section-kicker">МОЯ НЕДЕЛЯ</span><h2 id="weekTitle">Неделя</h2></div>
-          <div class="week-arrows"><button class="today-button" id="goToday" type="button">Сегодня</button><button class="arrow-button" id="previousWeek" aria-label="Предыдущая неделя" type="button">←</button><button class="arrow-button" id="nextWeek" aria-label="Следующая неделя" type="button">→</button></div>
-        </div>
-
-        <div class="stats-row" aria-label="Статистика недели">
-          <div class="stat-card"><span class="stat-symbol lavender">▦</span><div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Запланировано</div></div></div>
-          <div class="stat-card"><span class="stat-symbol mint">✓</span><div><div class="stat-number" id="statDone">0</div><div class="stat-label">Выполнено</div></div></div>
-          <div class="stat-card"><span class="stat-symbol peach">◷</span><div><div class="stat-number" id="statHours">0 ч</div><div class="stat-label">В планах</div></div></div>
-          <div class="stat-card stat-accent"><div class="stat-accent-heading">Ваш прогресс <span aria-hidden="true">↗</span></div><div class="stat-accent-value" id="statPercent">0%</div><div class="mini-progress"><span id="miniProgress"></span></div></div>
-        </div>
-
-        <div class="calendar-toolbar">
-          <div class="calendar-label"><span class="tiny-square"></span><h3>Расписание</h3><span class="calendar-hint">Нажмите на дело, чтобы изменить</span></div>
-          <div class="filters">
-            <label class="searchbox"><span aria-hidden="true">⌕</span><input type="search" id="searchInput" placeholder="Поиск по делам..." aria-label="Поиск по делам" /></label>
-            <select id="categoryFilter" aria-label="Фильтр по категории"><option value="all">Все категории</option><option value="work">Работа</option><option value="personal">Личное</option><option value="study">Учёба</option><option value="health">Здоровье</option><option value="other">Другое</option></select>
-            <label class="completed-filter"><input type="checkbox" id="hideCompleted" /> <span>Скрыть готовые</span></label>
+          <div class="week-title-group"><p class="section-kicker">Моя неделя</p><h1 id="weekTitle">Неделя</h1></div>
+          <div class="week-arrows">
+            <button class="arrow-button" id="previousWeek" aria-label="Предыдущая неделя" type="button">←</button>
+            <button class="today-button" id="goToday" type="button">Сегодня</button>
+            <button class="arrow-button" id="nextWeek" aria-label="Следующая неделя" type="button">→</button>
           </div>
         </div>
-        <div id="weekBoard" class="week-grid" aria-live="polite"></div>
+
+        <div class="filters-panel" id="filtersPanel" hidden>
+          <label class="searchbox"><span aria-hidden="true">⌕</span><input type="search" id="searchInput" placeholder="Найти дело..." aria-label="Поиск по делам" /></label>
+          <select id="categoryFilter" aria-label="Фильтр по категории">
+            <option value="all">Все категории</option><option value="work">Работа</option><option value="personal">Личное</option><option value="study">Учёба</option><option value="health">Здоровье</option><option value="other">Другое</option>
+          </select>
+          <label class="completed-filter"><input type="checkbox" id="hideCompleted" /> Скрыть выполненные</label>
+        </div>
+        <div class="week-list" id="weekBoard" aria-live="polite"></div>
       </section>
 
-      <section class="week-notes-section" aria-label="Заметка к неделе">
-        <div class="week-notes-icon" aria-hidden="true">✎</div>
-        <div class="week-notes-body"><h3>Мысли на неделю</h3><p>Идеи, напоминания и всё, что важно не забыть.</p><textarea id="weekNote" rows="2" placeholder="Например: не забыть выделить время на отдых..." aria-label="Заметка к неделе"></textarea><div class="autosave-note" id="saveStatus">Сохраняется автоматически</div></div>
-      </section>
-      <footer class="main-footer"><span>Создано для спокойных и продуктивных недель ✳</span><span>Совет: нажмите <kbd>N</kbd>, чтобы быстро добавить дело</span></footer>
+      <details class="week-notes-section">
+        <summary>Заметка к неделе</summary>
+        <div class="week-note-input"><textarea id="weekNote" rows="3" maxlength="10000" placeholder="Что важно помнить на этой неделе?" aria-label="Заметка к неделе"></textarea><span class="autosave-note" id="saveStatus">Сохраняется автоматически</span></div>
+      </details>
     </main>
   </div>
 
   <dialog id="taskDialog" class="task-dialog" aria-labelledby="dialogHeading">
     <form id="taskForm" novalidate>
-      <div class="dialog-header"><div><p class="section-kicker">ВАШЕ РАСПИСАНИЕ</p><h2 id="dialogHeading">Новое дело</h2></div><button type="button" class="dialog-close" id="closeDialog" aria-label="Закрыть">×</button></div>
+      <div class="dialog-header"><h2 id="dialogHeading">Новое дело</h2><button class="dialog-close" type="button" id="closeDialog" aria-label="Закрыть">×</button></div>
       <div class="dialog-content">
-        <label class="field"><span>Название дела <span class="required">*</span></span><input id="taskTitle" type="text" maxlength="120" placeholder="Например, прогулка после работы" required autocomplete="off" /></label>
-        <div class="field-row"><label class="field"><span>Дата <span class="required">*</span></span><input id="taskDate" type="date" required /></label><label class="field"><span>Категория</span><select id="taskCategory"><option value="work">Работа</option><option value="personal">Личное</option><option value="study">Учёба</option><option value="health">Здоровье</option><option value="other">Другое</option></select></label></div>
-        <div class="field-row"><label class="field"><span>Начало <span class="required">*</span></span><input id="taskStart" type="time" value="09:00" required /></label><label class="field"><span>Окончание <span class="required">*</span></span><input id="taskEnd" type="time" value="10:00" required /></label></div>
-        <div class="field-row"><label class="field"><span>Важность</span><select id="taskPriority"><option value="normal">Обычное</option><option value="high">Важное ★</option></select></label><label class="field"><span>Повторение</span><select id="taskRepeat"><option value="none">Не повторять</option><option value="weekly">Каждую неделю</option></select></label></div>
-        <label class="field"><span>Комментарий / заметка</span><textarea id="taskNotes" rows="3" maxlength="5000" placeholder="Любые детали, ссылка, что нужно подготовить..."></textarea></label>
-        <p class="recurrence-hint" id="recurrenceHint" hidden>Это повторяющееся дело. Изменения применятся ко всей серии, а дата задаёт начало повторения.</p>
+        <label class="field"><span>Название дела <span class="required">*</span></span><input id="taskTitle" type="text" maxlength="120" placeholder="Что нужно сделать?" autocomplete="off" required /></label>
+        <label class="field"><span>Дата <span class="required">*</span></span><input id="taskDate" type="date" required /></label>
+        <div class="field-row">
+          <label class="field"><span>С <span class="required">*</span></span><input id="taskStart" type="time" value="09:00" required /></label>
+          <label class="field"><span>До <span class="required">*</span></span><input id="taskEnd" type="time" value="10:00" required /></label>
+        </div>
+        <details id="advancedFields" class="advanced-fields">
+          <summary>Дополнительно <span>Комментарий, повторение, категория</span></summary>
+          <div class="advanced-content">
+            <label class="field"><span>Комментарий</span><textarea id="taskNotes" rows="3" maxlength="5000" placeholder="Детали дела..."></textarea></label>
+            <div class="field-row">
+              <label class="field"><span>Категория</span><select id="taskCategory"><option value="work">Работа</option><option value="personal">Личное</option><option value="study">Учёба</option><option value="health">Здоровье</option><option value="other">Другое</option></select></label>
+              <label class="field"><span>Важность</span><select id="taskPriority"><option value="normal">Обычное</option><option value="high">Важное</option></select></label>
+            </div>
+            <label class="field"><span>Повторение</span><select id="taskRepeat"><option value="none">Не повторять</option><option value="weekly">Каждую неделю</option></select></label>
+            <p class="recurrence-hint" id="recurrenceHint" hidden>Изменение повторяющегося дела затронет всю серию.</p>
+          </div>
+        </details>
         <p class="form-error" id="formError" role="alert" hidden></p>
       </div>
-      <div class="dialog-footer"><button type="button" class="danger-button" id="deleteTask" hidden>Удалить дело</button><div class="dialog-footer-actions"><button type="button" class="secondary-button" id="cancelTask">Отмена</button><button type="submit" class="primary-button" id="saveTask">Сохранить дело</button></div></div>
+      <div class="dialog-footer"><button class="danger-button" id="deleteTask" type="button" hidden>Удалить</button><div class="dialog-footer-actions"><button class="secondary-button" id="cancelTask" type="button">Отмена</button><button class="primary-button" id="saveTask" type="submit">Сохранить</button></div></div>
     </form>
   </dialog>
-  <div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastMessage"></span><button type="button" id="toastUndo" hidden>Отменить</button><button type="button" class="toast-close" id="toastClose" aria-label="Закрыть уведомление">×</button></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastMessage"></span><button id="toastUndo" type="button" hidden>Отменить</button><button class="toast-close" id="toastClose" type="button" aria-label="Закрыть уведомление">×</button></div>
 </body>
 </html>
