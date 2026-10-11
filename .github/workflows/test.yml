@@ -16,20 +16,28 @@ jobs:
       - name: Run planner logic tests
         run: node --test weekly-planner/tests/*.test.mjs
 
-  windows-powershell:
+  windows-launcher:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate scripts using Windows PowerShell 5.1
-        shell: powershell
+      - name: Confirm launcher does not invoke hidden PowerShell
+        shell: pwsh
         run: |
-          $paths = @('weekly-planner/launcher/install_launcher.ps1', 'weekly-planner/launcher/boot.ps1', 'weekly-planner/launcher/open.ps1')
+          $paths = @('install_nedelnik.bat', 'weekly-planner/launcher/start.cmd')
           foreach ($path in $paths) {
-            $tokens = $null
-            $errors = $null
-            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
-            if ($errors.Count -gt 0) {
-              $errors | Out-String | Write-Error
-              exit 1
+            $content = Get-Content -Raw $path
+            if ($content -match '(?i)powershell\.exe|executionpolicy\s+bypass|windowstyle\s+hidden') {
+              throw "Disallowed legacy launcher behavior in $path"
             }
           }
+      - name: Smoke-test launcher in Windows cmd
+        shell: pwsh
+        run: |
+          $local = Join-Path $env:RUNNER_TEMP 'NedelnikSmoke'
+          $pageDir = Join-Path $local 'Nedelnik\source\weekly-planner'
+          New-Item -ItemType Directory -Force -Path $pageDir | Out-Null
+          Set-Content -Path (Join-Path $pageDir 'planner-standalone.html') -Value '<!doctype html><title>Test</title>'
+          $env:LOCALAPPDATA = $local
+          $env:NEDELNIK_TEST_MODE = '1'
+          & cmd.exe /d /c 'weekly-planner\launcher\start.cmd'
+          if ($LASTEXITCODE -ne 0) { throw "Launcher exited with code $LASTEXITCODE" }
