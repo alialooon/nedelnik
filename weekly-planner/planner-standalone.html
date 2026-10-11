@@ -343,6 +343,22 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 }
 @media(prefers-reduced-motion:reduce){.view-animate{animation:none}}
 
+/* Accessibility and extras for the new compact workspace */
+.brand,.brand-mark{pointer-events:none}
+.stats-count{margin:17px 0 0;border:1px solid #3a454b;border-radius:9px;background:#252d30;color:#d9e1e4;font-size:13px;padding:11px 13px}
+.stats-count strong{color:#eff4f5;font-variant-numeric:tabular-nums}
+.view-day .day-detail{cursor:default}
+.view-week .day-row:focus-visible{outline:2px solid #bbc7cc;outline-offset:2px}
+@media(max-height:650px){
+ .topbar{padding-bottom:7px}
+ .week-section{margin-top:6px}
+ .week-controls{margin-bottom:7px}
+ .week-title-group h1{font-size:20px}
+ .view-week .day-row{padding:8px 7px;gap:7px}
+ .view-week .day-date{padding-bottom:6px}
+ .view-week .task-title{font-size:11px}
+}
+
   </style>
 </head>
 <body>
@@ -592,8 +608,12 @@ function timeStats(occurrences) {
   const measured=occurrences.filter(t=>Number.isInteger(t.actualMinutes)).length;
   const done=occurrences.filter(t=>t.done).length;
   const partial=occurrences.filter(t=>t.status==='partial').length;
-  return {plan,fact,measured,total:occurrences.length,done,partial,completion:occurrences.length?Math.round((done+partial*0.5)/occurrences.length*100):0,
-    timeRatio:plan>0?Math.round(fact/plan*100):null};
+  const countPlan=occurrences.reduce((sum,t)=>sum+(t.measureMode==='count'?t.targetCount||0:0),0);
+  const countFact=occurrences.reduce((sum,t)=>sum+(t.measureMode==='count'?t.actualCount||0:0),0);
+  const countMeasured=occurrences.filter(t=>t.measureMode==='count'&&Number.isInteger(t.actualCount)).length;
+  return {plan,fact,measured,total:occurrences.length,done,partial,countPlan,countFact,countMeasured,
+    completion:occurrences.length?Math.round((done+partial*0.5)/occurrences.length*100):0,
+    timeRatio:plan>0&&measured>0?Math.round(fact/plan*100):null};
 }
 function createFromTemplate(template,date,id) {
   return {id,title:template.title,date,start:'',end:'',plannedMinutes:template.plannedMinutes??0,
@@ -980,9 +1000,10 @@ function submitTask(event) {
       priority:payload.priority,plannedMinutes:planned||0,measureMode:mode,
       targetCount,notes:payload.notes});
   }
+  const navigationDate=payload.repeat==='weekly'?factDate:payload.date;
   closeTask();save();
-  monday=startOfWeek(factDate);
-  if(viewMode==='day')selectedDay=factDate;
+  monday=startOfWeek(navigationDate);
+  if(viewMode==='day')selectedDay=navigationDate;
   render();showToast('Задача сохранена');
 }
 function toggleTask(id,date) {
@@ -1070,7 +1091,10 @@ function renderStats() {
     +'<div class="stats-metric"><small>Факт от плана</small><strong>'+(summary.timeRatio===null?'—':summary.timeRatio+'%')+'</strong><span>'
     +(summary.measured?'Записано: '+summary.measured+' дел':'Пока нет данных')+'</span></div>'
     +'<div class="stats-metric"><small>Выполнено</small><strong>'+summary.completion+'%</strong><span>'+summary.done+' из '+summary.total+' дел</span></div>'
-    +'</div><h3 class="stat-subheading">По дням <small>план / факт</small></h3>'+dayRows
+    +'</div>'+(summary.countPlan>0?'<p class="stats-count">Повторения: план <strong>'
+      +summary.countPlan+'</strong>, факт <strong>'+(summary.countMeasured?summary.countFact:'—')
+      +'</strong></p>':'')
+    +'<h3 class="stat-subheading">По дням <small>план / факт</small></h3>'+dayRows
     +'<p class="stats-footnote">Минуты переводятся в часы: 90 мин = 1 ч 30 мин = 1,5 ч. Если факт не записан, время не учитывается.</p>';
 }
 function openStats() {
@@ -1153,8 +1177,13 @@ $('weekBoard').addEventListener('click',event=>{
   }
   // The empty surface of any week column creates a task in that day's date.
   const col=event.target.closest('.view-week .day-row');
-  if(col&&!event.target.closest('button,input,textarea,select,details,summary'))
-    openTask(null,null,col.dataset.date);
+  if(col&&!event.target.closest('button,input,textarea,select,details,summary')){
+    openTask(null,null,col.dataset.date);return;
+  }
+  if(viewMode==='day'&&event.target.closest('.day-detail')
+    &&!event.target.closest('button,input,textarea,select,details,summary')){
+    openTask(null,null,selectedDay);
+  }
 });
 $('weekBoard').addEventListener('keydown',event=>{
   if(!['Enter',' '].includes(event.key)||event.target.tagName!=='SECTION')return;
