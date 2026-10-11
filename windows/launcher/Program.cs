@@ -234,7 +234,7 @@ namespace NedelnikLauncher
 
         internal LauncherForm()
         {
-            Text = "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a";
+            Text = "\u0417\u0430\u0434\u0430\u0447\u0438 \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e";
             ClientSize = new Size(540, 320);
             BackColor = Color.FromArgb(16, 18, 20);
             Font = new Font("Segoe UI", 10, FontStyle.Regular);
