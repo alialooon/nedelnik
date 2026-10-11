@@ -1,6 +1,7 @@
 import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrencesForWeek, weekStats, validateTask, blankData, sanitizeBackup } from './logic.mjs';
 
 const STORAGE_KEY = 'nedelnik-planner-v1';
+const SHORT_WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const $ = id => document.getElementById(id);
 const today = () => toISO(new Date());
 let data = load();
@@ -15,7 +16,8 @@ let autosaveTimer = null;
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? sanitizeBackup(JSON.parse(raw)) : blankData();
+    // Carbon+ is dark by design; retain all tasks and notes when upgrading.
+    return { ...(raw ? sanitizeBackup(JSON.parse(raw)) : blankData()), theme:'dark' };
   } catch (error) {
     console.warn('Невозможно прочитать сохранённые данные:', error);
     return blankData();
@@ -59,9 +61,7 @@ function render() {
   const all = allOccurrences(), visible = filteredOccurrences();
   $('weekTitle').textContent = formatWeek(monday);
   $('weekNote').value = data.weekNotes[monday] || '';
-  document.documentElement.dataset.theme = data.theme;
-  $('themeToggle').textContent = data.theme === 'light' ? 'Тёмная тема' : 'Светлая тема';
-  $('themeToggle').setAttribute('aria-label', data.theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему');
+  document.documentElement.dataset.theme = 'dark';
 
   $('weekBoard').innerHTML = Array.from({length:7}, (_, i) => {
     const iso = addDays(monday, i);
@@ -69,11 +69,14 @@ function render() {
     const hasFilteredTasks = all.some(t => t.occurrenceDate === iso);
     const current = iso === today();
     const dayNote = data.dayNotes[iso] || '';
-    const dateLabel = parseDate(iso).toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+    const dateValue = parseDate(iso);
+    const dateNumber = dateValue.getDate();
+    const dateMonth = dateValue.toLocaleDateString('ru-RU', {month:'short'}).replace('.', '');
     return `<section class="day-row ${current?'is-today':''}" aria-label="${WEEKDAYS[i]}, ${formatDay(iso)}">
       <div class="day-date">
-        <span class="day-name">${WEEKDAYS[i]}</span>
-        <span class="day-month">${dateLabel}</span>
+        <span class="day-name">${SHORT_WEEKDAYS[i]}</span>
+        <span class="day-number">${dateNumber}</span>
+        <span class="day-month">${dateMonth}</span>
         ${current?'<span class="today-tag">Сегодня</span>':''}
       </div>
       <div class="day-content">
@@ -183,7 +186,7 @@ async function importData(file) {
     if (file.size > 5_000_000) throw new Error('Файл слишком большой (максимум 5 МБ).');
     const restored = sanitizeBackup(JSON.parse(await file.text()));
     if (!confirm(`Заменить текущие данные? В файле ${restored.tasks.length} дел. Текущие планы будут перезаписаны.`)) return;
-    data = restored; filters = { category:'all',search:'',hideCompleted:false };
+    data = { ...restored, theme:'dark' }; filters = { category:'all',search:'',hideCompleted:false };
     $('categoryFilter').value='all'; $('searchInput').value=''; $('hideCompleted').checked=false;
     monday=startOfWeek(today()); save(); render(); showToast('Резервная копия восстановлена');
   } catch(error) { showToast(`Ошибка импорта: ${error.message}`); }
@@ -229,10 +232,6 @@ $('taskDialog').addEventListener('click',event=>{if(event.target===$('taskDialog
 $('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;exportData();});
 $('importButton').addEventListener('click',()=>{$('moreMenu').open=false;$('importFile').click();});
 $('importFile').addEventListener('change',event=>importData(event.target.files?.[0]));
-$('themeToggle').addEventListener('click',()=>{
-  $('moreMenu').open=false;
-  data.theme=data.theme==='dark'?'light':'dark';save();render();
-});
 $('toastUndo').addEventListener('click',()=>{
   if(!undoTask)return;
   data.tasks.splice(Math.min(undoTask.index,data.tasks.length),0,undoTask.task);
