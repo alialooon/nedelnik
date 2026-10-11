@@ -57,47 +57,84 @@ function filteredOccurrences() {
     (!filters.search || `${task.title} ${task.notes}`.toLocaleLowerCase('ru').includes(filters.search))
   );
 }
-let calendarMonth = monday;
-let selectedDay = monday;
+let calendarMonth=monday;
+let selectedDay=today();
+let viewMode='week'; // weeks -> week -> day
+let overviewAnchor=startOfWeek(addDays(monday,-14));
+let dayPage=0;
 function periodLabel(first) {
   const last=addDays(first,6),a=parseDate(first),b=parseDate(last);
-  const label = d=>d.toLocaleDateString('ru-RU',{month:'long'});
+  const month=d=>d.toLocaleDateString('ru-RU',{month:'long'});
   return a.getMonth()===b.getMonth() ?
-    a.getDate()+'–'+b.getDate()+' '+label(b):
-    a.getDate()+' '+label(a)+' – '+b.getDate()+' '+label(b);
+    a.getDate()+'–'+b.getDate()+' '+month(b):
+    a.getDate()+' '+month(a)+' – '+b.getDate()+' '+month(b);
 }
 function renderCalendar() {
   const month=parseDate(calendarMonth),first=new Date(month.getFullYear(),month.getMonth(),1,12);
-  const firstDate=startOfWeek(toISO(first));
+  const start=startOfWeek(toISO(first));
   $('calendarMonthLabel').textContent=first.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
   $('calendarGrid').innerHTML=Array.from({length:42},(_,i)=>{
-    const iso=addDays(firstDate,i),d=parseDate(iso),same=d.getMonth()===first.getMonth();
-    const selected=startOfWeek(iso)===monday;
-    return '<button type="button" class="calendar-date '+(same?'':'outside ') +(selected?'selected ':'')
-      +(iso===today()?'calendar-today':'')+'" data-calendar-date="'+iso
-      +'" aria-label="'+formatDay(iso)+'">'+d.getDate()+'</button>';
+    const iso=addDays(start,i),d=parseDate(iso),current=d.getMonth()===first.getMonth();
+    return '<button type="button" class="calendar-date '+(current?'':'outside ')
+      +(startOfWeek(iso)===monday?'selected ':'')+(iso===today()?'calendar-today':'')
+      +'" data-calendar-date="'+iso+'" aria-label="'+formatDay(iso)+'">'+d.getDate()+'</button>';
   }).join('');
 }
 function render() {
   const all=allOccurrences(),visible=filteredOccurrences();
-  $('weekTitle').textContent=formatWeek(monday);
+  const board=$('weekBoard');
+  board.className='week-list view-'+viewMode+' view-animate';
   $('weekPickerSummary').textContent=periodLabel(monday);
   $('weekNote').value=data.weekNotes[monday]||'';
+  $('viewCaption').textContent=viewMode==='day'?'Выбранный день':viewMode==='weeks'?'Обзор':'Моя неделя';
+  $('weekTitle').textContent=viewMode==='day'?formatDay(selectedDay)
+    :viewMode==='weeks'?'Выберите неделю':formatWeek(monday);
+  $('backView').disabled=viewMode==='weeks';
   document.documentElement.dataset.theme='dark';
-  $('weekBoard').innerHTML=Array.from({length:7},(_,i)=>{
-    const iso=addDays(monday,i),day=parseDate(iso);
-    const tasks=visible.filter(t=>t.occurrenceDate===iso),shown=tasks.slice(0,2);
-    const hasFilteredTasks=all.some(t=>t.occurrenceDate===iso);
-    return '<section class="day-row '+(iso===today()?'is-today':'')
-      +'" tabindex="0" data-date="'+iso+'" aria-label="'+WEEKDAYS[i]+' '+formatDay(iso)+'. Нажмите для добавления задачи.">'
-      +'<div class="day-date"><span class="day-name">'+SHORT_WEEKDAYS[i]+'</span>'
-      +'<span class="day-number">'+day.getDate()+'</span>'
-      +'<span class="day-month">'+day.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')+'</span>'
-      +'</div><div class="day-content"><div class="day-task-list">'
-      +(shown.length?shown.map(taskCard).join(''):'<span class="empty-day">'+(hasFilteredTasks?'Нет дел по фильтру':'Нажмите, чтобы добавить')+'</span>')
-      +(tasks.length>2?'<button class="more-tasks" type="button" data-action="day" data-date="'+iso+'">Ещё '+(tasks.length-2)+' дел</button>':'')
-      +'</div></div></section>';
-  }).join('');
+  $('weekPicker').hidden=viewMode==='weeks';
+  if(viewMode==='weeks') {
+    board.innerHTML=Array.from({length:6},(_,i)=>{
+      const first=addDays(overviewAnchor,i*7),tasks=occurrencesForWeek(data.tasks,first);
+      const last=addDays(first,6),active=first===monday;
+      return '<button type="button" class="week-overview-item '+(active?'active':'')
+        +'" data-action="select-week" data-date="'+first+'"><span class="overview-number">'
+        +String(parseDate(first).getDate()).padStart(2,'0')+'</span><span class="overview-info">'
+        +'<strong>'+periodLabel(first)+'</strong><small>'+tasks.length+' дел · '
+        +tasks.filter(t=>t.done).length+' выполнено</small></span><span class="overview-open">→</span></button>';
+    }).join('');
+  } else if(viewMode==='day') {
+    const tasks=visible.filter(t=>t.occurrenceDate===selectedDay);
+    const pageSize=Math.max(3,Math.min(9,Math.floor((window.innerHeight-300)/52)));
+    const pages=Math.max(1,Math.ceil(tasks.length/pageSize));
+    dayPage=Math.min(dayPage,pages-1);
+    const page=tasks.slice(dayPage*pageSize,(dayPage+1)*pageSize);
+    board.innerHTML='<section class="day-detail">'
+      +'<div class="day-detail-head"><span>'+WEEKDAYS[(parseDate(selectedDay).getDay()+6)%7]
+      +'</span><button type="button" class="day-add-more" data-action="add" data-date="'+selectedDay+'">+ Задача</button></div>'
+      +'<div class="day-detail-tasks">'+(page.length?page.map(taskCard).join('')
+       :'<button type="button" class="day-blank" data-action="add" data-date="'+selectedDay+'">Нажмите, чтобы добавить задачу</button>')
+      +'</div><div class="page-controls">'
+      +(pages>1?'<button type="button" data-action="page-prev" '+(dayPage===0?'disabled':'')+'>←</button>'
+       +'<span>'+(dayPage+1)+' / '+pages+'</span><button type="button" data-action="page-next" '
+       +(dayPage===pages-1?'disabled':'')+'>→</button>':'')
+      +'</div></section>';
+  } else {
+    board.innerHTML=Array.from({length:7},(_,i)=>{
+      const iso=addDays(monday,i),day=parseDate(iso);
+      const tasks=visible.filter(t=>t.occurrenceDate===iso),shown=tasks.slice(0,2);
+      return '<section class="day-row '+(i>=5?'is-weekend ':'')+(iso===today()?'is-today':'')
+        +'" data-date="'+iso+'" tabindex="0" aria-label="'+WEEKDAYS[i]+', '+formatDay(iso)+'. Пустое место: новая задача.">'
+        +'<button type="button" class="day-date" data-action="day" data-date="'+iso+'">'
+        +'<span class="day-name">'+SHORT_WEEKDAYS[i]+'</span>'
+        +'<span class="day-number">'+day.getDate()+'</span>'
+        +'<span class="day-month">'+day.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')+'</span>'
+        +'</button><div class="day-content"><div class="day-task-list">'
+        +(shown.length?shown.map(taskCard).join(''):'<span class="empty-day">+ Задача</span>')
+        +(tasks.length>2?'<button class="more-tasks" type="button" data-action="day" data-date="'+iso+'">Ещё '+(tasks.length-2)+'</button>':'')
+        +'</div></div></section>';
+    }).join('');
+  }
+  renderCalendar();
 }
 function taskCard(t) {
   const mode=t.measureMode||'duration';
