@@ -36,11 +36,11 @@ jobs:
       - name: Check executable icon and shortcut target
         shell: pwsh
         run: |
-          & .\windows\NedelnikLauncher.exe --self-test
-          $exitCode = $LASTEXITCODE
+          $exePath = (Resolve-Path 'windows/NedelnikLauncher.exe').Path
+          $check = Start-Process -FilePath $exePath -ArgumentList '--self-test' -Wait -PassThru
+          $exitCode = $check.ExitCode
           Write-Host "Launcher self-test exit: $exitCode"
           Add-Type -AssemblyName System.Drawing
-          $exePath = (Resolve-Path 'windows/NedelnikLauncher.exe').Path
           try {
             $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($exePath)
             if ($null -eq $ico) { Write-Host 'Shell did not return embedded icon' }
@@ -50,8 +50,8 @@ jobs:
           $appFolder = Join-Path $env:LOCALAPPDATA 'Nedelnik\source\weekly-planner'
           New-Item -ItemType Directory -Path $appFolder -Force | Out-Null
           Set-Content -Path (Join-Path $appFolder 'planner-standalone.html') -Value '<!doctype html><title>Nedelnik</title>'
-          & .\windows\NedelnikLauncher.exe --install
-          if ($LASTEXITCODE -ne 0) { throw 'Windows shortcut installation failed' }
+          $install = Start-Process -FilePath $exePath -ArgumentList '--install' -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Windows shortcut installation failed: $($install.ExitCode)" }
           $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Недельник\Недельник.lnk'
           if (-not (Test-Path $menu)) { throw 'Nedelnik shortcut not found' }
           $shell = New-Object -ComObject WScript.Shell
