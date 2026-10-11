@@ -104,8 +104,12 @@ export function timeStats(occurrences) {
   const measured=occurrences.filter(t=>Number.isInteger(t.actualMinutes)).length;
   const done=occurrences.filter(t=>t.done).length;
   const partial=occurrences.filter(t=>t.status==='partial').length;
-  return {plan,fact,measured,total:occurrences.length,done,partial,completion:occurrences.length?Math.round((done+partial*0.5)/occurrences.length*100):0,
-    timeRatio:plan>0?Math.round(fact/plan*100):null};
+  const countPlan=occurrences.reduce((sum,t)=>sum+(t.measureMode==='count'?t.targetCount||0:0),0);
+  const countFact=occurrences.reduce((sum,t)=>sum+(t.measureMode==='count'?t.actualCount||0:0),0);
+  const countMeasured=occurrences.filter(t=>t.measureMode==='count'&&Number.isInteger(t.actualCount)).length;
+  return {plan,fact,measured,total:occurrences.length,done,partial,countPlan,countFact,countMeasured,
+    completion:occurrences.length?Math.round((done+partial*0.5)/occurrences.length*100):0,
+    timeRatio:plan>0&&measured>0?Math.round(fact/plan*100):null};
 }
 export function createFromTemplate(template,date,id) {
   return {id,title:template.title,date,start:'',end:'',plannedMinutes:template.plannedMinutes??0,
