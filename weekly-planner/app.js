@@ -309,14 +309,21 @@ function submitTask(event) {
   render();showToast('Задача сохранена');
 }
 function toggleTask(id,date) {
-  const task = data.tasks.find(t=>t.id===id);
-  if (!task) return;
-  if (task.repeat==='weekly') {
-    const done = new Set(task.completedDates || []);
-    if (done.has(date)) done.delete(date); else done.add(date);
-    task.completedDates = [...done].sort();
-  } else task.completed = !task.completed;
-  save(); render();
+  const task=data.tasks.find(t=>t.id===id);
+  if(!task)return;
+  const current=task.repeat==='weekly'
+    ?(task.statusByDate?.[date]??((task.completedDates||[]).includes(date)?'done':'todo'))
+    :(task.status??(task.completed?'done':'todo'));
+  const next=current==='todo'?'partial':current==='partial'?'done':'todo';
+  if(task.repeat==='weekly'){
+    task.statusByDate={...(task.statusByDate||{}),[date]:next};
+    const done=new Set(task.completedDates||[]);
+    if(next==='done')done.add(date);else done.delete(date);
+    task.completedDates=[...done].sort();
+  }else{
+    task.status=next;task.completed=next==='done';
+  }
+  save();render();
 }
 function removeTask(id) {
   const index = data.tasks.findIndex(t=>t.id===id);
@@ -358,46 +365,17 @@ function goToWeek(date) {
   monday=startOfWeek(date);
   render();
 }
-function openLibrary(date) {
-  $('libraryDate').value=date||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
-  $('libraryForm').reset();$('libraryError').hidden=true;
+function openLibrary() {
   renderLibrary();openModal('libraryDialog');
 }
 function renderLibrary() {
-  $('libraryList').innerHTML=data.templates.length?data.templates.map(t=>
-    '<div class="library-item"><div class="library-name"><strong>'+escapeHTML(t.title)
-    +'</strong><small>'+(t.plannedMinutes>0?'План: '+formatMinutes(t.plannedMinutes):'Без времени')
-    +'</small></div><button type="button" class="secondary-button" data-template-action="add" data-template-id="'
-    +escapeHTML(t.id)+'">В день</button><button type="button" class="library-delete" data-template-action="delete" data-template-id="'
-    +escapeHTML(t.id)+'" aria-label="Удалить '+escapeHTML(t.title)+'">×</button></div>').join('')
-    :'<p class="library-empty">Список пока пуст. Сохрани привычное дело ниже и добавляй его в любой день.</p>';
-}
-function addLibraryTemplate(event) {
-  event.preventDefault();
-  const title=$('libraryTitle').value.trim(),planned=readDuration('libraryHours','libraryMinutes');
-  if(!title||title.length>120||Number.isNaN(planned)){
-    $('libraryError').textContent='Укажите название и корректную длительность.';
-    $('libraryError').hidden=false;return;
-  }
-  data.templates.push({id:uid(),title,notes:'',category:'other',priority:'normal',plannedMinutes:planned??0});
-  $('libraryForm').reset();$('libraryError').hidden=true;
-  save();renderLibrary();showToast('Дело сохранено в общем списке');
-}
-function onLibraryAction(event) {
-  const button=event.target.closest('button[data-template-action]');
-  if(!button)return;
-  const t=data.templates.find(v=>v.id===button.dataset.templateId);
-  if(!t)return;
-  if(button.dataset.templateAction==='delete') {
-    if(!confirm('Удалить «'+t.title+'» из общего списка? Запланированные дела останутся.'))return;
-    data.templates=data.templates.filter(v=>v.id!==t.id);
-    save();renderLibrary();return;
-  }
-  const date=$('libraryDate').value;
-  if(!parseDate(date)){showToast('Выберите правильную дату.');return;}
-  data.tasks.push(createFromTemplate(t,date,uid()));
-  save();closeModal('libraryDialog');goToWeek(date);
-  showToast('«'+t.title+'» добавлено на '+formatDay(date));
+  $('libraryList').innerHTML=data.templates.length?data.templates.map(t=>{
+    const details=t.measureMode==='count'&&t.targetCount?t.targetCount+' раз':
+      t.plannedMinutes>0?formatMinutes(t.plannedMinutes):'Без времени';
+    return '<div class="library-item library-readonly"><div class="library-name"><strong>'
+      +escapeHTML(t.title)+'</strong><small>'+escapeHTML(details)+' · '
+      +escapeHTML(CATEGORIES[t.category]||'Личное время')+'</small></div></div>';
+  }).join(''):'<p class="library-empty">Пока пусто. Задачи попадают сюда, когда в их форме включено «Сохранить также в общий список».</p>';
 }
 function renderStats() {
   const all=allOccurrences(),summary=timeStats(all);
