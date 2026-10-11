@@ -1,4 +1,4 @@
-import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrencesForWeek, timeStats, minutesFromParts, formatMinutes, formatDecimalHours, createFromTemplate, validateTask, blankData, sanitizeBackup } from './logic.mjs';
+import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrencesForWeek, timeStats, timeMinutes, minutesFromParts, formatMinutes, formatDecimalHours, createFromTemplate, validateTask, blankData, sanitizeBackup } from './logic.mjs';
 
 const STORAGE_KEY = 'nedelnik-planner-v1';
 const SHORT_WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
@@ -155,72 +155,121 @@ function closeModal(id) {
   $(id).close();
   syncScrollLock();
 }
+function setTaskMeasureMode(mode) {
+  $('taskMeasureMode').value=mode;
+  $('durationFields').hidden=mode!=='duration';
+  $('intervalFields').hidden=mode!=='interval';
+  $('countFields').hidden=mode!=='count';
+  $('actualFields').hidden=mode==='count';
+}
+function chooseTemplate(t) {
+  $('taskTitle').value=t.title;
+  $('taskCategory').value=t.category||'personal';
+  $('taskPriority').value=t.priority||'normal';
+  $('taskNotes').value=t.notes||'';
+  setTaskMeasureMode(t.measureMode||'duration');
+  setDurationInputs('planHours','planMinutes',t.plannedMinutes??null);
+  $('targetCount').value=t.targetCount??'';
+  previewDuration('planHours','planMinutes','plannedPreview','Необязательно');
+  $('templateChooser').hidden=true;
+}
+function renderTemplateChooser() {
+  $('templateChooser').innerHTML=data.templates.length?data.templates.map(t=>
+    '<button type="button" data-choose-template="'+escapeHTML(t.id)+'">'+escapeHTML(t.title)+'</button>'
+    ).join(''):'<p>Список пуст. Сохранить задачу можно при её создании.</p>';
+}
 function openTask(task=null,occurrenceDate=null,proposedDate=null) {
-  editingId=task?.id||null;
-  editingOccurrence=occurrenceDate||null;
-  $('taskForm').reset();
-  $('dialogHeading').textContent=task?'Редактировать дело':'Новое дело';
+  editingId=task?.id||null;editingOccurrence=occurrenceDate||null;
+  $('taskForm').reset();$('templateChooser').hidden=true;
+  $('dialogHeading').textContent=task?'Редактировать задачу':'Новая задача';
   $('taskTitle').value=task?.title||'';
   $('taskDate').value=task?.date||proposedDate||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
-  $('taskStart').value=task?.start||'';
-  $('taskCategory').value=task?.category||'other';
+  $('taskCategory').value=task?.category||'personal';
   $('taskPriority').value=task?.priority||'normal';
   $('taskRepeat').value=task?.repeat||'none';
   $('taskNotes').value=task?.notes||'';
+  setTaskMeasureMode(task?.measureMode||((task?.start&&task?.end)?'interval':'duration'));
+  $('taskStart').value=task?.start||'';$('taskEnd').value=task?.end||'';
   setDurationInputs('planHours','planMinutes',task?.plannedMinutes??null);
   const actual=task?.repeat==='weekly'?(task.actualByDate?.[occurrenceDate]??null):(task?.actualMinutes??null);
   setDurationInputs('actualHours','actualMinutes',actual);
+  $('targetCount').value=task?.targetCount??'';
+  $('actualCount').value=task?.repeat==='weekly'?(task.actualCountByDate?.[occurrenceDate]??''):(task?.actualCount??'');
+  $('taskStatus').value=task?.repeat==='weekly'?
+    (task.statusByDate?.[occurrenceDate]??((task.completedDates||[]).includes(occurrenceDate)?'done':'todo')):
+    (task?.status??(task?.completed?'done':'todo'));
+  $('saveToLibrary').checked=false;
   $('deleteTask').hidden=!task;
-  $('clockFields').open=Boolean(task?.start);
   $('actualFields').open=Number.isInteger(actual);
   $('recurrenceHint').hidden=task?.repeat!=='weekly';
-  $('advancedFields').open=Boolean(task&&(task.notes||task.repeat==='weekly'||task.priority==='high'||task.category!=='other'));
+  $('advancedFields').open=Boolean(task&&(task.notes||task.repeat==='weekly'));
   $('formError').hidden=true;
   previewDuration('planHours','planMinutes','plannedPreview','Необязательно');
   previewDuration('actualHours','actualMinutes','actualPreview','Пока не записано');
+  if($('dayDialog').open)closeModal('dayDialog');
   openModal('taskDialog');
   requestAnimationFrame(()=>$('taskTitle').focus());
 }
 function closeTask() {
-  closeModal('taskDialog');
-  editingId=null;
-  editingOccurrence=null;
+  closeModal('taskDialog');editingId=null;editingOccurrence=null;
 }
 function submitTask(event) {
   event.preventDefault();
-  const planned=readDuration('planHours','planMinutes');
-  const actual=readDuration('actualHours','actualMinutes');
-  const payload={
-    title:$('taskTitle').value.trim(),date:$('taskDate').value,start:$('taskStart').value||'',
-    end:'',plannedMinutes:planned,category:$('taskCategory').value,
-    priority:$('taskPriority').value,repeat:$('taskRepeat').value,notes:$('taskNotes').value.trim()
-  };
-  const error=validateTask({...payload,actualMinutes:actual});
-  if(error||Number.isNaN(planned)||Number.isNaN(actual)){
-    $('formError').textContent=error||'Проверьте часы и минуты.';
+  const mode=$('taskMeasureMode').value;
+  let planned=mode==='duration'?readDuration('planHours','planMinutes'):null;
+  const actual=mode==='count'?null:readDuration('actualHours','actualMinutes');
+  const start=mode==='interval'?$('taskStart').value:'',end=mode==='interval'?$('taskEnd').value:'';
+  if(mode==='interval'&&start&&end)planned=timeMinutes(end)-timeMinutes(start);
+  if(mode==='count')planned=0;
+  const targetCount=mode==='count'?Number($('targetCount').value):null;
+  const actualCount=mode==='count'&&$('actualCount').value!==''?Number($('actualCount').value):null;
+  const status=$('taskStatus').value;
+  const payload={title:$('taskTitle').value.trim(),date:$('taskDate').value,start,end,
+    measureMode:mode,plannedMinutes:planned,targetCount,category:$('taskCategory').value,
+    priority:$('taskPriority').value,repeat:$('taskRepeat').value,notes:$('taskNotes').value.trim()};
+  const problem=validateTask({...payload,status,actualMinutes:actual,actualCount});
+  if(problem||Number.isNaN(planned)||Number.isNaN(actual)){
+    $('formError').textContent=problem||'Проверьте время и количество повторений.';
     $('formError').hidden=false;return;
   }
+  const factDate=editingOccurrence||payload.date;
   if(editingId){
     const index=data.tasks.findIndex(t=>t.id===editingId);
     if(index<0){closeTask();return;}
-    const old=data.tasks[index];
-    const keepSeries=old.repeat==='weekly'&&payload.repeat==='weekly'&&old.date===payload.date;
-    const actualByDate=keepSeries?{...(old.actualByDate||{})}:{};
+    const old=data.tasks[index],keep=old.repeat==='weekly'&&payload.repeat==='weekly'&&old.date===payload.date;
+    const byDate=keep?{...(old.actualByDate||{})}:{};
+    const statusByDate=keep?{...(old.statusByDate||{})}:{};
+    const countByDate=keep?{...(old.actualCountByDate||{})}:{};
     if(payload.repeat==='weekly'){
-      const factDate=keepSeries?(editingOccurrence||payload.date):payload.date;
-      if(actual===null)delete actualByDate[factDate];else actualByDate[factDate]=actual;
+      if(actual===null)delete byDate[factDate];else byDate[factDate]=actual;
+      if(actualCount===null)delete countByDate[factDate];else countByDate[factDate]=actualCount;
+      statusByDate[factDate]=status;
+    }
+    const completion=keep?new Set(old.completedDates||[]):new Set();
+    if(payload.repeat==='weekly'){
+      if(status==='done')completion.add(factDate);else completion.delete(factDate);
     }
     data.tasks[index]={...old,...payload,actualMinutes:payload.repeat==='weekly'?null:actual,
-      actualByDate,completedDates:keepSeries?old.completedDates:[]};
-    showToast('Дело обновлено');
+      actualCount:payload.repeat==='weekly'?null:actualCount,
+      actualByDate:byDate,actualCountByDate:countByDate,status,statusByDate,
+      completed:status==='done',completedDates:[...completion].sort()};
   }else{
-    const actualByDate=payload.repeat==='weekly'&&actual!==null?{[payload.date]:actual}:{};
     data.tasks.push({id:uid(),...payload,actualMinutes:payload.repeat==='weekly'?null:actual,
-      actualByDate,completed:false,completedDates:[]});
-    showToast('Новое дело добавлено');
+      actualCount:payload.repeat==='weekly'?null:actualCount,
+      actualByDate:payload.repeat==='weekly'&&actual!==null?{[payload.date]:actual}:{},
+      actualCountByDate:payload.repeat==='weekly'&&actualCount!==null?{[payload.date]:actualCount}:{},
+      status,statusByDate:payload.repeat==='weekly'?{[payload.date]:status}:{},
+      completed:status==='done',completedDates:payload.repeat==='weekly'&&status==='done'?[payload.date]:[]});
   }
-  const selectedDate=editingOccurrence&&payload.repeat==='weekly'?editingOccurrence:payload.date;
-  closeTask();save();monday=startOfWeek(selectedDate);render();
+  if($('saveToLibrary').checked&&!data.templates.some(t=>t.title.toLocaleLowerCase('ru')===payload.title.toLocaleLowerCase('ru'))){
+    data.templates.push({id:uid(),title:payload.title,category:payload.category,
+      priority:payload.priority,plannedMinutes:planned||0,measureMode:mode,
+      targetCount,notes:payload.notes});
+  }
+  closeTask();save();
+  monday=startOfWeek(factDate);
+  if(viewMode==='day')selectedDay=factDate;
+  render();showToast('Задача сохранена');
 }
 function toggleTask(id,date) {
   const task = data.tasks.find(t=>t.id===id);
