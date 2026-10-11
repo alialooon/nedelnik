@@ -35,7 +35,7 @@ test('All static elements used by the planner JavaScript exist', () => {
 test('Advanced task fields and data transfer remain available', () => {
   for (const id of ['taskNotes', 'taskCategory', 'taskPriority', 'taskRepeat', 'taskDate',
                     'taskStart', 'planHours', 'planMinutes', 'actualHours', 'actualMinutes',
-                    'jumpDate', 'libraryDialog', 'libraryList', 'statsDialog', 'statsContent',
+                    'weekPicker', 'calendarGrid', 'backView', 'libraryDialog', 'libraryList', 'statsDialog', 'statsContent',
                     'exportButton', 'importButton', 'importFile',
                     'weekNote', 'advancedFields', 'categoryFilter']) {
     assert.ok(page.includes('id="' + id + '"'), 'Missing feature ' + id);
@@ -61,7 +61,8 @@ test('Standalone version matches source and its inline script parses', () => {
 test('Logo does not navigate into a local directory listing', () => {
   assert.doesNotMatch(page, /<a[^>]*class="brand"[^>]*href=/);
   assert.match(page, /<div class="brand" aria-label="Задачи на неделю">/);
-  assert.match(page, /id="jumpDate"/);
+  assert.match(page, /id="weekPicker"/);
+  assert.match(page, /id="backView"/);
   assert.match(app, /goToWeek\(/);
 });
 
@@ -71,4 +72,16 @@ test('Separate dialogs protect calendar scrolling and keep extra features out of
   assert.match(app, /syncScrollLock/);
   assert.match(page, /id="libraryButton"/);
   assert.match(page, /id="statsButton"/);
+});
+
+test('Three-level calendar navigation is non-scrolling and seven days run left to right',()=>{
+  assert.match(app, /viewMode='week'/);
+  assert.match(app, /viewMode==='weeks'/);
+  assert.match(app, /viewMode==='day'/);
+  assert.match(app, /function backView\(/);
+  assert.match(app, /class="day-row/);
+  assert.match(css, /grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+  assert.match(css, /height:100dvh/);
+  assert.match(css, /html,body\{height:100%;overflow:hidden/);
+  assert.match(css, /is-weekend/);
 });
