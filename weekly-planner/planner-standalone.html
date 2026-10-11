@@ -225,6 +225,124 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
 .stats-grid,.jump-date,.quiet-button,.from-library{display:none!important}
 }
 
+/* Three-level Carbon navigation: weeks / seven horizontal day columns / one day. */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+.app-shell{height:100dvh;min-height:0;overflow:hidden}
+.main-content{height:100%;max-height:100%;display:flex;flex-direction:column;padding:clamp(12px,2vh,23px) 0;overflow:hidden}
+.topbar{padding-bottom:12px;flex:none}
+.week-section{margin-top:12px;min-height:0;flex:1;display:flex;flex-direction:column}
+.week-controls{flex:none;margin-bottom:12px;align-items:center}
+.week-title-group{display:flex;align-items:center;gap:12px}
+.week-title-group h1{font-size:clamp(19px,2.3vw,28px)}
+.view-back{flex:none;display:grid;place-items:center;width:35px;height:35px;background:#22272b;color:#cdd6db;border:1px solid #485158;border-radius:9px;font-size:20px}
+.view-back:hover:not(:disabled){background:#343b40;color:#fff}
+.view-back:disabled{opacity:.3}
+.week-notes-section{flex:0 0 auto;margin-top:4px;max-height:28px}
+.week-notes-section[open]{position:fixed;right:3vw;bottom:3vh;z-index:9;background:#252a2e;border:1px solid #465059;border-radius:10px;padding:12px;max-height:240px;width:min(470px,92vw)}
+.week-notes-section[open] .week-note-input{width:100%}
+.week-notes-section[open] textarea{min-height:80px}
+.week-list{flex:1;min-height:0;max-height:100%;overflow:hidden}
+.week-list.view-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:8px}
+.view-week .day-row{min-height:0;min-width:0;height:100%;display:flex;flex-direction:column;gap:11px;padding:12px 9px;background:#191d20;border:1px solid #343a3e;border-radius:12px;overflow:hidden;cursor:pointer}
+.view-week .day-row:hover{background:#252a2d;border-color:#657079}
+.view-week .day-row.is-today{background:#242a2e;border-color:#879198}
+.view-week .day-row.is-today:before{top:8px;bottom:8px;width:2px}
+.view-week .day-row.is-weekend{background:#252529;border-color:#49494e}
+.view-week .day-row.is-weekend:hover{background:#303036;border-color:#75757d}
+.view-week .day-date{border-right:0;border-bottom:1px solid #384047;padding:0 0 12px;width:100%;display:flex;align-items:flex-start;flex-direction:column;gap:3px;min-height:0;text-align:left;background:transparent;color:inherit;cursor:pointer}
+.view-week .day-date:hover .day-number{color:#fff}
+.view-week .is-weekend .day-date{border-color:#505056}
+.view-week .day-name{font-size:11px;letter-spacing:.11em;color:#acb7be}
+.view-week .is-weekend .day-name{color:#dbb7a9}
+.view-week .day-number{font-size:clamp(20px,2.7vw,31px);margin:0;line-height:1;font-weight:750}
+.view-week .day-month{font-size:11px}
+.view-week .day-content{min-height:0;flex:1;padding:0;overflow:hidden}
+.view-week .day-task-list{display:flex;flex-direction:column;gap:9px;align-items:stretch;overflow:hidden;max-height:100%}
+.view-week .task-card{display:flex;gap:6px;align-items:flex-start;min-height:0;padding:5px 0;border-bottom:1px solid #33393e}
+.view-week .task-description{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.view-week .task-title{font-size:12px;line-height:1.35;max-width:100%;overflow-wrap:anywhere}
+.view-week .task-time,.view-week .task-fact{font-size:10px;color:#89979e;max-width:100%;width:auto;margin:0;white-space:normal;word-break:break-word;line-height:1.25}
+.view-week .task-fact{color:#abc0b0}
+.view-week .task-check{width:16px;height:16px;flex:0 0 16px;font-size:10px}
+.view-week .empty-day{font-size:11px;line-height:1.45;padding:4px;color:#87979f}
+.more-tasks{font-size:11px;color:#d7dee1;border:1px solid #434c52;border-radius:6px;padding:6px 7px;background:#2b3136;text-align:left}
+.more-tasks:hover{background:#41494f}
+.week-picker{position:relative}
+.week-picker>summary{min-width:180px;text-align:center;list-style:none;border:1px solid #535c62;border-radius:9px;background:#24292d;color:#e0e6e9;min-height:36px;padding:8px 14px;cursor:pointer;white-space:nowrap;font-size:13px}
+.week-picker>summary::-webkit-details-marker{display:none}
+.week-picker>summary:hover,.week-picker[open]>summary{background:#343b40;border-color:#9ca8b0}
+.calendar-popover{position:absolute;z-index:22;right:0;top:43px;width:306px;max-height:min(67vh,380px);padding:13px;border:1px solid #4c575e;border-radius:13px;background:#22272b;box-shadow:0 16px 45px #000b}
+.calendar-heading{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:12px}
+.calendar-heading strong{font-size:13px;letter-spacing:-.02em;text-transform:capitalize}
+.calendar-heading button,.calendar-current{color:#e4eaed;border:1px solid #424b52;background:#2d3338;border-radius:7px;padding:5px 10px}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.calendar-weekdays{font-size:10px;color:#859199;margin-bottom:6px}
+.calendar-grid .calendar-date{border:0;border-radius:7px;background:transparent;color:#dfe4e7;height:33px;font-size:12px}
+.calendar-date.outside{color:#637079}
+.calendar-date.selected{background:#465058;color:#fff}
+.calendar-date.calendar-today{outline:1px solid #a3b1ba}
+.calendar-grid .calendar-date:hover{background:#566269}
+.calendar-current{display:block;margin:11px auto 0;font-size:12px}
+.week-list.view-weeks{display:grid;grid-template-columns:1fr;grid-template-rows:repeat(6,minmax(0,1fr));gap:7px}
+.week-overview-item{display:flex;align-items:center;gap:19px;padding:5px 18px;text-align:left;border:1px solid #353c42;border-radius:11px;background:#1a1e21;color:#dfe5e9;min-height:0}
+.week-overview-item:hover,.week-overview-item.active{background:#2c3439;border-color:#65737b}
+.overview-number{font-size:26px;font-weight:730;color:#c3cdd2;font-variant-numeric:tabular-nums}
+.overview-info{display:grid;gap:3px;flex:1;min-width:0}
+.overview-info strong{font-size:14px;font-weight:650}
+.overview-info small{font-size:11px;color:#91a1aa}
+.overview-open{font-size:20px;color:#9ba9b0}
+.week-list.view-day{display:block}
+.day-detail{height:100%;display:flex;flex-direction:column;min-height:0;background:#1a1e21;border:1px solid #414b51;border-radius:14px;padding:12px 18px}
+.day-detail-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex:0 0 42px;border-bottom:1px solid #343c41;margin-bottom:7px;color:#a7b3ba}
+.day-detail-tasks{display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow:hidden}
+.day-detail-tasks .task-card{flex:1;min-height:35px;max-height:62px;padding:6px 8px;border-bottom:1px solid #333b40}
+.day-detail-tasks .task-description{display:flex;gap:13px;align-items:center}
+.day-detail-tasks .task-title{font-size:13px}
+.day-detail-tasks .task-time,.day-detail-tasks .task-fact{font-size:11px}
+.day-add-more{border:1px solid #4e5c64;color:#dce6ec;background:#2b343a;border-radius:7px;padding:6px 13px}
+.day-blank{border:1px dashed #4b5a62;border-radius:10px;color:#afbec6;background:transparent;width:100%;height:100%;min-height:120px}
+.page-controls{min-height:34px;flex:none;display:flex;gap:8px;align-items:center;justify-content:center;color:#b4c2ca}
+.page-controls button{border:1px solid #4b565d;background:#293037;color:#ecf0f1;border-radius:6px;padding:4px 13px}
+.view-animate{animation:carbon-in .22s ease-out}
+@keyframes carbon-in{from{opacity:.6;transform:translateY(5px)}to{opacity:1;transform:none}}
+.priority-indicator{flex:0 0 5px;width:5px;height:13px;border-radius:4px;background:#a7b4bc}
+.priority-high .priority-indicator{background:#e38b72}
+.priority-normal .priority-indicator{background:#8daabf}
+.priority-low .priority-indicator{background:#8bb19e}
+.status-partial .task-check{background:#5a4b2b;border-color:#e3c479;color:#f9e1a2}
+.status-done .task-check{background:#527c67;border-color:#94c0a5;color:#fff}
+.status-done .task-title{text-decoration:line-through;opacity:.53}
+.title-with-picker{display:flex;align-items:stretch;gap:6px}
+.title-with-picker input{flex:1;min-width:0}
+.picker-trigger{flex:0 0 37px;background:#30393f;border:1px solid #505d65;border-radius:8px;color:#d8e1e5;font-size:20px}
+.template-chooser{display:flex;flex-direction:column;gap:4px;background:#272e33;border:1px solid #48555e;border-radius:9px;padding:6px;max-height:146px;overflow-y:auto}
+.template-chooser button{text-align:left;border:0;background:#313b42;color:#e7eeef;border-radius:6px;padding:8px}
+.template-chooser p{font-size:12px;color:#a3afb5;padding:6px}
+.task-main-grid{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:11px}
+.main-fields{gap:11px}
+.measure-fields{display:grid;gap:5px}
+.task-dialog{width:min(600px,calc(100vw - 22px));max-height:92dvh}
+.task-dialog .dialog-content{gap:10px;padding:12px 20px;max-height:calc(92dvh - 125px)}
+.task-dialog .dialog-header{padding:13px 20px}
+.task-dialog .dialog-footer{padding:10px 20px}
+.task-dialog .advanced-content{gap:9px;padding:9px 0}
+.task-dialog .field{gap:4px}
+.task-dialog .field input,.task-dialog .field select,.task-dialog .field textarea{padding:8px 10px}
+.task-dialog .advanced-fields{padding-top:5px}
+.save-template-label{display:flex;gap:8px;align-items:center;color:#cbd6db;font-size:12px}
+.save-template-label input{accent-color:#8daabf}
+.library-dialog .library-readonly{padding:14px 16px}
+.library-dialog .library-readonly .library-name strong{font-size:14px}
+@media(max-width:800px){
+.main-content{width:calc(100% - 20px)}
+.view-week .day-row{padding:10px 6px;gap:6px}
+.view-week .task-title{font-size:10px}
+.view-week .day-number{font-size:22px}
+.view-week .day-name{font-size:10px}
+.week-list.view-week{gap:4px}
+}
+@media(prefers-reduced-motion:reduce){.view-animate{animation:none}}
+
   </style>
 </head>
 <body>
@@ -233,11 +351,10 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
       <header class="topbar">
         <div class="brand" aria-label="Задачи на неделю">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-          <span>Задачи на неделю<span class="brand-period">.</span></span>
+          <span>Задачи на неделю</span>
         </div>
         <div class="topbar-actions">
           <button class="quiet-button" id="statsButton" type="button">Статистика</button>
-          <button class="primary-button" id="newTaskButton" type="button"><span aria-hidden="true">+</span> Новое дело</button>
           <details class="more-menu" id="moreMenu">
             <summary aria-label="Дополнительные действия" title="Дополнительные действия">···</summary>
             <div class="menu-panel">
@@ -254,14 +371,23 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
 
       <section class="week-section" aria-labelledby="weekTitle">
         <div class="week-controls">
-          <div class="week-title-group"><p class="section-kicker">Моя неделя</p><h1 id="weekTitle">Неделя</h1></div>
+          <div class="week-title-group"><button type="button" id="backView" class="view-back" aria-label="Вернуться к более общему виду" title="Назад к неделе или списку недель">←</button><div><p class="section-kicker" id="viewCaption">Моя неделя</p><h1 id="weekTitle">Неделя</h1></div></div>
           <div class="week-arrows">
             <button class="arrow-button" id="previousWeek" aria-label="Предыдущая неделя" type="button">←</button>
-            <button class="today-button" id="goToday" type="button">Сегодня</button>
+            <details class="week-picker" id="weekPicker">
+              <summary id="weekPickerSummary" aria-label="Выбрать неделю" title="Выбрать неделю">12–18 октября</summary>
+              <div class="calendar-popover">
+                <div class="calendar-heading">
+                  <button type="button" id="calendarPrev" aria-label="Предыдущий месяц">←</button>
+                  <strong id="calendarMonthLabel">Октябрь 2026</strong>
+                  <button type="button" id="calendarNext" aria-label="Следующий месяц">→</button>
+                </div>
+                <div class="calendar-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <button class="calendar-current" type="button" id="calendarCurrent">Текущая неделя</button>
+              </div>
+            </details>
             <button class="arrow-button" id="nextWeek" aria-label="Следующая неделя" type="button">→</button>
-            <label class="jump-date" title="Выберите любую дату нужной недели"><span>К дате</span>
-              <input type="date" id="jumpDate" aria-label="Перейти к неделе по выбранной дате" />
-            </label>
           </div>
         </div>
 
@@ -286,43 +412,57 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
     <form id="taskForm" novalidate>
       <div class="dialog-header"><h2 id="dialogHeading">Новое дело</h2><button class="dialog-close" type="button" id="closeDialog" aria-label="Закрыть">×</button></div>
       <div class="dialog-content">
-        <label class="field"><span>Название дела <span class="required">*</span></span><input id="taskTitle" type="text" maxlength="120" placeholder="Что нужно сделать?" autocomplete="off" required /></label>
-        <label class="field"><span>Дата <span class="required">*</span></span><input id="taskDate" type="date" required /></label>
-        <div class="duration-block">
-          <span class="field-label">Сколько времени планируешь выделить?</span>
+        <div class="task-main-grid">
+          <div class="title-field">
+            <label class="field"><span>Задача <span class="required">*</span></span>
+              <span class="title-with-picker"><input id="taskTitle" type="text" maxlength="120" placeholder="Название дела" autocomplete="off" required />
+              <button id="chooseTemplate" type="button" class="picker-trigger" aria-label="Выбрать из общего списка" title="Из общего списка">≡</button></span>
+            </label>
+            <div class="template-chooser" id="templateChooser" hidden></div>
+          </div>
+          <label class="field task-date"><span>Дата</span><input id="taskDate" type="date" required /></label>
+        </div>
+        <div class="field-row main-fields">
+          <label class="field"><span>Категория</span>
+            <select id="taskCategory"><option value="work">Работа</option><option value="study">Учёба</option><option value="personal">Личное время</option><option value="sport">Спорт</option><option value="health">Здоровье</option><option value="other">Другое (старые задачи)</option></select>
+          </label>
+          <label class="field"><span>Планирование</span><select id="taskMeasureMode"><option value="duration">Выделить время</option><option value="interval">Интервал времени</option><option value="count">Количество повторений</option></select></label>
+        </div>
+        <div class="measure-fields" id="durationFields">
           <div class="duration-inputs">
             <label class="field"><span>Часов</span><input id="planHours" type="number" min="0" max="744" step="1" inputmode="numeric" placeholder="0" /></label>
             <label class="field"><span>Минут</span><input id="planMinutes" type="number" min="0" max="44640" step="1" inputmode="numeric" placeholder="0" /></label>
-          </div>
-          <small class="duration-preview" id="plannedPreview">Необязательно</small>
+          </div><small class="duration-preview" id="plannedPreview">Необязательно</small>
         </div>
-        <details class="advanced-fields" id="clockFields">
-          <summary>Назначить конкретное время (необязательно)</summary>
-          <div class="advanced-content">
-            <label class="field"><span>Начало дела</span><input id="taskStart" type="time" /></label>
-            <p class="field-hint">Время окончания не требуется: длительность указывается выше.</p>
+        <div class="measure-fields" id="intervalFields" hidden>
+          <div class="field-row">
+            <label class="field"><span>С</span><input id="taskStart" type="time" /></label>
+            <label class="field"><span>До</span><input id="taskEnd" type="time" /></label>
           </div>
-        </details>
-        <details class="advanced-fields" id="actualFields">
-          <summary>Фактически потрачено времени</summary>
-          <div class="advanced-content">
-            <div class="duration-inputs">
-              <label class="field"><span>Часов</span><input id="actualHours" type="number" min="0" max="744" step="1" inputmode="numeric" placeholder="0" /></label>
-              <label class="field"><span>Минут</span><input id="actualMinutes" type="number" min="0" max="44640" step="1" inputmode="numeric" placeholder="0" /></label>
-            </div>
-            <small class="duration-preview" id="actualPreview">Пока не записано</small>
+        </div>
+        <div class="measure-fields" id="countFields" hidden>
+          <div class="field-row">
+            <label class="field"><span>План (раз)</span><input id="targetCount" type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="Например, 20" /></label>
+            <label class="field"><span>Факт (раз)</span><input id="actualCount" type="number" min="0" max="100000" step="1" inputmode="numeric" placeholder="Необязательно" /></label>
           </div>
+        </div>
+        <div class="field-row main-fields">
+          <label class="field"><span>Важность</span><select id="taskPriority" class="priority-select"><option value="low">● Низкая</option><option value="normal">● Обычная</option><option value="high">● Высокая</option></select></label>
+          <label class="field"><span>Статус</span><select id="taskStatus" class="status-select"><option value="todo">Не выполнена</option><option value="partial">Частично выполнена</option><option value="done">Выполнена</option></select></label>
+        </div>
+        <details class="advanced-fields" id="actualFields"><summary>Фактически потрачено времени</summary>
+          <div class="advanced-content"><div class="duration-inputs">
+            <label class="field"><span>Часов</span><input id="actualHours" type="number" min="0" max="744" step="1" inputmode="numeric" placeholder="0" /></label>
+            <label class="field"><span>Минут</span><input id="actualMinutes" type="number" min="0" max="44640" step="1" inputmode="numeric" placeholder="0" /></label>
+          </div><small class="duration-preview" id="actualPreview">Пока не записано</small></div>
         </details>
-        <details id="advancedFields" class="advanced-fields">
-          <summary>Дополнительно <span>Комментарий, повторение, категория</span></summary>
+        <details class="advanced-fields" id="advancedFields">
+          <summary>Дополнительно <span>Комментарий и повторение по неделям</span></summary>
           <div class="advanced-content">
-            <label class="field"><span>Комментарий</span><textarea id="taskNotes" rows="3" maxlength="5000" placeholder="Детали дела..."></textarea></label>
-            <div class="field-row">
-              <label class="field"><span>Категория</span><select id="taskCategory"><option value="work">Работа</option><option value="personal">Личное</option><option value="study">Учёба</option><option value="health">Здоровье</option><option value="other">Другое</option></select></label>
-              <label class="field"><span>Важность</span><select id="taskPriority"><option value="normal">Обычное</option><option value="high">Важное</option></select></label>
-            </div>
+            <label class="field"><span>Комментарий</span><textarea id="taskNotes" rows="2" maxlength="5000" placeholder="Детали задачи..."></textarea></label>
             <label class="field"><span>Повторение</span><select id="taskRepeat"><option value="none">Не повторять</option><option value="weekly">Каждую неделю в этот день</option></select></label>
-            <p class="recurrence-hint" id="recurrenceHint" hidden>Изменение повторяющегося дела затронет всю серию; фактическое время записывается отдельно для каждой недели.</p>
+            <label class="save-template-label"><input type="checkbox" id="saveToLibrary" /> Сохранить также в общий список дел</label>
+            <p class="recurrence-hint" id="recurrenceHint" hidden>Изменение повторяющегося дела затронет всю серию.</p>
           </div>
         </details>
         <p class="form-error" id="formError" role="alert" hidden></p>
@@ -331,24 +471,14 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
     </form>
   </dialog>
 
-  <dialog id="libraryDialog" class="simple-dialog" aria-labelledby="libraryHeading">
-    <div class="dialog-header"><div><h2 id="libraryHeading">Общий список дел</h2><p class="dialog-caption">Сохраняй привычные дела и добавляй в любую дату.</p></div><button id="closeLibrary" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
-    <div class="dialog-content">
-      <label class="field"><span>Добавить в день</span><input type="date" id="libraryDate" /></label>
-      <div id="libraryList" class="library-list"></div>
-      <form id="libraryForm" class="library-form">
-        <h3>Новое дело в общий список</h3>
-        <label class="field"><span>Название</span><input id="libraryTitle" type="text" maxlength="120" required placeholder="Например, тренировка" /></label>
-        <div class="duration-inputs">
-          <label class="field"><span>План: часов</span><input id="libraryHours" type="number" min="0" max="744" step="1" placeholder="0" /></label>
-          <label class="field"><span>План: минут</span><input id="libraryMinutes" type="number" min="0" max="44640" step="1" placeholder="0" /></label>
-        </div>
-        <p class="form-error" id="libraryError" role="alert" hidden></p>
-        <button class="secondary-button" type="submit">+ Сохранить в список</button>
-      </form>
-    </div>
+  <dialog id="libraryDialog" class="simple-dialog library-dialog" aria-labelledby="libraryHeading">
+    <div class="dialog-header"><h2 id="libraryHeading">Общий список дел</h2><button id="closeLibrary" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
+    <div class="dialog-content"><div id="libraryList" class="library-list"></div></div>
   </dialog>
-
+  <dialog id="dayDialog" class="simple-dialog" aria-labelledby="dayDialogTitle">
+    <div class="dialog-header"><h2 id="dayDialogTitle">Дела на день</h2><button id="closeDay" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
+    <div class="dialog-content"><div id="dayDialogTasks" class="day-full-list"></div></div>
+  </dialog>
   <dialog id="statsDialog" class="simple-dialog" aria-labelledby="statsHeading">
     <div class="dialog-header"><div><h2 id="statsHeading">План и факт</h2><p class="dialog-caption" id="statsWeekTitle">Статистика недели</p></div><button id="closeStats" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
     <div class="dialog-content" id="statsContent"></div>
@@ -357,7 +487,7 @@ html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavio
   <div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastMessage"></span><button id="toastUndo" type="button" hidden>Отменить</button><button class="toast-close" id="toastClose" type="button" aria-label="Закрыть уведомление">×</button></div>
   <script>
 const CATEGORIES = {
-  work:'Работа', personal:'Личное', study:'Учёба', health:'Здоровье', other:'Другое'
+  work:'Работа', personal:'Личное время', study:'Учёба', sport:'Спорт', health:'Здоровье', other:'Другое'
 };
 const WEEKDAYS = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -417,10 +547,15 @@ function validateTask(task) {
   if (task.start && Number.isNaN(timeMinutes(task.start))) return 'Укажите правильное время начала.';
   if (task.end && (Number.isNaN(timeMinutes(task.end)) || !task.start)) return 'Неверное время окончания.';
   if (task.start && task.end && timeMinutes(task.end)<=timeMinutes(task.start)) return 'Время окончания должно быть позже начала.';
+  if (task.measureMode==='interval' && (!task.start || !task.end)) return 'Для интервала выберите время начала и окончания.';
+  if (task.measureMode==='count' && (!Number.isInteger(task.targetCount) || task.targetCount<1 || task.targetCount>100000)) return 'Укажите количество повторений от 1 до 100000.';
+  if (task.actualCount!=null && (!Number.isInteger(task.actualCount) || task.actualCount<0 || task.actualCount>100000)) return 'Укажите корректное количество выполненных повторений.';
+  if (task.measureMode && !['duration','interval','count'].includes(task.measureMode)) return 'Выберите способ планирования.';
+  if (task.status && !['todo','partial','done'].includes(task.status)) return 'Укажите корректный статус.';
   if (!validMinutes(task.plannedMinutes,true)) return 'Плановое время должно быть целым числом минут.';
   if (!validMinutes(task.actualMinutes,true)) return 'Фактическое время должно быть целым числом минут.';
   if (!Object.hasOwn(CATEGORIES,task.category)) return 'Выберите категорию.';
-  if (!['normal','high'].includes(task.priority)) return 'Выберите важность.';
+  if (!['low','normal','high'].includes(task.priority)) return 'Выберите важность.';
   if (!['none','weekly'].includes(task.repeat)) return 'Выберите повторение.';
   if (typeof task.notes!=='string' || task.notes.length>5000) return 'Комментарий слишком длинный.';
   return null;
@@ -432,11 +567,15 @@ function occurrencesForWeek(tasks,monday) {
       const day=(parseDate(task.date).getDay()+6)%7;
       const date=addDays(monday,day);
       if(date>=task.date) results.push({
-        ...task,occurrenceDate:date,done:(task.completedDates||[]).includes(date),
-        actualMinutes: task.actualByDate?.[date] ?? null
+        ...task,occurrenceDate:date,
+        status:task.statusByDate?.[date] ?? ((task.completedDates||[]).includes(date)?'done':'todo'),
+        done:(task.statusByDate?.[date]??((task.completedDates||[]).includes(date)?'done':'todo'))==='done',
+        actualMinutes:task.actualByDate?.[date]??null,
+        actualCount:task.actualCountByDate?.[date]??null
       });
     } else if(task.date>=monday && task.date<=sunday) {
-      results.push({...task,occurrenceDate:task.date,done:Boolean(task.completed)});
+      results.push({...task,occurrenceDate:task.date,
+        status:task.status??(task.completed?'done':'todo'),done:(task.status??(task.completed?'done':'todo'))==='done'});
     }
   }
   return results.sort((a,b)=>a.occurrenceDate.localeCompare(b.occurrenceDate)
@@ -452,14 +591,16 @@ function timeStats(occurrences) {
   const fact=occurrences.reduce((sum,t)=>sum+(Number.isInteger(t.actualMinutes)?t.actualMinutes:0),0);
   const measured=occurrences.filter(t=>Number.isInteger(t.actualMinutes)).length;
   const done=occurrences.filter(t=>t.done).length;
-  return {plan,fact,measured,total:occurrences.length,done,completion:occurrences.length?Math.round(done/occurrences.length*100):0,
+  const partial=occurrences.filter(t=>t.status==='partial').length;
+  return {plan,fact,measured,total:occurrences.length,done,partial,completion:occurrences.length?Math.round((done+partial*0.5)/occurrences.length*100):0,
     timeRatio:plan>0?Math.round(fact/plan*100):null};
 }
 function createFromTemplate(template,date,id) {
   return {id,title:template.title,date,start:'',end:'',plannedMinutes:template.plannedMinutes??0,
     actualMinutes:null,actualByDate:{},category:template.category||'other',
     priority:template.priority||'normal',repeat:'none',notes:template.notes||'',completed:false,
-    completedDates:[]};
+    status:'todo',statusByDate:{},completedDates:[],measureMode:template.measureMode||'duration',
+    targetCount:template.targetCount??null,actualCount:null,actualCountByDate:{}};
 }
 function plainNotesMap(value) {
   if (!value || typeof value!=='object' || Array.isArray(value)) return {};
@@ -477,11 +618,23 @@ function sanitizeTemplate(template,index,ids) {
       ?template.id:'template-'+index+'-'+Date.now(),
     title:typeof template?.title==='string'?template.title.trim().slice(0,120):'',
     notes:typeof template?.notes==='string'?template.notes.slice(0,5000):'',
-    plannedMinutes: template?.plannedMinutes??0,
+    plannedMinutes: template?.plannedMinutes??0,measureMode:template?.measureMode||'duration',
+    targetCount:template?.targetCount??null,
     category:template?.category||'other',priority:template?.priority||'normal'};
   if(!t.title || !validMinutes(t.plannedMinutes) || !Object.hasOwn(CATEGORIES,t.category)
-    || !['normal','high'].includes(t.priority)) throw new Error('Некорректное дело из общего списка.');
+    || !['low','normal','high'].includes(t.priority)
+    || (t.measureMode==='count'&&(!Number.isInteger(t.targetCount)||t.targetCount<1||t.targetCount>100000))) throw new Error('Некорректное дело из общего списка.');
   ids.add(t.id);return t;
+}
+function sanitizeStatusByDate(value) {
+  if(!value || typeof value!=='object' || Array.isArray(value))return {};
+  return Object.fromEntries(Object.entries(value).filter(([date,status])=>
+    parseDate(date)&&['todo','partial','done'].includes(status)).slice(-520));
+}
+function sanitizeCountByDate(value) {
+  if(!value || typeof value!=='object' || Array.isArray(value))return {};
+  return Object.fromEntries(Object.entries(value).filter(([date,count])=>
+    parseDate(date)&&Number.isInteger(count)&&count>=0&&count<=100000).slice(-520));
 }
 function sanitizeBackup(value) {
   if(!value || typeof value!=='object' || value.version!==1
@@ -497,9 +650,13 @@ function sanitizeBackup(value) {
       title:typeof task?.title==='string'?task.title.slice(0,121).trim():'',
       date:task?.date,start,end,plannedMinutes:task?.plannedMinutes??legacyMinutes,
       actualMinutes:task?.actualMinutes??null,actualByDate:sanitizedActualByDate(task?.actualByDate),
+      measureMode:task?.measureMode??(start&&end?'interval':'duration'),
+      targetCount:task?.targetCount??null,actualCount:task?.actualCount??null,
+      actualCountByDate:sanitizeCountByDate(task?.actualCountByDate),
       category:task?.category,priority:task?.priority,repeat:task?.repeat,
       notes:typeof task?.notes==='string'?task.notes:'',
-      completed:task?.completed===true,
+      completed:task?.completed===true,status:task?.status??(task?.completed===true?'done':'todo'),
+      statusByDate:sanitizeStatusByDate(task?.statusByDate),
       completedDates:Array.isArray(task?.completedDates)
         ?[...new Set(task.completedDates.filter(date=>parseDate(date)))].slice(-520):[]
     };
@@ -577,60 +734,112 @@ function filteredOccurrences() {
     (!filters.search || `${task.title} ${task.notes}`.toLocaleLowerCase('ru').includes(filters.search))
   );
 }
-function render() {
-  const all = allOccurrences(), visible = filteredOccurrences();
-  $('weekTitle').textContent = formatWeek(monday);
-  $('jumpDate').value = monday;
-  $('weekNote').value = data.weekNotes[monday] || '';
-  document.documentElement.dataset.theme = 'dark';
-
-  $('weekBoard').innerHTML = Array.from({length:7}, (_, i) => {
-    const iso = addDays(monday, i);
-    const tasks = visible.filter(t => t.occurrenceDate === iso);
-    const hasFilteredTasks = all.some(t => t.occurrenceDate === iso);
-    const current = iso === today();
-    const dayNote = data.dayNotes[iso] || '';
-    const dateValue = parseDate(iso);
-    const dateNumber = dateValue.getDate();
-    const dateMonth = dateValue.toLocaleDateString('ru-RU', {month:'short'}).replace('.', '');
-    return `<section class="day-row ${current?'is-today':''}" aria-label="${WEEKDAYS[i]}, ${formatDay(iso)}">
-      <div class="day-date">
-        <span class="day-name">${SHORT_WEEKDAYS[i]}</span>
-        <span class="day-number">${dateNumber}</span>
-        <span class="day-month">${dateMonth}</span>
-        ${current?'<span class="today-tag">Сегодня</span>':''}
-      </div>
-      <div class="day-content">
-        <div class="day-task-list">
-          ${tasks.length ? tasks.map(taskCard).join('') : `<div class="empty-day">${hasFilteredTasks?'Нет дел по фильтру':'Нет дел'}</div>`}
-        </div>
-        <div class="day-actions">
-          <button class="add-day" type="button" data-action="add" data-date="${iso}">+ Добавить дело</button>
-          <button class="add-day from-library" type="button" data-action="library" data-date="${iso}">Из общего списка</button>
-          <details class="day-extra">
-            <summary aria-label="Заметка для ${WEEKDAYS[i]}" title="Заметка для этого дня">${dayNote?'✎ Заметка':'✎'}</summary>
-            <textarea id="note-${iso}" data-day-note="${iso}" rows="2" maxlength="10000" placeholder="Заметка для этого дня">${escapeHTML(dayNote)}</textarea>
-          </details>
-        </div>
-      </div>
-    </section>`;
+let calendarMonth=monday;
+let selectedDay=today();
+let viewMode='week'; // weeks -> week -> day
+let overviewAnchor=startOfWeek(addDays(monday,-14));
+let dayPage=0;
+function periodLabel(first) {
+  const last=addDays(first,6),a=parseDate(first),b=parseDate(last);
+  const month=d=>d.toLocaleDateString('ru-RU',{month:'long'});
+  return a.getMonth()===b.getMonth() ?
+    a.getDate()+'–'+b.getDate()+' '+month(b):
+    a.getDate()+' '+month(a)+' – '+b.getDate()+' '+month(b);
+}
+function renderCalendar() {
+  const month=parseDate(calendarMonth),first=new Date(month.getFullYear(),month.getMonth(),1,12);
+  const start=startOfWeek(toISO(first));
+  $('calendarMonthLabel').textContent=first.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  $('calendarGrid').innerHTML=Array.from({length:42},(_,i)=>{
+    const iso=addDays(start,i),d=parseDate(iso),current=d.getMonth()===first.getMonth();
+    return '<button type="button" class="calendar-date '+(current?'':'outside ')
+      +(startOfWeek(iso)===monday?'selected ':'')+(iso===today()?'calendar-today':'')
+      +'" data-calendar-date="'+iso+'" aria-label="'+formatDay(iso)+'">'+d.getDate()+'</button>';
   }).join('');
 }
+function render() {
+  const all=allOccurrences(),visible=filteredOccurrences();
+  const board=$('weekBoard');
+  board.className='week-list view-'+viewMode+' view-animate';
+  $('weekPickerSummary').textContent=periodLabel(monday);
+  $('weekNote').value=data.weekNotes[monday]||'';
+  $('viewCaption').textContent=viewMode==='day'?'Выбранный день':viewMode==='weeks'?'Обзор':'Моя неделя';
+  $('weekTitle').textContent=viewMode==='day'?formatDay(selectedDay)
+    :viewMode==='weeks'?'Выберите неделю':formatWeek(monday);
+  $('backView').disabled=viewMode==='weeks';
+  document.documentElement.dataset.theme='dark';
+  $('weekPicker').hidden=viewMode==='weeks';
+  if(viewMode==='weeks') {
+    board.innerHTML=Array.from({length:6},(_,i)=>{
+      const first=addDays(overviewAnchor,i*7),tasks=occurrencesForWeek(data.tasks,first);
+      const last=addDays(first,6),active=first===monday;
+      return '<button type="button" class="week-overview-item '+(active?'active':'')
+        +'" data-action="select-week" data-date="'+first+'"><span class="overview-number">'
+        +String(parseDate(first).getDate()).padStart(2,'0')+'</span><span class="overview-info">'
+        +'<strong>'+periodLabel(first)+'</strong><small>'+tasks.length+' дел · '
+        +tasks.filter(t=>t.done).length+' выполнено</small></span><span class="overview-open">→</span></button>';
+    }).join('');
+  } else if(viewMode==='day') {
+    const tasks=visible.filter(t=>t.occurrenceDate===selectedDay);
+    const pageSize=Math.max(3,Math.min(9,Math.floor((window.innerHeight-300)/52)));
+    const pages=Math.max(1,Math.ceil(tasks.length/pageSize));
+    dayPage=Math.min(dayPage,pages-1);
+    const page=tasks.slice(dayPage*pageSize,(dayPage+1)*pageSize);
+    board.innerHTML='<section class="day-detail">'
+      +'<div class="day-detail-head"><span>'+WEEKDAYS[(parseDate(selectedDay).getDay()+6)%7]
+      +'</span><button type="button" class="day-add-more" data-action="add" data-date="'+selectedDay+'">+ Задача</button></div>'
+      +'<div class="day-detail-tasks">'+(page.length?page.map(taskCard).join('')
+       :'<button type="button" class="day-blank" data-action="add" data-date="'+selectedDay+'">Нажмите, чтобы добавить задачу</button>')
+      +'</div><div class="page-controls">'
+      +(pages>1?'<button type="button" data-action="page-prev" '+(dayPage===0?'disabled':'')+'>←</button>'
+       +'<span>'+(dayPage+1)+' / '+pages+'</span><button type="button" data-action="page-next" '
+       +(dayPage===pages-1?'disabled':'')+'>→</button>':'')
+      +'</div></section>';
+  } else {
+    board.innerHTML=Array.from({length:7},(_,i)=>{
+      const iso=addDays(monday,i),day=parseDate(iso);
+      const tasks=visible.filter(t=>t.occurrenceDate===iso),shown=tasks.slice(0,2);
+      return '<section class="day-row '+(i>=5?'is-weekend ':'')+(iso===today()?'is-today':'')
+        +'" data-date="'+iso+'" tabindex="0" aria-label="'+WEEKDAYS[i]+', '+formatDay(iso)+'. Пустое место: новая задача.">'
+        +'<button type="button" class="day-date" data-action="day" data-date="'+iso+'">'
+        +'<span class="day-name">'+SHORT_WEEKDAYS[i]+'</span>'
+        +'<span class="day-number">'+day.getDate()+'</span>'
+        +'<span class="day-month">'+day.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')+'</span>'
+        +'</button><div class="day-content"><div class="day-task-list">'
+        +(shown.length?shown.map(taskCard).join(''):'<span class="empty-day">+ Задача</span>')
+        +(tasks.length>2?'<button class="more-tasks" type="button" data-action="day" data-date="'+iso+'">Ещё '+(tasks.length-2)+'</button>':'')
+        +'</div></div></section>';
+    }).join('');
+  }
+  renderCalendar();
+}
 function taskCard(t) {
-  const tags=[];
-  if(t.start)tags.push(t.start);
-  if(t.plannedMinutes>0)tags.push(formatMinutes(t.plannedMinutes));
-  const time=tags.length?'<span class="task-time">'+tags.join(' · ')+'</span>':'';
-  const actual=Number.isInteger(t.actualMinutes)?'<span class="task-fact">Факт '+formatMinutes(t.actualMinutes)+'</span>':'';
-  return '<article class="task-card '+(t.done?'done':'')+'">'
+  const mode=t.measureMode||'duration';
+  const plan=mode==='count'?(Number.isInteger(t.targetCount)?t.targetCount+' раз':''):
+    mode==='interval'&&t.start&&t.end?t.start+'–'+t.end:
+    t.plannedMinutes>0?formatMinutes(t.plannedMinutes):'';
+  const actual=mode==='count'&&Number.isInteger(t.actualCount)?
+      'Факт '+t.actualCount+' раз':
+    Number.isInteger(t.actualMinutes)?'Факт '+formatMinutes(t.actualMinutes):'';
+  const status=t.status||(t.done?'done':'todo'),sign=status==='done'?'✓':status==='partial'?'−':'';
+  return '<article class="task-card status-'+status+' priority-'+(t.priority||'normal')+'">'
     +'<button class="task-check" type="button" data-action="toggle" data-id="'+escapeHTML(t.id)
-    +'" data-date="'+t.occurrenceDate+'" aria-label="'+(t.done?'Снять отметку':'Отметить выполненным')+': '+escapeHTML(t.title)
-    +'" aria-pressed="'+t.done+'">'+(t.done?'✓':'')+'</button>'+time
+    +'" data-date="'+t.occurrenceDate+'" aria-label="Изменить статус: '+escapeHTML(t.title)+'" title="Статус: '
+    +(status==='done'?'Выполнено':status==='partial'?'Частично':'Не выполнено')+'">'
+    +sign+'</button>'
     +'<button class="task-description" type="button" data-action="edit" data-id="'+escapeHTML(t.id)
-    +'" data-date="'+t.occurrenceDate+'" title="Редактировать дело"><span class="task-title">'+escapeHTML(t.title)+'</span>'
-    +(t.repeat==='weekly'?'<span class="task-flag" title="Повторяется еженедельно">↻</span>':'')
-    +(t.priority==='high'?'<span class="task-flag priority" title="Важное">★</span>':'')
-    +'</button>'+actual+'</article>';
+    +'" data-date="'+t.occurrenceDate+'" title="Редактировать задачу">'
+    +'<span class="priority-indicator"></span><span class="task-title">'+escapeHTML(t.title)+'</span>'
+    +(plan?'<span class="task-time">'+escapeHTML(plan)+'</span>':'')
+    +(actual?'<span class="task-fact">'+escapeHTML(actual)+'</span>':'')+'</button></article>';
+}
+function openDay(date) {
+  selectedDay=date;
+  const tasks=filteredOccurrences().filter(t=>t.occurrenceDate===date);
+  $('dayDialogTitle').textContent=formatDay(date);
+  $('dayDialogTasks').innerHTML=tasks.map(taskCard).join('')+
+    '<button type="button" class="day-add-more" data-action="add" data-date="'+date+'">+ Задача</button>';
+  openModal('dayDialog');
 }
 function setDurationInputs(h,m,value) {
   $(h).value=Number.isInteger(value)?String(Math.floor(value/60)):'';
@@ -660,82 +869,138 @@ function closeModal(id) {
   $(id).close();
   syncScrollLock();
 }
+function setTaskMeasureMode(mode) {
+  $('taskMeasureMode').value=mode;
+  $('durationFields').hidden=mode!=='duration';
+  $('intervalFields').hidden=mode!=='interval';
+  $('countFields').hidden=mode!=='count';
+  $('actualFields').hidden=mode==='count';
+}
+function chooseTemplate(t) {
+  $('taskTitle').value=t.title;
+  $('taskCategory').value=t.category||'personal';
+  $('taskPriority').value=t.priority||'normal';
+  $('taskNotes').value=t.notes||'';
+  setTaskMeasureMode(t.measureMode||'duration');
+  setDurationInputs('planHours','planMinutes',t.plannedMinutes??null);
+  $('targetCount').value=t.targetCount??'';
+  previewDuration('planHours','planMinutes','plannedPreview','Необязательно');
+  $('templateChooser').hidden=true;
+}
+function renderTemplateChooser() {
+  $('templateChooser').innerHTML=data.templates.length?data.templates.map(t=>
+    '<button type="button" data-choose-template="'+escapeHTML(t.id)+'">'+escapeHTML(t.title)+'</button>'
+    ).join(''):'<p>Список пуст. Сохранить задачу можно при её создании.</p>';
+}
 function openTask(task=null,occurrenceDate=null,proposedDate=null) {
-  editingId=task?.id||null;
-  editingOccurrence=occurrenceDate||null;
-  $('taskForm').reset();
-  $('dialogHeading').textContent=task?'Редактировать дело':'Новое дело';
+  editingId=task?.id||null;editingOccurrence=occurrenceDate||null;
+  $('taskForm').reset();$('templateChooser').hidden=true;
+  $('dialogHeading').textContent=task?'Редактировать задачу':'Новая задача';
   $('taskTitle').value=task?.title||'';
   $('taskDate').value=task?.date||proposedDate||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
-  $('taskStart').value=task?.start||'';
-  $('taskCategory').value=task?.category||'other';
+  $('taskCategory').value=task?.category||'personal';
   $('taskPriority').value=task?.priority||'normal';
   $('taskRepeat').value=task?.repeat||'none';
   $('taskNotes').value=task?.notes||'';
+  setTaskMeasureMode(task?.measureMode||((task?.start&&task?.end)?'interval':'duration'));
+  $('taskStart').value=task?.start||'';$('taskEnd').value=task?.end||'';
   setDurationInputs('planHours','planMinutes',task?.plannedMinutes??null);
   const actual=task?.repeat==='weekly'?(task.actualByDate?.[occurrenceDate]??null):(task?.actualMinutes??null);
   setDurationInputs('actualHours','actualMinutes',actual);
+  $('targetCount').value=task?.targetCount??'';
+  $('actualCount').value=task?.repeat==='weekly'?(task.actualCountByDate?.[occurrenceDate]??''):(task?.actualCount??'');
+  $('taskStatus').value=task?.repeat==='weekly'?
+    (task.statusByDate?.[occurrenceDate]??((task.completedDates||[]).includes(occurrenceDate)?'done':'todo')):
+    (task?.status??(task?.completed?'done':'todo'));
+  $('saveToLibrary').checked=false;
   $('deleteTask').hidden=!task;
-  $('clockFields').open=Boolean(task?.start);
   $('actualFields').open=Number.isInteger(actual);
   $('recurrenceHint').hidden=task?.repeat!=='weekly';
-  $('advancedFields').open=Boolean(task&&(task.notes||task.repeat==='weekly'||task.priority==='high'||task.category!=='other'));
+  $('advancedFields').open=Boolean(task&&(task.notes||task.repeat==='weekly'));
   $('formError').hidden=true;
   previewDuration('planHours','planMinutes','plannedPreview','Необязательно');
   previewDuration('actualHours','actualMinutes','actualPreview','Пока не записано');
+  if($('dayDialog').open)closeModal('dayDialog');
   openModal('taskDialog');
   requestAnimationFrame(()=>$('taskTitle').focus());
 }
 function closeTask() {
-  closeModal('taskDialog');
-  editingId=null;
-  editingOccurrence=null;
+  closeModal('taskDialog');editingId=null;editingOccurrence=null;
 }
 function submitTask(event) {
   event.preventDefault();
-  const planned=readDuration('planHours','planMinutes');
-  const actual=readDuration('actualHours','actualMinutes');
-  const payload={
-    title:$('taskTitle').value.trim(),date:$('taskDate').value,start:$('taskStart').value||'',
-    end:'',plannedMinutes:planned,category:$('taskCategory').value,
-    priority:$('taskPriority').value,repeat:$('taskRepeat').value,notes:$('taskNotes').value.trim()
-  };
-  const error=validateTask({...payload,actualMinutes:actual});
-  if(error||Number.isNaN(planned)||Number.isNaN(actual)){
-    $('formError').textContent=error||'Проверьте часы и минуты.';
+  const mode=$('taskMeasureMode').value;
+  let planned=mode==='duration'?readDuration('planHours','planMinutes'):null;
+  const actual=mode==='count'?null:readDuration('actualHours','actualMinutes');
+  const start=mode==='interval'?$('taskStart').value:'',end=mode==='interval'?$('taskEnd').value:'';
+  if(mode==='interval'&&start&&end)planned=timeMinutes(end)-timeMinutes(start);
+  if(mode==='count')planned=0;
+  const targetCount=mode==='count'?Number($('targetCount').value):null;
+  const actualCount=mode==='count'&&$('actualCount').value!==''?Number($('actualCount').value):null;
+  const status=$('taskStatus').value;
+  const payload={title:$('taskTitle').value.trim(),date:$('taskDate').value,start,end,
+    measureMode:mode,plannedMinutes:planned,targetCount,category:$('taskCategory').value,
+    priority:$('taskPriority').value,repeat:$('taskRepeat').value,notes:$('taskNotes').value.trim()};
+  const problem=validateTask({...payload,status,actualMinutes:actual,actualCount});
+  if(problem||Number.isNaN(planned)||Number.isNaN(actual)){
+    $('formError').textContent=problem||'Проверьте время и количество повторений.';
     $('formError').hidden=false;return;
   }
+  const factDate=editingOccurrence||payload.date;
   if(editingId){
     const index=data.tasks.findIndex(t=>t.id===editingId);
     if(index<0){closeTask();return;}
-    const old=data.tasks[index];
-    const keepSeries=old.repeat==='weekly'&&payload.repeat==='weekly'&&old.date===payload.date;
-    const actualByDate=keepSeries?{...(old.actualByDate||{})}:{};
+    const old=data.tasks[index],keep=old.repeat==='weekly'&&payload.repeat==='weekly'&&old.date===payload.date;
+    const byDate=keep?{...(old.actualByDate||{})}:{};
+    const statusByDate=keep?{...(old.statusByDate||{})}:{};
+    const countByDate=keep?{...(old.actualCountByDate||{})}:{};
     if(payload.repeat==='weekly'){
-      const factDate=keepSeries?(editingOccurrence||payload.date):payload.date;
-      if(actual===null)delete actualByDate[factDate];else actualByDate[factDate]=actual;
+      if(actual===null)delete byDate[factDate];else byDate[factDate]=actual;
+      if(actualCount===null)delete countByDate[factDate];else countByDate[factDate]=actualCount;
+      statusByDate[factDate]=status;
+    }
+    const completion=keep?new Set(old.completedDates||[]):new Set();
+    if(payload.repeat==='weekly'){
+      if(status==='done')completion.add(factDate);else completion.delete(factDate);
     }
     data.tasks[index]={...old,...payload,actualMinutes:payload.repeat==='weekly'?null:actual,
-      actualByDate,completedDates:keepSeries?old.completedDates:[]};
-    showToast('Дело обновлено');
+      actualCount:payload.repeat==='weekly'?null:actualCount,
+      actualByDate:byDate,actualCountByDate:countByDate,status,statusByDate,
+      completed:status==='done',completedDates:[...completion].sort()};
   }else{
-    const actualByDate=payload.repeat==='weekly'&&actual!==null?{[payload.date]:actual}:{};
     data.tasks.push({id:uid(),...payload,actualMinutes:payload.repeat==='weekly'?null:actual,
-      actualByDate,completed:false,completedDates:[]});
-    showToast('Новое дело добавлено');
+      actualCount:payload.repeat==='weekly'?null:actualCount,
+      actualByDate:payload.repeat==='weekly'&&actual!==null?{[payload.date]:actual}:{},
+      actualCountByDate:payload.repeat==='weekly'&&actualCount!==null?{[payload.date]:actualCount}:{},
+      status,statusByDate:payload.repeat==='weekly'?{[payload.date]:status}:{},
+      completed:status==='done',completedDates:payload.repeat==='weekly'&&status==='done'?[payload.date]:[]});
   }
-  const selectedDate=editingOccurrence&&payload.repeat==='weekly'?editingOccurrence:payload.date;
-  closeTask();save();monday=startOfWeek(selectedDate);render();
+  if($('saveToLibrary').checked&&!data.templates.some(t=>t.title.toLocaleLowerCase('ru')===payload.title.toLocaleLowerCase('ru'))){
+    data.templates.push({id:uid(),title:payload.title,category:payload.category,
+      priority:payload.priority,plannedMinutes:planned||0,measureMode:mode,
+      targetCount,notes:payload.notes});
+  }
+  closeTask();save();
+  monday=startOfWeek(factDate);
+  if(viewMode==='day')selectedDay=factDate;
+  render();showToast('Задача сохранена');
 }
 function toggleTask(id,date) {
-  const task = data.tasks.find(t=>t.id===id);
-  if (!task) return;
-  if (task.repeat==='weekly') {
-    const done = new Set(task.completedDates || []);
-    if (done.has(date)) done.delete(date); else done.add(date);
-    task.completedDates = [...done].sort();
-  } else task.completed = !task.completed;
-  save(); render();
+  const task=data.tasks.find(t=>t.id===id);
+  if(!task)return;
+  const current=task.repeat==='weekly'
+    ?(task.statusByDate?.[date]??((task.completedDates||[]).includes(date)?'done':'todo'))
+    :(task.status??(task.completed?'done':'todo'));
+  const next=current==='todo'?'partial':current==='partial'?'done':'todo';
+  if(task.repeat==='weekly'){
+    task.statusByDate={...(task.statusByDate||{}),[date]:next};
+    const done=new Set(task.completedDates||[]);
+    if(next==='done')done.add(date);else done.delete(date);
+    task.completedDates=[...done].sort();
+  }else{
+    task.status=next;task.completed=next==='done';
+  }
+  save();render();
 }
 function removeTask(id) {
   const index = data.tasks.findIndex(t=>t.id===id);
@@ -777,46 +1042,17 @@ function goToWeek(date) {
   monday=startOfWeek(date);
   render();
 }
-function openLibrary(date) {
-  $('libraryDate').value=date||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
-  $('libraryForm').reset();$('libraryError').hidden=true;
+function openLibrary() {
   renderLibrary();openModal('libraryDialog');
 }
 function renderLibrary() {
-  $('libraryList').innerHTML=data.templates.length?data.templates.map(t=>
-    '<div class="library-item"><div class="library-name"><strong>'+escapeHTML(t.title)
-    +'</strong><small>'+(t.plannedMinutes>0?'План: '+formatMinutes(t.plannedMinutes):'Без времени')
-    +'</small></div><button type="button" class="secondary-button" data-template-action="add" data-template-id="'
-    +escapeHTML(t.id)+'">В день</button><button type="button" class="library-delete" data-template-action="delete" data-template-id="'
-    +escapeHTML(t.id)+'" aria-label="Удалить '+escapeHTML(t.title)+'">×</button></div>').join('')
-    :'<p class="library-empty">Список пока пуст. Сохрани привычное дело ниже и добавляй его в любой день.</p>';
-}
-function addLibraryTemplate(event) {
-  event.preventDefault();
-  const title=$('libraryTitle').value.trim(),planned=readDuration('libraryHours','libraryMinutes');
-  if(!title||title.length>120||Number.isNaN(planned)){
-    $('libraryError').textContent='Укажите название и корректную длительность.';
-    $('libraryError').hidden=false;return;
-  }
-  data.templates.push({id:uid(),title,notes:'',category:'other',priority:'normal',plannedMinutes:planned??0});
-  $('libraryForm').reset();$('libraryError').hidden=true;
-  save();renderLibrary();showToast('Дело сохранено в общем списке');
-}
-function onLibraryAction(event) {
-  const button=event.target.closest('button[data-template-action]');
-  if(!button)return;
-  const t=data.templates.find(v=>v.id===button.dataset.templateId);
-  if(!t)return;
-  if(button.dataset.templateAction==='delete') {
-    if(!confirm('Удалить «'+t.title+'» из общего списка? Запланированные дела останутся.'))return;
-    data.templates=data.templates.filter(v=>v.id!==t.id);
-    save();renderLibrary();return;
-  }
-  const date=$('libraryDate').value;
-  if(!parseDate(date)){showToast('Выберите правильную дату.');return;}
-  data.tasks.push(createFromTemplate(t,date,uid()));
-  save();closeModal('libraryDialog');goToWeek(date);
-  showToast('«'+t.title+'» добавлено на '+formatDay(date));
+  $('libraryList').innerHTML=data.templates.length?data.templates.map(t=>{
+    const details=t.measureMode==='count'&&t.targetCount?t.targetCount+' раз':
+      t.plannedMinutes>0?formatMinutes(t.plannedMinutes):'Без времени';
+    return '<div class="library-item library-readonly"><div class="library-name"><strong>'
+      +escapeHTML(t.title)+'</strong><small>'+escapeHTML(details)+' · '
+      +escapeHTML(CATEGORIES[t.category]||'Личное время')+'</small></div></div>';
+  }).join(''):'<p class="library-empty">Пока пусто. Задачи попадают сюда, когда в их форме включено «Сохранить также в общий список».</p>';
 }
 function renderStats() {
   const all=allOccurrences(),summary=timeStats(all);
@@ -840,61 +1076,117 @@ function renderStats() {
 function openStats() {
   renderStats();openModal('statsDialog');
 }
-$('newTaskButton').addEventListener('click',()=>openTask());
-$('previousWeek').addEventListener('click',()=>goToWeek(addDays(monday,-7)));
-$('nextWeek').addEventListener('click',()=>goToWeek(addDays(monday,7)));
-$('goToday').addEventListener('click',()=>goToWeek(today()));
-$('jumpDate').addEventListener('change',event=>goToWeek(event.target.value));
+function moveView(direction) {
+  if(viewMode==='weeks'){overviewAnchor=addDays(overviewAnchor,direction*42);render();}
+  else if(viewMode==='day'){
+    selectedDay=addDays(selectedDay,direction);
+    monday=startOfWeek(selectedDay);
+    dayPage=0;render();
+  }else{
+    monday=addDays(monday,direction*7);
+    render();
+  }
+}
+function backView() {
+  if(viewMode==='day'){viewMode='week';dayPage=0;}
+  else if(viewMode==='week'){
+    viewMode='weeks';
+    overviewAnchor=startOfWeek(addDays(monday,-14));
+  }
+  render();
+}
+function showDay(date) {
+  if(!parseDate(date))return;
+  selectedDay=date;monday=startOfWeek(date);dayPage=0;viewMode='day';
+  render();
+}
+$('previousWeek').addEventListener('click',()=>moveView(-1));
+$('nextWeek').addEventListener('click',()=>moveView(1));
+$('backView').addEventListener('click',backView);
+$('calendarPrev').addEventListener('click',()=>{
+  const d=parseDate(calendarMonth);d.setMonth(d.getMonth()-1,1);calendarMonth=toISO(d);renderCalendar();
+});
+$('calendarNext').addEventListener('click',()=>{
+  const d=parseDate(calendarMonth);d.setMonth(d.getMonth()+1,1);calendarMonth=toISO(d);renderCalendar();
+});
+$('calendarCurrent').addEventListener('click',()=>{
+  monday=startOfWeek(today());viewMode='week';calendarMonth=monday;$('weekPicker').open=false;
+  syncScrollLock();render();
+});
+$('calendarGrid').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-calendar-date]');
+  if(!button)return;
+  monday=startOfWeek(button.dataset.calendarDate);
+  viewMode='week';$('weekPicker').open=false;syncScrollLock();render();
+});
+$('weekPicker').addEventListener('toggle',()=>{
+  if($('weekPicker').open){calendarMonth=monday;renderCalendar();$('moreMenu').open=false;}
+  syncScrollLock();
+});
 $('statsButton').addEventListener('click',openStats);
-$('libraryButton').addEventListener('click',()=>openLibrary());
+$('libraryButton').addEventListener('click',openLibrary);
 $('closeLibrary').addEventListener('click',()=>closeModal('libraryDialog'));
 $('closeStats').addEventListener('click',()=>closeModal('statsDialog'));
-$('libraryForm').addEventListener('submit',addLibraryTemplate);
-$('libraryList').addEventListener('click',onLibraryAction);
+$('closeDay').addEventListener('click',()=>closeModal('dayDialog'));
 $('filtersToggle').addEventListener('click',()=>{
-  const panel=$('filtersPanel');panel.hidden=!panel.hidden;
-  $('filtersToggle').setAttribute('aria-expanded',String(!panel.hidden));
-  $('moreMenu').open=false;syncScrollLock();
-  if(!panel.hidden)$('searchInput').focus();
+  const p=$('filtersPanel');p.hidden=!p.hidden;
+  $('filtersToggle').setAttribute('aria-expanded',String(!p.hidden));
+  $('moreMenu').open=false;syncScrollLock();if(!p.hidden)$('searchInput').focus();
 });
 $('searchInput').addEventListener('input',event=>{filters.search=event.target.value.trim().toLocaleLowerCase('ru');render();});
 $('categoryFilter').addEventListener('change',event=>{filters.category=event.target.value;render();});
 $('hideCompleted').addEventListener('change',event=>{filters.hideCompleted=event.target.checked;render();});
 $('weekBoard').addEventListener('click',event=>{
-  const button=event.target.closest('button[data-action]');
-  if(!button)return;
-  const {action,id,date}=button.dataset;
-  if(action==='add')openTask(null,null,date);
-  else if(action==='library')openLibrary(date);
-  else if(action==='toggle')toggleTask(id,date);
-  else if(action==='edit'){
-    const task=data.tasks.find(t=>t.id===id);
-    if(task)openTask(task,date);
+  const b=event.target.closest('button[data-action]');
+  if(b){
+    const {action,id,date}=b.dataset;
+    if(action==='add')openTask(null,null,date);
+    else if(action==='day')showDay(date);
+    else if(action==='select-week'){monday=date;viewMode='week';render();}
+    else if(action==='toggle')toggleTask(id,date);
+    else if(action==='edit'){
+      const task=data.tasks.find(t=>t.id===id);
+      if(task)openTask(task,date);
+    }else if(action==='page-prev'){dayPage=Math.max(0,dayPage-1);render();}
+    else if(action==='page-next'){dayPage++;render();}
+    return;
   }
+  // The empty surface of any week column creates a task in that day's date.
+  const col=event.target.closest('.view-week .day-row');
+  if(col&&!event.target.closest('button,input,textarea,select,details,summary'))
+    openTask(null,null,col.dataset.date);
 });
-$('weekBoard').addEventListener('input',event=>{
-  if(!event.target.matches('textarea[data-day-note]'))return;
-  data.dayNotes[event.target.dataset.dayNote]=event.target.value;save();
+$('weekBoard').addEventListener('keydown',event=>{
+  if(!['Enter',' '].includes(event.key)||event.target.tagName!=='SECTION')return;
+  if(!event.target.classList.contains('day-row'))return;
+  event.preventDefault();openTask(null,null,event.target.dataset.date);
 });
 $('weekNote').addEventListener('input',event=>{data.weekNotes[monday]=event.target.value;save();});
 $('taskForm').addEventListener('submit',submitTask);
+$('taskMeasureMode').addEventListener('change',event=>setTaskMeasureMode(event.target.value));
+$('chooseTemplate').addEventListener('click',()=>{
+  renderTemplateChooser();$('templateChooser').hidden=!$('templateChooser').hidden;
+});
+$('templateChooser').addEventListener('click',event=>{
+  const b=event.target.closest('button[data-choose-template]');
+  if(!b)return;
+  const template=data.templates.find(t=>t.id===b.dataset.chooseTemplate);
+  if(template)chooseTemplate(template);
+});
 $('closeDialog').addEventListener('click',closeTask);
 $('cancelTask').addEventListener('click',closeTask);
 $('deleteTask').addEventListener('click',()=>{if(editingId)removeTask(editingId);});
 $('taskRepeat').addEventListener('change',event=>{$('recurrenceHint').hidden=event.target.value!=='weekly';});
-for(const [h,m,p,label] of [
+for(const [h,m,p,empty] of [
   ['planHours','planMinutes','plannedPreview','Необязательно'],
   ['actualHours','actualMinutes','actualPreview','Пока не записано']]){
-  [h,m].forEach(id=>$(id).addEventListener('input',()=>previewDuration(h,m,p,label)));
+  [h,m].forEach(id=>$(id).addEventListener('input',()=>previewDuration(h,m,p,empty)));
 }
-for(const id of ['taskDialog','libraryDialog','statsDialog']){
+for(const id of ['taskDialog','libraryDialog','statsDialog','dayDialog']){
   $(id).addEventListener('click',event=>{if(event.target===$(id))closeModal(id);});
   $(id).addEventListener('close',syncScrollLock);
 }
-$('moreMenu').addEventListener('toggle',syncScrollLock);
-document.addEventListener('wheel',event=>{
-  if($('moreMenu').open&&$('moreMenu').contains(event.target))event.preventDefault();
-},{passive:false});
+$('moreMenu').addEventListener('toggle',()=>{if($('moreMenu').open)$('weekPicker').open=false;syncScrollLock();});
 $('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;syncScrollLock();exportData();});
 $('importButton').addEventListener('click',()=>{$('moreMenu').open=false;syncScrollLock();$('importFile').click();});
 $('importFile').addEventListener('change',event=>importData(event.target.files?.[0]));
@@ -905,17 +1197,22 @@ $('toastUndo').addEventListener('click',()=>{
 });
 $('toastClose').addEventListener('click',()=>{$('toast').hidden=true;clearTimeout(toastTimer);});
 document.addEventListener('click',event=>{
-  if(!$('moreMenu').contains(event.target)){$('moreMenu').open=false;syncScrollLock();}
+  if(!$('moreMenu').contains(event.target))$('moreMenu').open=false;
+  if(!$('weekPicker').contains(event.target))$('weekPicker').open=false;
+  syncScrollLock();
 });
 document.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&$('moreMenu').open){$('moreMenu').open=false;syncScrollLock();return;}
-  if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')
-    ||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open)return;
-  if(event.key.toLowerCase()==='n'){event.preventDefault();openTask();}
-  else if(event.key==='/'){
-    event.preventDefault();$('filtersPanel').hidden=false;
-    $('filtersToggle').setAttribute('aria-expanded','true');$('searchInput').focus();
+  if(event.key==='Escape'){
+    if($('moreMenu').open)$('moreMenu').open=false;
+    if($('weekPicker').open)$('weekPicker').open=false;
+    syncScrollLock();return;
   }
+  if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')
+    ||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open||$('dayDialog').open)return;
+  if(event.key.toLowerCase()==='n'){event.preventDefault();openTask(null,null,viewMode==='day'?selectedDay:monday);}
+});
+window.addEventListener('resize',()=>{
+  if(viewMode==='day')render();
 });
 render();
 
