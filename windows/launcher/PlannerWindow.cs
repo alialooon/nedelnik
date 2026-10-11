@@ -1,0 +1,99 @@
+using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+
+namespace NedelnikLauncher
+{
+    // The weekly planner is hosted in a native Windows window.
+    // Windows therefore displays our own EXE icon in the taskbar, not the Edge globe.
+    internal sealed class PlannerWindow : Form
+    {
+        private readonly WebView2 browser;
+        private readonly Label message;
+        private readonly Button openOldTasks;
+
+        internal PlannerWindow()
+        {
+            Text = "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a";
+            Width = 1220;
+            Height = 820;
+            MinimumSize = new Size(750, 560);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(248, 249, 254);
+            ShowInTaskbar = true;
+            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
+            catch { }
+
+            browser = new WebView2();
+            browser.Dock = DockStyle.Fill;
+            browser.Visible = false;
+            Controls.Add(browser);
+
+            Panel notice = new Panel();
+            notice.Dock = DockStyle.Fill;
+            notice.BackColor = Color.White;
+            Controls.Add(notice);
+
+            message = new Label();
+            message.Text = "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a...";
+            message.Dock = DockStyle.Top;
+            message.Height = 112;
+            message.Padding = new Padding(30, 38, 30, 0);
+            message.Font = new Font("Segoe UI", 13);
+            message.ForeColor = Color.FromArgb(57, 70, 109);
+            notice.Controls.Add(message);
+
+            openOldTasks = new Button();
+            openOldTasks.Text = "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0435 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435";
+            openOldTasks.Font = new Font("Segoe UI", 10);
+            openOldTasks.Size = new Size(380, 45);
+            openOldTasks.Location = new Point(32, 130);
+            openOldTasks.Visible = false;
+            openOldTasks.Click += (sender, args) =>
+            {
+                try { Program.OpenPlannerLegacy(); }
+                catch (Exception error) { MessageBox.Show(error.Message, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a"); }
+            };
+            notice.Controls.Add(openOldTasks);
+
+            Shown += async (sender, args) => await LoadPlannerAsync();
+        }
+
+        private async Task LoadPlannerAsync()
+        {
+            try
+            {
+                if (!File.Exists(Program.Page))
+                    throw new FileNotFoundException("\u0424\u0430\u0439\u043b \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d.", Program.Page);
+
+                // Keep the old Edge/Chrome user profile intact.
+                // This separate WebView2 profile holds plans for the native Windows window.
+                string profile = Path.Combine(Program.Home, "webview-profile");
+                Directory.CreateDirectory(profile);
+                CoreWebView2Environment environment =
+                    await CoreWebView2Environment.CreateAsync(null, profile);
+                await browser.EnsureCoreWebView2Async(environment);
+                if (IsDisposed) return;
+                browser.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                browser.Source = new Uri(Program.Page);
+                browser.Visible = true;
+                browser.BringToFront();
+            }
+            catch (Exception error)
+            {
+                message.Text =
+                    "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u043e\u0435 \u043e\u043a\u043d\u043e.\n" +
+                    "\u041d\u0443\u0436\u0435\u043d Microsoft Edge WebView2 Runtime.\n\n" +
+                    error.Message;
+                message.Height = 220;
+                openOldTasks.Top = 235;
+                openOldTasks.Visible = true;
+            }
+        }
+    }
+}
