@@ -126,6 +126,8 @@ function previewDuration(h,m,id,empty) {
     :formatMinutes(n)+' ('+formatDecimalHours(n)+')';
 }
 function syncScrollLock() {
+  document.documentElement.classList.toggle('overlay-open',
+    Boolean($('moreMenu').open||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open));
   document.body.classList.toggle('overlay-open',
     Boolean($('moreMenu').open||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open));
 }
