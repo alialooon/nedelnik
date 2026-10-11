@@ -24,7 +24,7 @@ namespace NedelnikLauncher
             Height = 820;
             MinimumSize = new Size(750, 560);
             StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.FromArgb(248, 249, 254);
+            BackColor = Color.FromArgb(16, 18, 20);
             ShowInTaskbar = true;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
@@ -36,7 +36,7 @@ namespace NedelnikLauncher
 
             Panel notice = new Panel();
             notice.Dock = DockStyle.Fill;
-            notice.BackColor = Color.White;
+            notice.BackColor = Color.FromArgb(25, 28, 31);
             Controls.Add(notice);
 
             message = new Label();
@@ -45,7 +45,7 @@ namespace NedelnikLauncher
             message.Height = 112;
             message.Padding = new Padding(30, 38, 30, 0);
             message.Font = new Font("Segoe UI", 13);
-            message.ForeColor = Color.FromArgb(57, 70, 109);
+            message.ForeColor = Color.FromArgb(211, 219, 223);
             notice.Controls.Add(message);
 
             openOldTasks = new Button();
@@ -54,6 +54,10 @@ namespace NedelnikLauncher
             openOldTasks.Size = new Size(380, 45);
             openOldTasks.Location = new Point(32, 130);
             openOldTasks.Visible = false;
+            openOldTasks.BackColor = Color.FromArgb(44, 49, 54);
+            openOldTasks.ForeColor = Color.FromArgb(222, 228, 232);
+            openOldTasks.FlatStyle = FlatStyle.Flat;
+            openOldTasks.FlatAppearance.BorderColor = Color.FromArgb(71, 80, 87);
             openOldTasks.Click += (sender, args) =>
             {
                 try { Program.OpenPlannerLegacy(); }
@@ -61,7 +65,7 @@ namespace NedelnikLauncher
             };
             notice.Controls.Add(openOldTasks);
 
-            Shown += async (sender, args) => await LoadPlannerAsync();
+            Shown += async (sender, args) => { Program.ApplyDarkTitleBar(this); await LoadPlannerAsync(); };
         }
 
         private async Task LoadPlannerAsync()
