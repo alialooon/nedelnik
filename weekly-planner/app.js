@@ -296,6 +296,28 @@ function onLibraryAction(event) {
   save();closeModal('libraryDialog');goToWeek(date);
   showToast('«'+t.title+'» добавлено на '+formatDay(date));
 }
+function renderStats() {
+  const all=allOccurrences(),summary=timeStats(all);
+  $('statsWeekTitle').textContent=formatWeek(monday);
+  const dayRows=Array.from({length:7},(_,i)=>{
+    const date=addDays(monday,i),s=timeStats(all.filter(t=>t.occurrenceDate===date));
+    return '<div class="stat-day"><span>'+SHORT_WEEKDAYS[i]+' · '+formatDay(date)+'</span>'
+      +'<span>'+formatMinutes(s.plan)+' / '+(s.measured?formatMinutes(s.fact):'—')+'</span></div>';
+  }).join('');
+  $('statsContent').innerHTML=
+    '<p class="stats-help">План — время, которое ты собирался выделить. Факт — сколько реально потратил. Укажи факт при редактировании дела.</p>'
+    +'<div class="stats-grid">'
+    +'<div class="stats-metric"><small>План</small><strong>'+formatMinutes(summary.plan)+'</strong><span>'+formatDecimalHours(summary.plan)+'</span></div>'
+    +'<div class="stats-metric"><small>Факт</small><strong>'+formatMinutes(summary.fact)+'</strong><span>'+formatDecimalHours(summary.fact)+'</span></div>'
+    +'<div class="stats-metric"><small>Факт от плана</small><strong>'+(summary.timeRatio===null?'—':summary.timeRatio+'%')+'</strong><span>'
+    +(summary.measured?'Записано: '+summary.measured+' дел':'Пока нет данных')+'</span></div>'
+    +'<div class="stats-metric"><small>Выполнено</small><strong>'+summary.completion+'%</strong><span>'+summary.done+' из '+summary.total+' дел</span></div>'
+    +'</div><h3 class="stat-subheading">По дням <small>план / факт</small></h3>'+dayRows
+    +'<p class="stats-footnote">Минуты переводятся в часы: 90 мин = 1 ч 30 мин = 1,5 ч. Если факт не записан, время не учитывается.</p>';
+}
+function openStats() {
+  renderStats();openModal('statsDialog');
+}
 $('newTaskButton').addEventListener('click',()=>openTask());
 $('previousWeek').addEventListener('click',()=>{monday=addDays(monday,-7);render();});
 $('nextWeek').addEventListener('click',()=>{monday=addDays(monday,7);render();});
