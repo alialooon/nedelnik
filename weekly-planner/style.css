@@ -349,3 +349,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
  .view-week .day-date{padding-bottom:6px}
  .view-week .task-title{font-size:11px}
 }
+
+.priority-select[data-level="low"]{border-left:3px solid #8bb19e}
+.priority-select[data-level="normal"]{border-left:3px solid #8daabf}
+.priority-select[data-level="high"]{border-left:3px solid #e38b72}
