@@ -480,8 +480,13 @@ $('weekBoard').addEventListener('click',event=>{
   }
   // The empty surface of any week column creates a task in that day's date.
   const col=event.target.closest('.view-week .day-row');
-  if(col&&!event.target.closest('button,input,textarea,select,details,summary'))
-    openTask(null,null,col.dataset.date);
+  if(col&&!event.target.closest('button,input,textarea,select,details,summary')){
+    openTask(null,null,col.dataset.date);return;
+  }
+  if(viewMode==='day'&&event.target.closest('.day-detail')
+    &&!event.target.closest('button,input,textarea,select,details,summary')){
+    openTask(null,null,selectedDay);
+  }
 });
 $('weekBoard').addEventListener('keydown',event=>{
   if(!['Enter',' '].includes(event.key)||event.target.tagName!=='SECTION')return;
