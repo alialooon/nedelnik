@@ -303,9 +303,10 @@ function submitTask(event) {
       priority:payload.priority,plannedMinutes:planned||0,measureMode:mode,
       targetCount,notes:payload.notes});
   }
+  const navigationDate=payload.repeat==='weekly'?factDate:payload.date;
   closeTask();save();
-  monday=startOfWeek(factDate);
-  if(viewMode==='day')selectedDay=factDate;
+  monday=startOfWeek(navigationDate);
+  if(viewMode==='day')selectedDay=navigationDate;
   render();showToast('Задача сохранена');
 }
 function toggleTask(id,date) {
