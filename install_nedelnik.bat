@@ -59,7 +59,7 @@ if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Nedelnik\Nedelnik.cmd"
 
 rem The executable uses standard Windows COM shortcut creation.
 rem No .lnk file invokes PowerShell, cmd.exe, or execution-policy bypass.
-"%APP_EXE%" --install
+start /wait "" "%APP_EXE%" --install
 if errorlevel 1 goto shortcut_failed
 
 echo [3/3] Installation complete. Opening Nedelnik...
