@@ -319,44 +319,62 @@ function openStats() {
   renderStats();openModal('statsDialog');
 }
 $('newTaskButton').addEventListener('click',()=>openTask());
-$('previousWeek').addEventListener('click',()=>{monday=addDays(monday,-7);render();});
-$('nextWeek').addEventListener('click',()=>{monday=addDays(monday,7);render();});
-$('goToday').addEventListener('click',()=>{monday=startOfWeek(today());render();});
+$('previousWeek').addEventListener('click',()=>goToWeek(addDays(monday,-7)));
+$('nextWeek').addEventListener('click',()=>goToWeek(addDays(monday,7)));
+$('goToday').addEventListener('click',()=>goToWeek(today()));
+$('jumpDate').addEventListener('change',event=>goToWeek(event.target.value));
+$('statsButton').addEventListener('click',openStats);
+$('libraryButton').addEventListener('click',()=>openLibrary());
+$('closeLibrary').addEventListener('click',()=>closeModal('libraryDialog'));
+$('closeStats').addEventListener('click',()=>closeModal('statsDialog'));
+$('libraryForm').addEventListener('submit',addLibraryTemplate);
+$('libraryList').addEventListener('click',onLibraryAction);
 $('filtersToggle').addEventListener('click',()=>{
-  const panel = $('filtersPanel');
-  panel.hidden = !panel.hidden;
-  $('filtersToggle').setAttribute('aria-expanded', String(!panel.hidden));
-  $('moreMenu').open = false;
-  if (!panel.hidden) $('searchInput').focus();
+  const panel=$('filtersPanel');panel.hidden=!panel.hidden;
+  $('filtersToggle').setAttribute('aria-expanded',String(!panel.hidden));
+  $('moreMenu').open=false;syncScrollLock();
+  if(!panel.hidden)$('searchInput').focus();
 });
 $('searchInput').addEventListener('input',event=>{filters.search=event.target.value.trim().toLocaleLowerCase('ru');render();});
 $('categoryFilter').addEventListener('change',event=>{filters.category=event.target.value;render();});
 $('hideCompleted').addEventListener('change',event=>{filters.hideCompleted=event.target.checked;render();});
 $('weekBoard').addEventListener('click',event=>{
-  const button = event.target.closest('button[data-action]');
-  if (!button) return;
-  const {action,id,date} = button.dataset;
-  if (action === 'add') openTask(null,null,date);
-  else if (action === 'toggle') toggleTask(id,date);
-  else if (action === 'edit') {
-    const task = data.tasks.find(t=>t.id===id);
-    if (task) openTask(task,date);
+  const button=event.target.closest('button[data-action]');
+  if(!button)return;
+  const {action,id,date}=button.dataset;
+  if(action==='add')openTask(null,null,date);
+  else if(action==='library')openLibrary(date);
+  else if(action==='toggle')toggleTask(id,date);
+  else if(action==='edit'){
+    const task=data.tasks.find(t=>t.id===id);
+    if(task)openTask(task,date);
   }
 });
 $('weekBoard').addEventListener('input',event=>{
-  if (!event.target.matches('textarea[data-day-note]')) return;
-  data.dayNotes[event.target.dataset.dayNote]=event.target.value;
-  save();
+  if(!event.target.matches('textarea[data-day-note]'))return;
+  data.dayNotes[event.target.dataset.dayNote]=event.target.value;save();
 });
 $('weekNote').addEventListener('input',event=>{data.weekNotes[monday]=event.target.value;save();});
 $('taskForm').addEventListener('submit',submitTask);
 $('closeDialog').addEventListener('click',closeTask);
 $('cancelTask').addEventListener('click',closeTask);
 $('deleteTask').addEventListener('click',()=>{if(editingId)removeTask(editingId);});
-$('taskRepeat').addEventListener('change',event=>{ $('recurrenceHint').hidden=event.target.value!=='weekly'; });
-$('taskDialog').addEventListener('click',event=>{if(event.target===$('taskDialog'))closeTask();});
-$('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;exportData();});
-$('importButton').addEventListener('click',()=>{$('moreMenu').open=false;$('importFile').click();});
+$('taskRepeat').addEventListener('change',event=>{$('recurrenceHint').hidden=event.target.value!=='weekly';});
+for(const [h,m,p,label] of [
+  ['planHours','planMinutes','plannedPreview','Необязательно'],
+  ['actualHours','actualMinutes','actualPreview','Пока не записано']]){
+  [h,m].forEach(id=>$(id).addEventListener('input',()=>previewDuration(h,m,p,label)));
+}
+for(const id of ['taskDialog','libraryDialog','statsDialog']){
+  $(id).addEventListener('click',event=>{if(event.target===$(id))closeModal(id);});
+  $(id).addEventListener('close',syncScrollLock);
+}
+$('moreMenu').addEventListener('toggle',syncScrollLock);
+document.addEventListener('wheel',event=>{
+  if($('moreMenu').open&&$('moreMenu').contains(event.target))event.preventDefault();
+},{passive:false});
+$('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;syncScrollLock();exportData();});
+$('importButton').addEventListener('click',()=>{$('moreMenu').open=false;syncScrollLock();$('importFile').click();});
 $('importFile').addEventListener('change',event=>importData(event.target.files?.[0]));
 $('toastUndo').addEventListener('click',()=>{
   if(!undoTask)return;
@@ -365,11 +383,16 @@ $('toastUndo').addEventListener('click',()=>{
 });
 $('toastClose').addEventListener('click',()=>{$('toast').hidden=true;clearTimeout(toastTimer);});
 document.addEventListener('click',event=>{
-  if(!$('moreMenu').contains(event.target)) $('moreMenu').open=false;
+  if(!$('moreMenu').contains(event.target)){$('moreMenu').open=false;syncScrollLock();}
 });
 document.addEventListener('keydown',event=>{
-  if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')||$('taskDialog').open)return;
+  if(event.key==='Escape'&&$('moreMenu').open){$('moreMenu').open=false;syncScrollLock();return;}
+  if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')
+    ||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open)return;
   if(event.key.toLowerCase()==='n'){event.preventDefault();openTask();}
-  else if(event.key==='/'){event.preventDefault();$('filtersPanel').hidden=false;$('filtersToggle').setAttribute('aria-expanded','true');$('searchInput').focus();}
+  else if(event.key==='/'){
+    event.preventDefault();$('filtersPanel').hidden=false;
+    $('filtersToggle').setAttribute('aria-expanded','true');$('searchInput').focus();
+  }
 });
 render();
