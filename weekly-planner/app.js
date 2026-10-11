@@ -138,47 +138,72 @@ function closeModal(id) {
   $(id).close();
   syncScrollLock();
 }
-function openTask(task=null, occurrenceDate=null, proposedDate=null) {
-  editingId = task?.id || null;
-  editingOccurrence = occurrenceDate || null;
+function openTask(task=null,occurrenceDate=null,proposedDate=null) {
+  editingId=task?.id||null;
+  editingOccurrence=occurrenceDate||null;
   $('taskForm').reset();
-  $('dialogHeading').textContent = task ? 'Редактировать дело' : 'Новое дело';
-  $('taskTitle').value = task?.title || '';
-  $('taskDate').value = task?.date || proposedDate || (today() >= monday && today() <= addDays(monday,6) ? today() : monday);
-  $('taskStart').value = task?.start || '09:00';
-  $('taskEnd').value = task?.end || '10:00';
-  $('taskCategory').value = task?.category || 'work';
-  $('taskPriority').value = task?.priority || 'normal';
-  $('taskRepeat').value = task?.repeat || 'none';
-  $('taskNotes').value = task?.notes || '';
-  $('deleteTask').hidden = !task;
-  $('recurrenceHint').hidden = task?.repeat !== 'weekly';
-  $('advancedFields').open = Boolean(task && (task.notes || task.repeat === 'weekly' || task.priority === 'high' || task.category !== 'work'));
-  $('formError').hidden = true;
-  $('taskDialog').showModal();
+  $('dialogHeading').textContent=task?'Редактировать дело':'Новое дело';
+  $('taskTitle').value=task?.title||'';
+  $('taskDate').value=task?.date||proposedDate||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
+  $('taskStart').value=task?.start||'';
+  $('taskCategory').value=task?.category||'other';
+  $('taskPriority').value=task?.priority||'normal';
+  $('taskRepeat').value=task?.repeat||'none';
+  $('taskNotes').value=task?.notes||'';
+  setDurationInputs('planHours','planMinutes',task?.plannedMinutes??null);
+  const actual=task?.repeat==='weekly'?(task.actualByDate?.[occurrenceDate]??null):(task?.actualMinutes??null);
+  setDurationInputs('actualHours','actualMinutes',actual);
+  $('deleteTask').hidden=!task;
+  $('clockFields').open=Boolean(task?.start);
+  $('actualFields').open=Number.isInteger(actual);
+  $('recurrenceHint').hidden=task?.repeat!=='weekly';
+  $('advancedFields').open=Boolean(task&&(task.notes||task.repeat==='weekly'||task.priority==='high'||task.category!=='other'));
+  $('formError').hidden=true;
+  previewDuration('planHours','planMinutes','plannedPreview','Необязательно');
+  previewDuration('actualHours','actualMinutes','actualPreview','Пока не записано');
+  openModal('taskDialog');
   requestAnimationFrame(()=>$('taskTitle').focus());
 }
-function closeTask() { $('taskDialog').close(); editingId = null; editingOccurrence = null; }
+function closeTask() {
+  closeModal('taskDialog');
+  editingId=null;
+  editingOccurrence=null;
+}
 function submitTask(event) {
   event.preventDefault();
-  const payload = {
-    title: $('taskTitle').value.trim(), date: $('taskDate').value, start:$('taskStart').value, end:$('taskEnd').value,
-    category:$('taskCategory').value, priority:$('taskPriority').value, repeat:$('taskRepeat').value, notes:$('taskNotes').value.trim()
+  const planned=readDuration('planHours','planMinutes');
+  const actual=readDuration('actualHours','actualMinutes');
+  const payload={
+    title:$('taskTitle').value.trim(),date:$('taskDate').value,start:$('taskStart').value||'',
+    end:'',plannedMinutes:planned,category:$('taskCategory').value,
+    priority:$('taskPriority').value,repeat:$('taskRepeat').value,notes:$('taskNotes').value.trim()
   };
-  const problem = validateTask(payload);
-  if (problem) { $('formError').textContent = problem; $('formError').hidden = false; return; }
-  if (editingId) {
-    const index = data.tasks.findIndex(t=>t.id===editingId);
-    if (index < 0) { closeTask(); return; }
-    const old = data.tasks[index];
-    data.tasks[index] = { ...old, ...payload, completedDates: old.repeat === 'weekly' && payload.repeat === 'weekly' && old.date === payload.date ? old.completedDates : [] };
+  const error=validateTask({...payload,actualMinutes:actual});
+  if(error||Number.isNaN(planned)||Number.isNaN(actual)){
+    $('formError').textContent=error||'Проверьте часы и минуты.';
+    $('formError').hidden=false;return;
+  }
+  if(editingId){
+    const index=data.tasks.findIndex(t=>t.id===editingId);
+    if(index<0){closeTask();return;}
+    const old=data.tasks[index];
+    const keepSeries=old.repeat==='weekly'&&payload.repeat==='weekly'&&old.date===payload.date;
+    const actualByDate=keepSeries?{...(old.actualByDate||{})}:{};
+    if(payload.repeat==='weekly'){
+      const factDate=keepSeries?(editingOccurrence||payload.date):payload.date;
+      if(actual===null)delete actualByDate[factDate];else actualByDate[factDate]=actual;
+    }
+    data.tasks[index]={...old,...payload,actualMinutes:payload.repeat==='weekly'?null:actual,
+      actualByDate,completedDates:keepSeries?old.completedDates:[]};
     showToast('Дело обновлено');
-  } else {
-    data.tasks.push({ id:uid(), ...payload, completed:false, completedDates:[] });
+  }else{
+    const actualByDate=payload.repeat==='weekly'&&actual!==null?{[payload.date]:actual}:{};
+    data.tasks.push({id:uid(),...payload,actualMinutes:payload.repeat==='weekly'?null:actual,
+      actualByDate,completed:false,completedDates:[]});
     showToast('Новое дело добавлено');
   }
-  monday = startOfWeek(editingOccurrence && payload.repeat === 'weekly' ? editingOccurrence : payload.date);
-  closeTask(); save(); render();
+  const selectedDate=editingOccurrence&&payload.repeat==='weekly'?editingOccurrence:payload.date;
+  closeTask();save();monday=startOfWeek(selectedDate);render();
 }
 function toggleTask(id,date) {
   const task = data.tasks.find(t=>t.id===id);
