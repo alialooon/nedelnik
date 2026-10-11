@@ -15,11 +15,10 @@
       <header class="topbar">
         <div class="brand" aria-label="Задачи на неделю">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-          <span>Задачи на неделю<span class="brand-period">.</span></span>
+          <span>Задачи на неделю</span>
         </div>
         <div class="topbar-actions">
           <button class="quiet-button" id="statsButton" type="button">Статистика</button>
-          <button class="primary-button" id="newTaskButton" type="button"><span aria-hidden="true">+</span> Новое дело</button>
           <details class="more-menu" id="moreMenu">
             <summary aria-label="Дополнительные действия" title="Дополнительные действия">···</summary>
             <div class="menu-panel">
@@ -39,11 +38,20 @@
           <div class="week-title-group"><p class="section-kicker">Моя неделя</p><h1 id="weekTitle">Неделя</h1></div>
           <div class="week-arrows">
             <button class="arrow-button" id="previousWeek" aria-label="Предыдущая неделя" type="button">←</button>
-            <button class="today-button" id="goToday" type="button">Сегодня</button>
+            <details class="week-picker" id="weekPicker">
+              <summary id="weekPickerSummary" aria-label="Выбрать неделю" title="Выбрать неделю">12–18 октября</summary>
+              <div class="calendar-popover">
+                <div class="calendar-heading">
+                  <button type="button" id="calendarPrev" aria-label="Предыдущий месяц">←</button>
+                  <strong id="calendarMonthLabel">Октябрь 2026</strong>
+                  <button type="button" id="calendarNext" aria-label="Следующий месяц">→</button>
+                </div>
+                <div class="calendar-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <button class="calendar-current" type="button" id="calendarCurrent">Текущая неделя</button>
+              </div>
+            </details>
             <button class="arrow-button" id="nextWeek" aria-label="Следующая неделя" type="button">→</button>
-            <label class="jump-date" title="Выберите любую дату нужной недели"><span>К дате</span>
-              <input type="date" id="jumpDate" aria-label="Перейти к неделе по выбранной дате" />
-            </label>
           </div>
         </div>
 
@@ -68,43 +76,57 @@
     <form id="taskForm" novalidate>
       <div class="dialog-header"><h2 id="dialogHeading">Новое дело</h2><button class="dialog-close" type="button" id="closeDialog" aria-label="Закрыть">×</button></div>
       <div class="dialog-content">
-        <label class="field"><span>Название дела <span class="required">*</span></span><input id="taskTitle" type="text" maxlength="120" placeholder="Что нужно сделать?" autocomplete="off" required /></label>
-        <label class="field"><span>Дата <span class="required">*</span></span><input id="taskDate" type="date" required /></label>
-        <div class="duration-block">
-          <span class="field-label">Сколько времени планируешь выделить?</span>
+        <div class="task-main-grid">
+          <div class="title-field">
+            <label class="field"><span>Задача <span class="required">*</span></span>
+              <span class="title-with-picker"><input id="taskTitle" type="text" maxlength="120" placeholder="Название дела" autocomplete="off" required />
+              <button id="chooseTemplate" type="button" class="picker-trigger" aria-label="Выбрать из общего списка" title="Из общего списка">≡</button></span>
+            </label>
+            <div class="template-chooser" id="templateChooser" hidden></div>
+          </div>
+          <label class="field task-date"><span>Дата</span><input id="taskDate" type="date" required /></label>
+        </div>
+        <div class="field-row main-fields">
+          <label class="field"><span>Категория</span>
+            <select id="taskCategory"><option value="work">Работа</option><option value="study">Учёба</option><option value="personal">Личное время</option><option value="sport">Спорт</option><option value="health">Здоровье</option><option value="other">Другое (старые задачи)</option></select>
+          </label>
+          <label class="field"><span>Планирование</span><select id="taskMeasureMode"><option value="duration">Выделить время</option><option value="interval">Интервал времени</option><option value="count">Количество повторений</option></select></label>
+        </div>
+        <div class="measure-fields" id="durationFields">
           <div class="duration-inputs">
             <label class="field"><span>Часов</span><input id="planHours" type="number" min="0" max="744" step="1" inputmode="numeric" placeholder="0" /></label>
             <label class="field"><span>Минут</span><input id="planMinutes" type="number" min="0" max="44640" step="1" inputmode="numeric" placeholder="0" /></label>
-          </div>
-          <small class="duration-preview" id="plannedPreview">Необязательно</small>
+          </div><small class="duration-preview" id="plannedPreview">Необязательно</small>
         </div>
-        <details class="advanced-fields" id="clockFields">
-          <summary>Назначить конкретное время (необязательно)</summary>
-          <div class="advanced-content">
-            <label class="field"><span>Начало дела</span><input id="taskStart" type="time" /></label>
-            <p class="field-hint">Время окончания не требуется: длительность указывается выше.</p>
+        <div class="measure-fields" id="intervalFields" hidden>
+          <div class="field-row">
+            <label class="field"><span>С</span><input id="taskStart" type="time" /></label>
+            <label class="field"><span>До</span><input id="taskEnd" type="time" /></label>
           </div>
-        </details>
-        <details class="advanced-fields" id="actualFields">
-          <summary>Фактически потрачено времени</summary>
-          <div class="advanced-content">
-            <div class="duration-inputs">
-              <label class="field"><span>Часов</span><input id="actualHours" type="number" min="0" max="744" step="1" inputmode="numeric" placeholder="0" /></label>
-              <label class="field"><span>Минут</span><input id="actualMinutes" type="number" min="0" max="44640" step="1" inputmode="numeric" placeholder="0" /></label>
-            </div>
-            <small class="duration-preview" id="actualPreview">Пока не записано</small>
+        </div>
+        <div class="measure-fields" id="countFields" hidden>
+          <div class="field-row">
+            <label class="field"><span>План (раз)</span><input id="targetCount" type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="Например, 20" /></label>
+            <label class="field"><span>Факт (раз)</span><input id="actualCount" type="number" min="0" max="100000" step="1" inputmode="numeric" placeholder="Необязательно" /></label>
           </div>
+        </div>
+        <div class="field-row main-fields">
+          <label class="field"><span>Важность</span><select id="taskPriority" class="priority-select"><option value="low">● Низкая</option><option value="normal">● Обычная</option><option value="high">● Высокая</option></select></label>
+          <label class="field"><span>Статус</span><select id="taskStatus" class="status-select"><option value="todo">Не выполнена</option><option value="partial">Частично выполнена</option><option value="done">Выполнена</option></select></label>
+        </div>
+        <details class="advanced-fields" id="actualFields"><summary>Фактически потрачено времени</summary>
+          <div class="advanced-content"><div class="duration-inputs">
+            <label class="field"><span>Часов</span><input id="actualHours" type="number" min="0" max="744" step="1" inputmode="numeric" placeholder="0" /></label>
+            <label class="field"><span>Минут</span><input id="actualMinutes" type="number" min="0" max="44640" step="1" inputmode="numeric" placeholder="0" /></label>
+          </div><small class="duration-preview" id="actualPreview">Пока не записано</small></div>
         </details>
-        <details id="advancedFields" class="advanced-fields">
-          <summary>Дополнительно <span>Комментарий, повторение, категория</span></summary>
+        <details class="advanced-fields" id="advancedFields">
+          <summary>Дополнительно <span>Комментарий и повторение по неделям</span></summary>
           <div class="advanced-content">
-            <label class="field"><span>Комментарий</span><textarea id="taskNotes" rows="3" maxlength="5000" placeholder="Детали дела..."></textarea></label>
-            <div class="field-row">
-              <label class="field"><span>Категория</span><select id="taskCategory"><option value="work">Работа</option><option value="personal">Личное</option><option value="study">Учёба</option><option value="health">Здоровье</option><option value="other">Другое</option></select></label>
-              <label class="field"><span>Важность</span><select id="taskPriority"><option value="normal">Обычное</option><option value="high">Важное</option></select></label>
-            </div>
+            <label class="field"><span>Комментарий</span><textarea id="taskNotes" rows="2" maxlength="5000" placeholder="Детали задачи..."></textarea></label>
             <label class="field"><span>Повторение</span><select id="taskRepeat"><option value="none">Не повторять</option><option value="weekly">Каждую неделю в этот день</option></select></label>
-            <p class="recurrence-hint" id="recurrenceHint" hidden>Изменение повторяющегося дела затронет всю серию; фактическое время записывается отдельно для каждой недели.</p>
+            <label class="save-template-label"><input type="checkbox" id="saveToLibrary" /> Сохранить также в общий список дел</label>
+            <p class="recurrence-hint" id="recurrenceHint" hidden>Изменение повторяющегося дела затронет всю серию.</p>
           </div>
         </details>
         <p class="form-error" id="formError" role="alert" hidden></p>
@@ -113,24 +135,14 @@
     </form>
   </dialog>
 
-  <dialog id="libraryDialog" class="simple-dialog" aria-labelledby="libraryHeading">
-    <div class="dialog-header"><div><h2 id="libraryHeading">Общий список дел</h2><p class="dialog-caption">Сохраняй привычные дела и добавляй в любую дату.</p></div><button id="closeLibrary" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
-    <div class="dialog-content">
-      <label class="field"><span>Добавить в день</span><input type="date" id="libraryDate" /></label>
-      <div id="libraryList" class="library-list"></div>
-      <form id="libraryForm" class="library-form">
-        <h3>Новое дело в общий список</h3>
-        <label class="field"><span>Название</span><input id="libraryTitle" type="text" maxlength="120" required placeholder="Например, тренировка" /></label>
-        <div class="duration-inputs">
-          <label class="field"><span>План: часов</span><input id="libraryHours" type="number" min="0" max="744" step="1" placeholder="0" /></label>
-          <label class="field"><span>План: минут</span><input id="libraryMinutes" type="number" min="0" max="44640" step="1" placeholder="0" /></label>
-        </div>
-        <p class="form-error" id="libraryError" role="alert" hidden></p>
-        <button class="secondary-button" type="submit">+ Сохранить в список</button>
-      </form>
-    </div>
+  <dialog id="libraryDialog" class="simple-dialog library-dialog" aria-labelledby="libraryHeading">
+    <div class="dialog-header"><h2 id="libraryHeading">Общий список дел</h2><button id="closeLibrary" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
+    <div class="dialog-content"><div id="libraryList" class="library-list"></div></div>
   </dialog>
-
+  <dialog id="dayDialog" class="simple-dialog" aria-labelledby="dayDialogTitle">
+    <div class="dialog-header"><h2 id="dayDialogTitle">Дела на день</h2><button id="closeDay" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
+    <div class="dialog-content"><div id="dayDialogTasks" class="day-full-list"></div></div>
+  </dialog>
   <dialog id="statsDialog" class="simple-dialog" aria-labelledby="statsHeading">
     <div class="dialog-header"><div><h2 id="statsHeading">План и факт</h2><p class="dialog-caption" id="statsWeekTitle">Статистика недели</p></div><button id="closeStats" type="button" class="dialog-close" aria-label="Закрыть">×</button></div>
     <div class="dialog-content" id="statsContent"></div>
