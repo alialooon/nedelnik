@@ -2,8 +2,8 @@
 setlocal EnableExtensions
 title Install Nedelnik
 
-rem Installs only the independent Nedelnik repository.
-rem The launcher is a regular, visible Windows command file. No PowerShell.
+rem Install from the independent Nedelnik GitHub repository.
+rem Desktop and Start menu shortcuts point DIRECTLY to the native .exe.
 if not defined LOCALAPPDATA goto no_localappdata
 where git.exe >nul 2>nul
 if errorlevel 1 goto no_git
@@ -12,6 +12,7 @@ set "INSTALL_DIR=%LOCALAPPDATA%\Nedelnik"
 set "REPO_DIR=%INSTALL_DIR%\source"
 set "BACKUP_DIR=%INSTALL_DIR%\source-before-nedelnik"
 set "REMOTE=https://github.com/alialooon/nedelnik.git"
+set "APP_EXE=%INSTALL_DIR%\NedelnikLauncher.exe"
 set "MIGRATED="
 
 if exist "%REPO_DIR%\.git" goto inspect_repo
@@ -36,7 +37,7 @@ if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 echo [1/3] Downloading Nedelnik from GitHub...
 git clone --single-branch --branch main "%REMOTE%" "%REPO_DIR%"
 if errorlevel 1 goto clone_failed
-goto create_launcher
+goto install_launcher
 
 :update_repo
 echo [1/3] Updating Nedelnik from GitHub...
@@ -44,33 +45,25 @@ set "GIT_TERMINAL_PROMPT=0"
 git -C "%REPO_DIR%" pull --ff-only origin main
 if errorlevel 1 goto pull_failed
 
-:create_launcher
-echo [2/3] Installing the PowerShell-free launcher...
-if not exist "%REPO_DIR%\weekly-planner\launcher\start.cmd" goto missing_launcher
-copy /Y "%REPO_DIR%\weekly-planner\launcher\start.cmd" "%INSTALL_DIR%\Nedelnik.cmd" >nul
+:install_launcher
+echo [2/3] Installing the native Windows launcher...
+if not exist "%REPO_DIR%\windows\NedelnikLauncher.exe" goto missing_launcher
+copy /Y "%REPO_DIR%\windows\NedelnikLauncher.exe" "%APP_EXE%" >nul
 if errorlevel 1 goto copy_failed
 
-set "DESKTOP=%USERPROFILE%\Desktop"
-if not exist "%DESKTOP%" if defined OneDrive if exist "%OneDrive%\Desktop" set "DESKTOP=%OneDrive%\Desktop"
-if exist "%DESKTOP%" (
-    copy /Y "%INSTALL_DIR%\Nedelnik.cmd" "%DESKTOP%\Nedelnik.cmd" >nul
-    if errorlevel 1 echo WARNING: Could not create the desktop launcher.
-) else (
-    echo WARNING: Desktop folder not found. Use the Start menu launcher.
-)
+rem Remove only previous Nedelnik.cmd launcher files, not user data.
+if exist "%INSTALL_DIR%\Nedelnik.cmd" del /Q "%INSTALL_DIR%\Nedelnik.cmd"
+if exist "%USERPROFILE%\Desktop\Nedelnik.cmd" del /Q "%USERPROFILE%\Desktop\Nedelnik.cmd"
+if defined OneDrive if exist "%OneDrive%\Desktop\Nedelnik.cmd" del /Q "%OneDrive%\Desktop\Nedelnik.cmd"
+if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Nedelnik\Nedelnik.cmd" del /Q "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Nedelnik\Nedelnik.cmd"
 
-set "MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Nedelnik"
-if not exist "%MENU%" mkdir "%MENU%"
-if exist "%MENU%" (
-    copy /Y "%INSTALL_DIR%\Nedelnik.cmd" "%MENU%\Nedelnik.cmd" >nul
-    if errorlevel 1 echo WARNING: Could not create the Start menu launcher.
-)
+rem The executable uses standard Windows COM shortcut creation.
+rem No .lnk file invokes PowerShell, cmd.exe, or execution-policy bypass.
+"%APP_EXE%" --install
+if errorlevel 1 goto shortcut_failed
 
-echo [3/3] Installation finished.
-echo Open Nedelnik.cmd on the desktop for future launches.
-echo Any old PowerShell shortcuts should remain quarantined or be removed.
-call "%INSTALL_DIR%\Nedelnik.cmd"
-if errorlevel 1 goto launch_failed
+echo [3/3] Installation complete. Opening Nedelnik...
+start "" "%APP_EXE%"
 exit /b 0
 
 :no_localappdata
@@ -84,18 +77,18 @@ goto failed
 
 :invalid_dir
 echo ERROR: "%REPO_DIR%" exists but is not a Git checkout.
-echo Keep the folder safe and contact ChatGPT for help.
+echo Keep this folder safe and contact ChatGPT for help.
 goto failed
 
 :backup_exists
-echo ERROR: An older source backup already exists:
+echo ERROR: An older backup already exists:
 echo "%BACKUP_DIR%"
 echo Keep both folders safe and contact ChatGPT for help.
 goto failed
 
 :migration_failed
 echo ERROR: Could not back up the older checkout.
-echo Close any running planner windows and try again.
+echo Close running planner windows and try again.
 goto failed
 
 :clone_failed
@@ -108,15 +101,16 @@ echo ERROR: Could not update Nedelnik from GitHub.
 goto failed
 
 :missing_launcher
-echo ERROR: Nedelnik.cmd was not found in the repository.
+echo ERROR: Windows launcher .exe is missing from GitHub checkout.
+echo Try again shortly or check the GitHub build status.
 goto failed
 
 :copy_failed
-echo ERROR: Could not copy the Nedelnik launcher.
+echo ERROR: Could not copy launcher .exe. Close the running Nedelnik launcher and retry.
 goto failed
 
-:launch_failed
-echo ERROR: The planner could not be opened.
+:shortcut_failed
+echo ERROR: Windows shortcut creation failed.
 goto failed
 
 :failed
