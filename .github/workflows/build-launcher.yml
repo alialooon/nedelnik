@@ -1,0 +1,69 @@
+name: Build Windows launcher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'windows/launcher/**'
+      - '.github/workflows/build-launcher.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-launcher-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Compile launcher and embed calendar icon
+        shell: pwsh
+        run: |
+          $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
+          if (-not (Test-Path $compiler)) { throw "Windows .NET Framework compiler not found" }
+          & $compiler /nologo /target:winexe /optimize+ /platform:anycpu /codepage:65001 /win32icon:windows/launcher/nedelnik.ico /reference:System.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /out:windows/NedelnikLauncher.exe windows/launcher/Program.cs
+          if ($LASTEXITCODE -ne 0) { throw "C# compiler failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path 'windows/NedelnikLauncher.exe')) { throw 'Missing Windows executable' }
+      - name: Check executable icon and shortcut target
+        shell: pwsh
+        run: |
+          & .\windows\NedelnikLauncher.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'The launcher icon self-test failed' }
+          $appFolder = Join-Path $env:LOCALAPPDATA 'Nedelnik\source\weekly-planner'
+          New-Item -ItemType Directory -Path $appFolder -Force | Out-Null
+          Set-Content -Path (Join-Path $appFolder 'planner-standalone.html') -Value '<!doctype html><title>Nedelnik</title>'
+          & .\windows\NedelnikLauncher.exe --install
+          if ($LASTEXITCODE -ne 0) { throw 'Windows shortcut installation failed' }
+          $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Недельник\Недельник.lnk'
+          if (-not (Test-Path $menu)) { throw 'Nedelnik shortcut not found' }
+          $shell = New-Object -ComObject WScript.Shell
+          $shortcut = $shell.CreateShortcut($menu)
+          $expected = (Resolve-Path 'windows/NedelnikLauncher.exe').Path
+          if ($shortcut.TargetPath -ne $expected) { throw "Unexpected shortcut target: $($shortcut.TargetPath)" }
+          if ($shortcut.Arguments -match '(?i)powershell|bypass') { throw 'Unsafe legacy shortcut arguments' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NedelnikLauncher-windows
+          path: windows/NedelnikLauncher.exe
+          if-no-files-found: error
+      - name: Publish compiled executable into repository
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add windows/NedelnikLauncher.exe
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Executable is already up to date.'
+            exit 0
+          }
+          git commit -m 'Build Nedelnik Windows launcher [skip ci]'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not commit launcher' }
+          git push origin HEAD:main
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish launcher into the repository' }
