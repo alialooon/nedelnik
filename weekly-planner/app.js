@@ -56,43 +56,50 @@ function filteredOccurrences() {
   );
 }
 function render() {
-  const all = allOccurrences(), visible = filteredOccurrences(), stats = weekStats(all);
+  const all = allOccurrences(), visible = filteredOccurrences();
   $('weekTitle').textContent = formatWeek(monday);
-  $('todayCaption').textContent = new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase());
-  $('statTotal').textContent = stats.total;
-  $('statDone').textContent = stats.done;
-  $('statHours').textContent = durationLabel(stats.minutes);
-  $('statPercent').textContent = `${stats.percent}%`;
-  $('miniProgress').style.width = `${stats.percent}%`;
-  $('sidebarCompleted').textContent = stats.done;
-  $('sidebarTotal').textContent = stats.total;
-  $('sidebarProgress').style.width = `${stats.percent}%`;
-  $('sidebarMessage').textContent = !stats.total ? 'Начните с одного небольшого дела.' : stats.percent === 100 ? 'Все дела выполнены. Вы молодец! ✨' : stats.percent >= 50 ? 'Отличный темп, так держать!' : 'Каждое дело — маленький шаг вперёд.';
   $('weekNote').value = data.weekNotes[monday] || '';
   document.documentElement.dataset.theme = data.theme;
-  $('themeToggle').textContent = data.theme === 'light' ? '☾' : '☀';
+  $('themeToggle').textContent = data.theme === 'light' ? 'Тёмная тема' : 'Светлая тема';
   $('themeToggle').setAttribute('aria-label', data.theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему');
-  $('weekBoard').innerHTML = Array.from({length:7},(_,i) => {
-    const iso = addDays(monday,i);
-    const tasks = visible.filter(t=>t.occurrenceDate === iso);
-    const total = all.filter(t=>t.occurrenceDate === iso).length;
-    const done = all.filter(t=>t.occurrenceDate === iso && t.done).length;
+
+  $('weekBoard').innerHTML = Array.from({length:7}, (_, i) => {
+    const iso = addDays(monday, i);
+    const tasks = visible.filter(t => t.occurrenceDate === iso);
+    const hasFilteredTasks = all.some(t => t.occurrenceDate === iso);
     const current = iso === today();
     const dayNote = data.dayNotes[iso] || '';
-    return `<section class="day-column ${current?'is-today':''}" aria-label="${WEEKDAYS[i]}, ${formatDay(iso)}">
-      <div class="day-heading"><div class="day-heading-top"><span class="day-name">${WEEKDAYS[i]}</span>${current?'<span class="today-tag">СЕГОДНЯ</span>':''}</div><div class="day-heading-bottom"><span class="day-number">${parseDate(iso).getDate()}</span><span class="day-month">${parseDate(iso).toLocaleDateString('ru-RU',{month:'short'}).replace('.','')}</span><span class="day-count">${done}/${total}</span></div></div>
-      <div class="day-task-list">${tasks.length ? tasks.map(taskCard).join('') : `<div class="empty-day"><span class="empty-day-art">✳</span><p>${total && (filters.category!=='all'||filters.search||filters.hideCompleted)?'Нет дел по фильтрам':'Свободное время'}</p></div>`}</div>
-      <button class="add-day" type="button" data-action="add" data-date="${iso}">+ <span>Добавить дело</span></button>
-      <div class="day-notes"><label for="note-${iso}">✎ Заметка дня</label><textarea id="note-${iso}" data-day-note="${iso}" rows="2" maxlength="10000" placeholder="О чём помнить...">${escapeHTML(dayNote)}</textarea></div>
+    const dateLabel = parseDate(iso).toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+    return `<section class="day-row ${current?'is-today':''}" aria-label="${WEEKDAYS[i]}, ${formatDay(iso)}">
+      <div class="day-date">
+        <span class="day-name">${WEEKDAYS[i]}</span>
+        <span class="day-month">${dateLabel}</span>
+        ${current?'<span class="today-tag">Сегодня</span>':''}
+      </div>
+      <div class="day-content">
+        <div class="day-task-list">
+          ${tasks.length ? tasks.map(taskCard).join('') : `<div class="empty-day">${hasFilteredTasks?'Нет дел по фильтру':'Нет дел'}</div>`}
+        </div>
+        <div class="day-actions">
+          <button class="add-day" type="button" data-action="add" data-date="${iso}">+ Добавить дело</button>
+          <details class="day-extra">
+            <summary aria-label="Заметка для ${WEEKDAYS[i]}" title="Заметка для этого дня">${dayNote?'✎ Заметка':'✎'}</summary>
+            <textarea id="note-${iso}" data-day-note="${iso}" rows="2" maxlength="10000" placeholder="Заметка для этого дня">${escapeHTML(dayNote)}</textarea>
+          </details>
+        </div>
+      </div>
     </section>`;
   }).join('');
 }
 function taskCard(t) {
-  const notes = t.notes.trim();
-  return `<article class="task-card ${t.done?'done':''} ${t.priority==='high'?'high-priority':''}" data-category="${t.category}">
-    <div class="task-card-main"><button class="task-check" type="button" data-action="toggle" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" aria-label="${t.done?'Вернуть в работу':'Отметить выполненным'}: ${escapeHTML(t.title)}" aria-pressed="${t.done}">${t.done?'✓':''}</button>
-    <button class="task-description" type="button" data-action="edit" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" title="Редактировать дело"><span class="task-time">${t.start}–${t.end}</span><span class="task-title">${escapeHTML(t.title)}</span>${notes?`<span class="task-note-preview">✎ ${escapeHTML(notes)}</span>`:''}</button></div>
-    <div class="task-card-bottom"><span class="task-category"><span class="color-dot ${t.category}"></span>${CATEGORIES[t.category]}</span><div class="task-flags">${t.repeat==='weekly'?'<span title="Повторяется каждую неделю">↻</span>':''}${t.priority==='high'?'<span title="Важное дело">★</span>':''}</div><button class="task-more" type="button" data-action="edit" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" aria-label="Редактировать ${escapeHTML(t.title)}">···</button></div>
+  return `<article class="task-card ${t.done?'done':''}">
+    <button class="task-check" type="button" data-action="toggle" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" aria-label="${t.done?'Снять отметку выполнения':'Отметить выполненным'}: ${escapeHTML(t.title)}" aria-pressed="${t.done}">${t.done?'✓':''}</button>
+    <span class="task-time">${t.start}–${t.end}</span>
+    <button class="task-description" type="button" data-action="edit" data-id="${escapeHTML(t.id)}" data-date="${t.occurrenceDate}" title="Редактировать дело">
+      <span class="task-title">${escapeHTML(t.title)}</span>
+      ${t.repeat==='weekly'?'<span class="task-flag" title="Каждую неделю">↻</span>':''}
+      ${t.priority==='high'?'<span class="task-flag priority" title="Важное">★</span>':''}
+    </button>
   </article>`;
 }
 function openTask(task=null, occurrenceDate=null, proposedDate=null) {
@@ -110,6 +117,7 @@ function openTask(task=null, occurrenceDate=null, proposedDate=null) {
   $('taskNotes').value = task?.notes || '';
   $('deleteTask').hidden = !task;
   $('recurrenceHint').hidden = task?.repeat !== 'weekly';
+  $('advancedFields').open = Boolean(task && (task.notes || task.repeat === 'weekly' || task.priority === 'high' || task.category !== 'work'));
   $('formError').hidden = true;
   $('taskDialog').showModal();
   requestAnimationFrame(()=>$('taskTitle').focus());
@@ -184,21 +192,30 @@ async function importData(file) {
 $('newTaskButton').addEventListener('click',()=>openTask());
 $('previousWeek').addEventListener('click',()=>{monday=addDays(monday,-7);render();});
 $('nextWeek').addEventListener('click',()=>{monday=addDays(monday,7);render();});
-for (const id of ['goToday','sideToday','sideWeek']) $(id).addEventListener('click',()=>{monday=startOfWeek(today());render();});
-$('searchInput').addEventListener('input', e=>{filters.search=e.target.value.trim().toLocaleLowerCase('ru');render();});
-$('categoryFilter').addEventListener('change',e=>{filters.category=e.target.value;render();});
-$('hideCompleted').addEventListener('change',e=>{filters.hideCompleted=e.target.checked;render();});
-document.querySelectorAll('[data-filter-category]').forEach(button=>button.addEventListener('click',()=>{filters.category=button.dataset.filterCategory;$('categoryFilter').value=filters.category;render();document.querySelector('.calendar-toolbar').scrollIntoView({behavior:'smooth',block:'center'});}));
+$('goToday').addEventListener('click',()=>{monday=startOfWeek(today());render();});
+$('filtersToggle').addEventListener('click',()=>{
+  const panel = $('filtersPanel');
+  panel.hidden = !panel.hidden;
+  $('filtersToggle').setAttribute('aria-expanded', String(!panel.hidden));
+  $('moreMenu').open = false;
+  if (!panel.hidden) $('searchInput').focus();
+});
+$('searchInput').addEventListener('input',event=>{filters.search=event.target.value.trim().toLocaleLowerCase('ru');render();});
+$('categoryFilter').addEventListener('change',event=>{filters.category=event.target.value;render();});
+$('hideCompleted').addEventListener('change',event=>{filters.hideCompleted=event.target.checked;render();});
 $('weekBoard').addEventListener('click',event=>{
-  const btn=event.target.closest('button[data-action]');
-  if(!btn) return;
-  const {action,id,date}=btn.dataset;
-  if(action==='add') openTask(null,null,date);
-  else if(action==='toggle') toggleTask(id,date);
-  else if(action==='edit') { const task=data.tasks.find(t=>t.id===id);if(task) openTask(task,date); }
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const {action,id,date} = button.dataset;
+  if (action === 'add') openTask(null,null,date);
+  else if (action === 'toggle') toggleTask(id,date);
+  else if (action === 'edit') {
+    const task = data.tasks.find(t=>t.id===id);
+    if (task) openTask(task,date);
+  }
 });
 $('weekBoard').addEventListener('input',event=>{
-  if(!event.target.matches('textarea[data-day-note]')) return;
+  if (!event.target.matches('textarea[data-day-note]')) return;
   data.dayNotes[event.target.dataset.dayNote]=event.target.value;
   save();
 });
@@ -209,15 +226,25 @@ $('cancelTask').addEventListener('click',closeTask);
 $('deleteTask').addEventListener('click',()=>{if(editingId)removeTask(editingId);});
 $('taskRepeat').addEventListener('change',event=>{ $('recurrenceHint').hidden=event.target.value!=='weekly'; });
 $('taskDialog').addEventListener('click',event=>{if(event.target===$('taskDialog'))closeTask();});
-$('exportButton').addEventListener('click',exportData);
-$('importButton').addEventListener('click',()=>$('importFile').click());
+$('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;exportData();});
+$('importButton').addEventListener('click',()=>{$('moreMenu').open=false;$('importFile').click();});
 $('importFile').addEventListener('change',event=>importData(event.target.files?.[0]));
-$('themeToggle').addEventListener('click',()=>{data.theme=data.theme==='dark'?'light':'dark';save();render();});
-$('toastUndo').addEventListener('click',()=>{if(!undoTask)return;data.tasks.splice(Math.min(undoTask.index,data.tasks.length),0,undoTask.task);undoTask=null;save();render();showToast('Удаление отменено');});
+$('themeToggle').addEventListener('click',()=>{
+  $('moreMenu').open=false;
+  data.theme=data.theme==='dark'?'light':'dark';save();render();
+});
+$('toastUndo').addEventListener('click',()=>{
+  if(!undoTask)return;
+  data.tasks.splice(Math.min(undoTask.index,data.tasks.length),0,undoTask.task);
+  undoTask=null;save();render();showToast('Удаление отменено');
+});
 $('toastClose').addEventListener('click',()=>{$('toast').hidden=true;clearTimeout(toastTimer);});
+document.addEventListener('click',event=>{
+  if(!$('moreMenu').contains(event.target)) $('moreMenu').open=false;
+});
 document.addEventListener('keydown',event=>{
   if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')||$('taskDialog').open)return;
   if(event.key.toLowerCase()==='n'){event.preventDefault();openTask();}
-  else if(event.key==='/'){event.preventDefault();$('searchInput').focus();}
+  else if(event.key==='/'){event.preventDefault();$('filtersPanel').hidden=false;$('filtersToggle').setAttribute('aria-expanded','true');$('searchInput').focus();}
 });
 render();
