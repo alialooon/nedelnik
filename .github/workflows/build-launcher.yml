@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: windows-launcher-main
+  group: windows-launcher-main-v2
   cancel-in-progress: false
 
 jobs:
@@ -50,8 +50,16 @@ jobs:
           $appFolder = Join-Path $env:LOCALAPPDATA 'Nedelnik\source\weekly-planner'
           New-Item -ItemType Directory -Path $appFolder -Force | Out-Null
           Set-Content -Path (Join-Path $appFolder 'planner-standalone.html') -Value '<!doctype html><title>Nedelnik</title>'
-          $install = Start-Process -FilePath $exePath -ArgumentList '--install' -Wait -PassThru
-          if ($install.ExitCode -ne 0) { throw "Windows shortcut installation failed: $($install.ExitCode)" }
+          $install = Start-Process -FilePath $exePath -ArgumentList '--install' -PassThru
+          if (-not $install.WaitForExit(15000)) {
+            $install.Kill()
+            throw 'Windows shortcut install timed out'
+          }
+          if ($install.ExitCode -ne 0) {
+            $log = Join-Path $env:LOCALAPPDATA 'Nedelnik\shortcut-install-error.log'
+            if (Test-Path $log) { Get-Content $log }
+            throw "Windows shortcut installation failed: $($install.ExitCode)"
+          }
           $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Недельник\Недельник.lnk'
           if (-not (Test-Path $menu)) { throw 'Nedelnik shortcut not found' }
           $shell = New-Object -ComObject WScript.Shell
