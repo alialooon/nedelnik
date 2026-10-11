@@ -57,60 +57,75 @@ function filteredOccurrences() {
     (!filters.search || `${task.title} ${task.notes}`.toLocaleLowerCase('ru').includes(filters.search))
   );
 }
+let calendarMonth = monday;
+let selectedDay = monday;
+function periodLabel(first) {
+  const last=addDays(first,6),a=parseDate(first),b=parseDate(last);
+  const label = d=>d.toLocaleDateString('ru-RU',{month:'long'});
+  return a.getMonth()===b.getMonth() ?
+    a.getDate()+'–'+b.getDate()+' '+label(b):
+    a.getDate()+' '+label(a)+' – '+b.getDate()+' '+label(b);
+}
+function renderCalendar() {
+  const month=parseDate(calendarMonth),first=new Date(month.getFullYear(),month.getMonth(),1,12);
+  const firstDate=startOfWeek(toISO(first));
+  $('calendarMonthLabel').textContent=first.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  $('calendarGrid').innerHTML=Array.from({length:42},(_,i)=>{
+    const iso=addDays(firstDate,i),d=parseDate(iso),same=d.getMonth()===first.getMonth();
+    const selected=startOfWeek(iso)===monday;
+    return '<button type="button" class="calendar-date '+(same?'':'outside ') +(selected?'selected ':'')
+      +(iso===today()?'calendar-today':'')+'" data-calendar-date="'+iso
+      +'" aria-label="'+formatDay(iso)+'">'+d.getDate()+'</button>';
+  }).join('');
+}
 function render() {
-  const all = allOccurrences(), visible = filteredOccurrences();
-  $('weekTitle').textContent = formatWeek(monday);
-  $('jumpDate').value = monday;
-  $('weekNote').value = data.weekNotes[monday] || '';
-  document.documentElement.dataset.theme = 'dark';
-
-  $('weekBoard').innerHTML = Array.from({length:7}, (_, i) => {
-    const iso = addDays(monday, i);
-    const tasks = visible.filter(t => t.occurrenceDate === iso);
-    const hasFilteredTasks = all.some(t => t.occurrenceDate === iso);
-    const current = iso === today();
-    const dayNote = data.dayNotes[iso] || '';
-    const dateValue = parseDate(iso);
-    const dateNumber = dateValue.getDate();
-    const dateMonth = dateValue.toLocaleDateString('ru-RU', {month:'short'}).replace('.', '');
-    return `<section class="day-row ${current?'is-today':''}" aria-label="${WEEKDAYS[i]}, ${formatDay(iso)}">
-      <div class="day-date">
-        <span class="day-name">${SHORT_WEEKDAYS[i]}</span>
-        <span class="day-number">${dateNumber}</span>
-        <span class="day-month">${dateMonth}</span>
-        ${current?'<span class="today-tag">Сегодня</span>':''}
-      </div>
-      <div class="day-content">
-        <div class="day-task-list">
-          ${tasks.length ? tasks.map(taskCard).join('') : `<div class="empty-day">${hasFilteredTasks?'Нет дел по фильтру':'Нет дел'}</div>`}
-        </div>
-        <div class="day-actions">
-          <button class="add-day" type="button" data-action="add" data-date="${iso}">+ Добавить дело</button>
-          <button class="add-day from-library" type="button" data-action="library" data-date="${iso}">Из общего списка</button>
-          <details class="day-extra">
-            <summary aria-label="Заметка для ${WEEKDAYS[i]}" title="Заметка для этого дня">${dayNote?'✎ Заметка':'✎'}</summary>
-            <textarea id="note-${iso}" data-day-note="${iso}" rows="2" maxlength="10000" placeholder="Заметка для этого дня">${escapeHTML(dayNote)}</textarea>
-          </details>
-        </div>
-      </div>
-    </section>`;
+  const all=allOccurrences(),visible=filteredOccurrences();
+  $('weekTitle').textContent=formatWeek(monday);
+  $('weekPickerSummary').textContent=periodLabel(monday);
+  $('weekNote').value=data.weekNotes[monday]||'';
+  document.documentElement.dataset.theme='dark';
+  $('weekBoard').innerHTML=Array.from({length:7},(_,i)=>{
+    const iso=addDays(monday,i),day=parseDate(iso);
+    const tasks=visible.filter(t=>t.occurrenceDate===iso),shown=tasks.slice(0,2);
+    const hasFilteredTasks=all.some(t=>t.occurrenceDate===iso);
+    return '<section class="day-row '+(iso===today()?'is-today':'')
+      +'" tabindex="0" data-date="'+iso+'" aria-label="'+WEEKDAYS[i]+' '+formatDay(iso)+'. Нажмите для добавления задачи.">'
+      +'<div class="day-date"><span class="day-name">'+SHORT_WEEKDAYS[i]+'</span>'
+      +'<span class="day-number">'+day.getDate()+'</span>'
+      +'<span class="day-month">'+day.toLocaleDateString('ru-RU',{month:'short'}).replace('.','')+'</span>'
+      +'</div><div class="day-content"><div class="day-task-list">'
+      +(shown.length?shown.map(taskCard).join(''):'<span class="empty-day">'+(hasFilteredTasks?'Нет дел по фильтру':'Нажмите, чтобы добавить')+'</span>')
+      +(tasks.length>2?'<button class="more-tasks" type="button" data-action="day" data-date="'+iso+'">Ещё '+(tasks.length-2)+' дел</button>':'')
+      +'</div></div></section>';
   }).join('');
 }
 function taskCard(t) {
-  const tags=[];
-  if(t.start)tags.push(t.start);
-  if(t.plannedMinutes>0)tags.push(formatMinutes(t.plannedMinutes));
-  const time=tags.length?'<span class="task-time">'+tags.join(' · ')+'</span>':'';
-  const actual=Number.isInteger(t.actualMinutes)?'<span class="task-fact">Факт '+formatMinutes(t.actualMinutes)+'</span>':'';
-  return '<article class="task-card '+(t.done?'done':'')+'">'
+  const mode=t.measureMode||'duration';
+  const plan=mode==='count'?(Number.isInteger(t.targetCount)?t.targetCount+' раз':''):
+    mode==='interval'&&t.start&&t.end?t.start+'–'+t.end:
+    t.plannedMinutes>0?formatMinutes(t.plannedMinutes):'';
+  const actual=mode==='count'&&Number.isInteger(t.actualCount)?
+      'Факт '+t.actualCount+' раз':
+    Number.isInteger(t.actualMinutes)?'Факт '+formatMinutes(t.actualMinutes):'';
+  const status=t.status||(t.done?'done':'todo'),sign=status==='done'?'✓':status==='partial'?'−':'';
+  return '<article class="task-card status-'+status+' priority-'+(t.priority||'normal')+'">'
     +'<button class="task-check" type="button" data-action="toggle" data-id="'+escapeHTML(t.id)
-    +'" data-date="'+t.occurrenceDate+'" aria-label="'+(t.done?'Снять отметку':'Отметить выполненным')+': '+escapeHTML(t.title)
-    +'" aria-pressed="'+t.done+'">'+(t.done?'✓':'')+'</button>'+time
+    +'" data-date="'+t.occurrenceDate+'" aria-label="Изменить статус: '+escapeHTML(t.title)+'" title="Статус: '
+    +(status==='done'?'Выполнено':status==='partial'?'Частично':'Не выполнено')+'">'
+    +sign+'</button>'
     +'<button class="task-description" type="button" data-action="edit" data-id="'+escapeHTML(t.id)
-    +'" data-date="'+t.occurrenceDate+'" title="Редактировать дело"><span class="task-title">'+escapeHTML(t.title)+'</span>'
-    +(t.repeat==='weekly'?'<span class="task-flag" title="Повторяется еженедельно">↻</span>':'')
-    +(t.priority==='high'?'<span class="task-flag priority" title="Важное">★</span>':'')
-    +'</button>'+actual+'</article>';
+    +'" data-date="'+t.occurrenceDate+'" title="Редактировать задачу">'
+    +'<span class="priority-indicator"></span><span class="task-title">'+escapeHTML(t.title)+'</span>'
+    +(plan?'<span class="task-time">'+escapeHTML(plan)+'</span>':'')
+    +(actual?'<span class="task-fact">'+escapeHTML(actual)+'</span>':'')+'</button></article>';
+}
+function openDay(date) {
+  selectedDay=date;
+  const tasks=filteredOccurrences().filter(t=>t.occurrenceDate===date);
+  $('dayDialogTitle').textContent=formatDay(date);
+  $('dayDialogTasks').innerHTML=tasks.map(taskCard).join('')+
+    '<button type="button" class="day-add-more" data-action="add" data-date="'+date+'">+ Задача</button>';
+  openModal('dayDialog');
 }
 function setDurationInputs(h,m,value) {
   $(h).value=Number.isInteger(value)?String(Math.floor(value/60)):'';
