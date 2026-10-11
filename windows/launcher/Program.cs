@@ -63,11 +63,11 @@ namespace NedelnikLauncher
             {
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
                 string startFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Programs), "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a");
+                    Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Nedelnik");
                 Directory.CreateDirectory(startFolder);
                 if (!string.IsNullOrEmpty(desktop) && Directory.Exists(desktop))
-                    CreateShortcut(type, shell, Path.Combine(desktop, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a.lnk"));
-                CreateShortcut(type, shell, Path.Combine(startFolder, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a.lnk"));
+                    CreateShortcut(type, shell, Path.Combine(desktop, "Nedelnik.lnk"));
+                CreateShortcut(type, shell, Path.Combine(startFolder, "Nedelnik.lnk"));
             }
             finally
             {
