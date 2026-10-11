@@ -47,9 +47,14 @@ if errorlevel 1 goto pull_failed
 
 :install_launcher
 echo [2/3] Installing the native Windows launcher...
-if not exist "%REPO_DIR%\windows\NedelnikLauncher.exe" goto missing_launcher
-copy /Y "%REPO_DIR%\windows\NedelnikLauncher.exe" "%APP_EXE%" >nul
-if errorlevel 1 goto copy_failed
+rem The icon-branded native app embeds WebView2 and needs its official runtime assemblies.
+for %%F in (NedelnikLauncher.exe Microsoft.Web.WebView2.Core.dll Microsoft.Web.WebView2.WinForms.dll WebView2Loader.dll) do (
+    if not exist "%REPO_DIR%\windows\%%F" goto missing_launcher
+)
+for %%F in (NedelnikLauncher.exe Microsoft.Web.WebView2.Core.dll Microsoft.Web.WebView2.WinForms.dll WebView2Loader.dll) do (
+    copy /Y "%REPO_DIR%\windows\%%F" "%INSTALL_DIR%\%%F" >nul
+    if errorlevel 1 goto copy_failed
+)
 
 rem Remove only previous Nedelnik.cmd launcher files, not user data.
 if exist "%INSTALL_DIR%\Nedelnik.cmd" del /Q "%INSTALL_DIR%\Nedelnik.cmd"
