@@ -141,3 +141,77 @@ body{background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI Variable
 body{background:#fff;color:#111}.day-row,.day-row.is-today{background:#fff;border-color:#bbb;box-shadow:none}
 .day-name,.day-number,.day-month,.task-title,.task-time{color:#111!important}
 }
+
+
+/* Week navigation, reusable tasks and time tracking, Carbon+ */
+.brand{cursor:default;user-select:none}
+.quiet-button{min-height:38px;border:1px solid #343b40;color:#cdd4d8;background:transparent;padding:0 14px;border-radius:9px;font-size:12px}
+.quiet-button:hover{background:#2b3034;color:#fff}
+.jump-date{display:flex;align-items:center;gap:7px;font-size:12px;color:#abb3b8;background:#1b1f22;border:1px solid #3c4449;padding:0 9px;border-radius:9px;min-height:36px}
+.jump-date input{width:122px;height:31px;padding:0 2px;border:0;color:#e1e7ea;background:transparent;color-scheme:dark;cursor:pointer;font-size:12px}
+.jump-date:focus-within{outline:2px solid #869198;outline-offset:2px}
+.task-time{width:auto;max-width:144px;flex-shrink:0;white-space:nowrap;line-height:1.3}
+.task-description{min-width:0}
+.task-fact{margin-left:auto;white-space:nowrap;font-size:11px;color:#a5b2b9;flex-shrink:0}
+.from-library{color:#7e8991;font-weight:450}
+.from-library:hover{color:#d9e1e6}
+html.overlay-open,body.overlay-open{overflow:hidden!important;overscroll-behavior:none}
+.menu-panel{max-height:min(70vh,440px);overflow-y:auto;overscroll-behavior:contain}
+.dialog-content,.simple-dialog .dialog-content{overscroll-behavior:contain}
+.task-dialog,.simple-dialog{max-height:min(90vh,860px);overscroll-behavior:contain}
+.simple-dialog{width:min(580px,calc(100vw - 24px));padding:0;border:1px solid #444b50;border-radius:14px;background:#1b1e21;color:#e7ebed;box-shadow:0 28px 95px rgba(0,0,0,.65)}
+.simple-dialog::backdrop{background:rgba(0,0,0,.68)}
+.simple-dialog .dialog-header{align-items:flex-start}
+.simple-dialog .dialog-header h2{font-size:22px}
+.dialog-caption{font-size:12px;color:#9ca6ad;margin:7px 0 0}
+.simple-dialog .dialog-content{padding:20px 24px 26px;max-height:65vh;overflow-y:auto}
+.field-label{display:block;font-size:12px;color:#d8dde0;font-weight:650;margin-bottom:8px}
+.duration-block{padding:13px 15px;background:#22272b;border-radius:10px;border:1px solid #373f45}
+.duration-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:365px}
+.duration-preview{display:block;font-size:11px;color:#a7b1b9;margin-top:9px}
+.field-hint{font-size:11px;color:#929ba3;margin:0}
+.advanced-fields:focus-within>summary{color:#e2e9ec}
+.advanced-content>.duration-inputs{margin-top:6px}
+.library-list{display:grid;gap:7px}
+.library-item{display:flex;align-items:center;gap:9px;padding:12px;border-radius:10px;background:#23282b;border:1px solid #353c41}
+.library-name{min-width:0;flex:1;display:grid;gap:1px}
+.library-name strong{font-size:13px;overflow-wrap:anywhere;font-weight:650}
+.library-name small{font-size:11px;color:#93a0a6}
+.library-item .secondary-button{padding:8px 13px;flex-shrink:0}
+.library-delete{border:0;background:transparent;color:#a1aab0;font-size:20px;padding:4px 5px;flex-shrink:0}
+.library-delete:hover{color:#f2bdc0}
+.library-empty{color:#98a5ab;font-size:12px;line-height:1.7;margin:0;padding:12px 3px}
+.library-form{display:grid;gap:12px;border-top:1px solid #3b4247;margin-top:18px;padding-top:19px}
+.library-form h3{font-size:13px;font-weight:700;margin:0}
+.library-form .secondary-button{justify-self:start}
+.stats-help,.stats-footnote{font-size:12px;color:#a0acb3;line-height:1.65;margin:0 0 16px}
+.stats-footnote{margin:16px 0 0}
+.stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stats-metric{display:flex;flex-direction:column;gap:6px;border:1px solid #384047;border-radius:12px;padding:15px 17px;background:#24292d;min-width:0}
+.stats-metric small{font-size:11px;color:#aab4bb}
+.stats-metric strong{font-size:24px;font-weight:720;letter-spacing:-.5px;color:#f2f4f5;overflow-wrap:anywhere}
+.stats-metric span{font-size:11px;color:#a1aab0}
+.stat-subheading{font-size:13px;margin:22px 0 9px}
+.stat-subheading small{font-weight:400;font-size:11px;color:#919ca4}
+.stat-day{display:flex;gap:12px;justify-content:space-between;border-bottom:1px solid #343b40;padding:10px 0;font-size:12px;color:#d5dade}
+.stat-day span:last-child{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;color:#afbac1}
+@media(max-width:680px){
+.topbar{gap:10px}
+.topbar-actions{flex-wrap:wrap;justify-content:end}
+.quiet-button{padding-inline:9px}
+.week-arrows{flex-wrap:wrap;gap:6px}
+.jump-date{margin-left:auto}
+.jump-date span{display:none}
+.task-card{flex-wrap:wrap;gap:8px}
+.task-fact{font-size:10px}
+}
+@media(max-width:390px){
+.jump-date{margin-left:0}
+.jump-date input{width:112px}
+.stats-metric strong{font-size:19px}
+.stats-grid{gap:7px}
+.simple-dialog .dialog-content{padding:15px}
+}
+@media print{
+.stats-grid,.jump-date,.quiet-button,.from-library{display:none!important}
+}
