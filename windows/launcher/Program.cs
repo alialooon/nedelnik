@@ -32,6 +32,25 @@ namespace NedelnikLauncher
                 catch { Environment.ExitCode = 2; }
                 return;
             }
+            if (args.Length > 0 && args[0] == "--planner")
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new PlannerWindow());
+                return;
+            }
+            if (args.Length > 0 && args[0] == "--webview-check")
+            {
+                try
+                {
+                    string lib = typeof(Microsoft.Web.WebView2.WinForms.WebView2).Assembly.GetName().Name;
+                    string core = typeof(Microsoft.Web.WebView2.Core.CoreWebView2Environment).Assembly.GetName().Name;
+                    string loader = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "WebView2Loader.dll");
+                    Environment.ExitCode = lib.Length > 0 && core.Length > 0 && File.Exists(loader) ? 0 : 2;
+                }
+                catch { Environment.ExitCode = 2; }
+                return;
+            }
             if (args.Length > 0 && args[0] == "--install")
             {
                 try { CreateShortcuts(); Environment.ExitCode = 0; }
@@ -146,6 +165,17 @@ namespace NedelnikLauncher
         internal static void OpenPlanner()
         {
             if (!File.Exists(Page))
+                throw new FileNotFoundException("Planner HTML file is missing.", Page);
+            Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--planner")
+            {
+                UseShellExecute = false,
+                WorkingDirectory = Home
+            });
+        }
+
+        internal static void OpenPlannerLegacy()
+        {
+            if (!File.Exists(Page))
                 throw new FileNotFoundException("\u0424\u0430\u0439\u043b\u044b \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b. \u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a \u0435\u0449\u0451 \u0440\u0430\u0437.", Page);
             Directory.CreateDirectory(Profile);
             string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -249,6 +279,17 @@ namespace NedelnikLauncher
                 catch (Exception e) { MessageBox.Show(e.Message, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a"); }
             };
             Controls.Add(folder);
+
+            ClientSize = new Size(540, 366);
+            Button legacy = MakeButton("Old tasks: open in browser", 31, 316, 478, 34,
+                Color.FromArgb(243, 245, 251), Color.FromArgb(71, 82, 113));
+            legacy.Font = new Font("Segoe UI", 9);
+            legacy.Click += (sender, args) =>
+            {
+                try { Program.OpenPlannerLegacy(); Close(); }
+                catch (Exception e) { MessageBox.Show(e.Message, "Nedelnik"); }
+            };
+            Controls.Add(legacy);
 
             Shown += async (sender, args) => await CheckUpdatesAsync();
         }
