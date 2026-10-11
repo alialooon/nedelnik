@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: windows-launcher-main-v2
+  group: windows-launcher-main-v3
   cancel-in-progress: false
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
             if (Test-Path $log) { Get-Content $log }
             throw "Windows shortcut installation failed: $($install.ExitCode)"
           }
-          $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Недельник\Недельник.lnk'
+          $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Nedelnik\Nedelnik.lnk'
           if (-not (Test-Path $menu)) { throw 'Nedelnik shortcut not found' }
           $shell = New-Object -ComObject WScript.Shell
           $shortcut = $shell.CreateShortcut($menu)
