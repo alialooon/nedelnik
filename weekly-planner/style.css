@@ -1,6 +1,4 @@
-
-:root{color-scheme:light;--bg:#fafaf9;--panel:#fff;--text:#25252b;--muted:#8f909b;--subtle:#666773;--line:#ebebef;--accent:#7061d9;--accent-hover:#5c4dc4;--soft:#f3f0ff;--input:#fff;--today:#faf9ff;--danger:#c54b62}
-:root[data-theme="dark"]{color-scheme:dark;--bg:#191a20;--panel:#24252d;--text:#f2f1f5;--muted:#9fa0b1;--subtle:#c2c2ce;--line:#363742;--accent:#ad9dff;--accent-hover:#c1b6ff;--soft:#332f45;--input:#2b2b35;--today:#2c293d;--danger:#fc99a9}
+:root{color-scheme:dark;--bg:#101214;--panel:#191c1f;--text:#e9e9e6;--muted:#899097;--subtle:#b9bdc0;--line:#30353a;--accent:#c6ced3;--accent-hover:#f0f2f3;--soft:#252a2f;--input:#202428;--today:#20262a;--danger:#e2a8ac}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
@@ -46,3 +44,100 @@ button{transition:background .15s,color .15s}a{color:inherit}[hidden]{display:no
 @media(max-width:390px){.task-time{width:86px;font-size:11px}.day-row{padding:14px}.week-title-group h1{font-size:22px}.advanced-fields>summary span{display:none}.dialog-header,.dialog-content,.dialog-footer{padding-inline:16px}.topbar .brand-mark{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media print{.topbar-actions,.week-arrows,.filters-panel,.day-actions,.week-notes-section,.toast{display:none!important}.main-content{width:100%;padding:0}.day-row{break-inside:avoid}}
+
+/* Carbon+ — monochrome, graphite surfaces, brushed-steel accent. */
+body{background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI Variable","Segoe UI",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.005em}
+.main-content{width:min(100% - 72px,1036px);padding:35px 0 76px}
+.topbar{border-bottom:1px solid #292d30;padding-bottom:28px}
+.brand{font-size:19px;font-weight:720;letter-spacing:-.65px;gap:11px}
+.brand-period{color:#aab4bc}
+.brand-mark{width:29px;height:29px;transform:none;border:1px solid #505961;border-radius:9px;background:#2b3237}
+.brand-mark span{background:#e0e6e8}
+.primary-button{background:#d7dde0;color:#14171a;border-color:#d7dde0;font-weight:700;border-radius:9px;box-shadow:none;min-height:41px}
+.primary-button:hover{background:#f1f2f2;color:#111314;border-color:#f1f2f2}
+.primary-button:focus-visible{outline-color:#bfcbd3}
+.more-menu>summary,.arrow-button,.today-button{background:#1b1e21;border:1px solid #31373c;color:#ced2d4;border-radius:9px}
+.more-menu>summary:hover,.arrow-button:hover,.today-button:hover{background:#282d31;color:#fff;border-color:#626e76}
+.more-menu[open]>summary{background:#333a3f;border-color:#66727b;color:#f3f5f6}
+.menu-panel{background:#202428;border-color:#3b4146;box-shadow:0 18px 52px rgba(0,0,0,.33)}
+.menu-panel button:hover{background:#31383d}
+.week-section{margin-top:32px}
+.section-kicker{font-size:11px;color:#808991;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.week-title-group h1{font-weight:750;font-size:30px;letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
+.week-controls{margin-bottom:24px}
+.week-arrows{gap:8px}.arrow-button,.today-button{height:36px}.today-button{color:#c1c7cb}
+.filters-panel{border-color:#343a3e;background:#191d20;border-radius:10px}
+.filters-panel select,.searchbox{background:#22272b;border-color:#3b4348;color:#d2d9dd}
+.searchbox input::placeholder{color:#7c858c}
+.week-list{background:transparent;border:none;border-radius:0;overflow:visible;display:grid;gap:10px}
+.day-row{position:relative;display:grid;grid-template-columns:115px minmax(0,1fr);gap:28px;align-items:start;min-height:98px;padding:18px 23px 18px 27px;border:1px solid #2c3236;border-radius:13px;background:#191c1f;transition:background .16s,border-color .16s}
+.day-row:last-child{border-bottom:1px solid #2c3236}
+.day-row:hover{background:#1c2023;border-color:#40494f}
+.day-row.is-today{background:#22272b;border-color:#56616a}
+.day-row.is-today:before{content:"";position:absolute;left:-1px;top:15px;bottom:15px;width:3px;border-radius:0 3px 3px 0;background:#b4c0c9}
+.day-date{padding-top:1px;gap:0;min-height:57px;border-right:1px solid #33393e}
+.day-name{font-size:11px;font-weight:680;color:#929ba2;letter-spacing:.12em;text-transform:uppercase;line-height:1.3}
+.day-number{font-size:29px;font-weight:760;line-height:1.1;letter-spacing:-1.4px;color:#eef0f0;font-variant-numeric:tabular-nums;margin-top:3px}
+.day-month{font-size:11px;color:#858e95;line-height:1.5}
+.day-row.is-today .day-number,.day-row.is-today .day-name{color:#f5f7f8}
+.today-tag{margin-top:8px;color:#c4cdd3;background:#333b41;padding:2px 7px;border-radius:4px;font-size:10px;width:max-content;letter-spacing:.015em}
+.day-content{padding-top:1px}
+.day-task-list{gap:0}
+.empty-day{font-size:12px;color:#727c83;padding:9px 0 5px;letter-spacing:.015em}
+.day-actions{margin-top:7px;gap:16px}
+.add-day{color:#9eabb5;font-weight:600;font-size:12px;letter-spacing:.003em}
+.add-day:hover{color:#eef1f3;text-decoration:none}
+.day-extra{font-size:13px;color:#6e7880}.day-extra summary:hover{color:#dae0e3}
+.day-extra textarea,.week-note-input textarea{background:#21262a;border-color:#394148;color:#e2e7e9}
+.day-extra textarea::placeholder,.week-note-input textarea::placeholder{color:#757d83}
+.task-card{gap:12px;min-height:38px;padding:7px 0}
+.task-card:not(:last-child){border-color:#2f353a}
+.task-check{flex:0 0 18px;width:18px;height:18px;border:1.5px solid #707b82;border-radius:5px;color:#15191c}
+.task-check:hover{border-color:#e2e8ec}
+.task-card.done .task-check{background:#c9d1d5;border-color:#c9d1d5;color:#141719}
+.task-time{width:105px;color:#8d969d;font-size:12px;font-variant-numeric:tabular-nums}
+.task-title{font-size:13px;font-weight:500;letter-spacing:.005em;color:#e2e5e6}
+.task-card.done .task-title{text-decoration:line-through;text-decoration-color:#788087;opacity:.48}
+.task-card.done .task-time{opacity:.45}
+.task-flag{color:#a4adb5;font-size:13px}
+.task-flag.priority{color:#e1e4e5}
+.week-notes-section{margin-top:22px;color:#899198}
+.week-notes-section summary:hover{color:#e1e5e6}
+.task-dialog{background:#1b1e21;border-color:#41484e;box-shadow:0 25px 90px rgba(0,0,0,.62);border-radius:13px}
+.task-dialog::backdrop{background:rgba(0,0,0,.70)}
+.dialog-header,.dialog-footer{border-color:#343b40}
+.dialog-close{color:#b4bdc3}
+.dialog-close:hover{color:#f5f6f6}
+.field>span{color:#d2d8dc}
+.required{color:#bac4cc}
+.field input,.field select,.field textarea{background:#23282c;border-color:#424b51;color:#e8eced}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#aeb9c1;box-shadow:0 0 0 2px rgba(178,190,199,.12)}
+.advanced-fields{border-color:#343b40}
+.advanced-fields>summary:before{color:#c2cbd1}
+.secondary-button{background:#262b2f;border-color:#3c444a;color:#cfd5d8}
+.secondary-button:hover{background:#343a3f}
+.toast{background:#2c3237;color:#f0f2f3;border:1px solid #4a535a;box-shadow:0 20px 56px rgba(0,0,0,.38)}
+.toast button{color:#c1d1db}
+@media(max-width:680px){
+.main-content{width:calc(100% - 28px);padding-top:21px}
+.topbar{padding-bottom:22px}
+.week-section{margin-top:28px}
+.week-title-group h1{font-size:25px}
+.day-row{grid-template-columns:82px minmax(0,1fr);gap:12px;padding:17px 14px 15px 17px;min-height:90px}
+.day-date{display:flex;align-items:flex-start;flex-direction:column;gap:0;border-right:1px solid #33393e}
+.day-number{font-size:27px}.day-month{font-size:10px}
+.today-tag{margin-top:4px}
+.task-time{width:87px;font-size:11px}.task-title{font-size:12px}
+.day-actions{gap:12px}
+}
+@media(max-width:390px){
+.main-content{width:calc(100% - 20px)}
+.day-row{grid-template-columns:65px minmax(0,1fr);gap:9px;padding:14px 10px}
+.day-number{font-size:25px}
+.task-card{gap:7px}.task-time{width:72px;font-size:10px}
+}
+@media print{
+:root{color-scheme:light;--bg:#fff;--panel:#fff;--text:#111;--muted:#666;--line:#ccc}
+body{background:#fff;color:#111}.day-row,.day-row.is-today{background:#fff;border-color:#bbb;box-shadow:none}
+.day-name,.day-number,.day-month,.task-title,.task-time{color:#111!important}
+}
