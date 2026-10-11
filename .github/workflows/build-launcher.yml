@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: windows-launcher-webview2
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -111,5 +111,7 @@ jobs:
           }
           git commit -m 'Build Nedelnik Windows launcher [skip ci]'
           if ($LASTEXITCODE -ne 0) { throw 'Could not commit launcher' }
+          git pull --rebase origin main
+          if ($LASTEXITCODE -ne 0) { throw 'Could not rebase compiled launcher on latest source' }
           git push origin HEAD:main
           if ($LASTEXITCODE -ne 0) { throw 'Could not publish launcher into the repository' }
