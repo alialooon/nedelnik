@@ -18,16 +18,17 @@ Set-Content -LiteralPath (Join-Path $InstallDir 'git-path.txt') -Value $GitExe -
 $PowerShellExe = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $LaunchArgs = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $Bootstrap + '"'
 
+$AppName = (-join (@(0x041D,0x0435,0x0434,0x0435,0x043B,0x044C,0x043D,0x0438,0x043A) | ForEach-Object { [char]$_ }))
 $Shell = New-Object -ComObject WScript.Shell
 $Desktop = [Environment]::GetFolderPath('Desktop')
-$Menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Недельник'
+$Menu = Join-Path ([Environment]::GetFolderPath('Programs')) $AppName
 New-Item -ItemType Directory -Path $Menu -Force | Out-Null
-foreach ($LinkPath in @((Join-Path $Desktop 'Недельник.lnk'), (Join-Path $Menu 'Недельник.lnk'))) {
+foreach ($LinkPath in @((Join-Path $Desktop ($AppName + '.lnk')), (Join-Path $Menu ($AppName + '.lnk')))) {
     $Link = $Shell.CreateShortcut($LinkPath)
     $Link.TargetPath = $PowerShellExe
     $Link.Arguments = $LaunchArgs
     $Link.WorkingDirectory = $InstallDir
-    $Link.Description = 'Недельник — независимый планировщик с автообновлением'
+    $Link.Description = 'Nedelnik weekly planner with automatic updates'
     $Link.IconLocation = "$env:SystemRoot\System32\shell32.dll,46"
     $Link.Save()
 }
