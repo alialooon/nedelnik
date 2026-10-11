@@ -55,19 +55,19 @@ namespace NedelnikLauncher
         private static void CreateShortcuts()
         {
             if (!File.Exists(Page))
-                throw new FileNotFoundException("Сначала установите файлы Недельника.", Page);
+                throw new FileNotFoundException("\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u0444\u0430\u0439\u043b\u044b \u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a\u0430.", Page);
             Type type = Type.GetTypeFromProgID("WScript.Shell");
-            if (type == null) throw new InvalidOperationException("Windows Script Host недоступен.");
+            if (type == null) throw new InvalidOperationException("Windows Script Host \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d.");
             object shell = Activator.CreateInstance(type);
             try
             {
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
                 string startFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Недельник");
+                    Environment.GetFolderPath(Environment.SpecialFolder.Programs), "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a");
                 Directory.CreateDirectory(startFolder);
                 if (!string.IsNullOrEmpty(desktop) && Directory.Exists(desktop))
-                    CreateShortcut(type, shell, Path.Combine(desktop, "Недельник.lnk"));
-                CreateShortcut(type, shell, Path.Combine(startFolder, "Недельник.lnk"));
+                    CreateShortcut(type, shell, Path.Combine(desktop, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a.lnk"));
+                CreateShortcut(type, shell, Path.Combine(startFolder, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a.lnk"));
             }
             finally
             {
@@ -85,7 +85,7 @@ namespace NedelnikLauncher
                 SetShortcutProperty(shortcutType, shortcut, "TargetPath", Application.ExecutablePath);
                 SetShortcutProperty(shortcutType, shortcut, "Arguments", "");
                 SetShortcutProperty(shortcutType, shortcut, "WorkingDirectory", Home);
-                SetShortcutProperty(shortcutType, shortcut, "Description", "Недельник — планировщик на неделю");
+                SetShortcutProperty(shortcutType, shortcut, "Description", "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u2014 \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e");
                 SetShortcutProperty(shortcutType, shortcut, "IconLocation", Application.ExecutablePath + ",0");
                 shortcutType.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
             }
@@ -146,7 +146,7 @@ namespace NedelnikLauncher
         internal static void OpenPlanner()
         {
             if (!File.Exists(Page))
-                throw new FileNotFoundException("Файлы планировщика не найдены. Запустите установщик ещё раз.", Page);
+                throw new FileNotFoundException("\u0424\u0430\u0439\u043b\u044b \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b. \u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a \u0435\u0449\u0451 \u0440\u0430\u0437.", Page);
             Directory.CreateDirectory(Profile);
             string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             string program = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -187,7 +187,7 @@ namespace NedelnikLauncher
 
         internal LauncherForm()
         {
-            Text = "Недельник";
+            Text = "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a";
             ClientSize = new Size(540, 320);
             BackColor = Color.FromArgb(248, 249, 254);
             Font = new Font("Segoe UI", 10, FontStyle.Regular);
@@ -217,36 +217,36 @@ namespace NedelnikLauncher
             catch { }
             top.Controls.Add(image);
 
-            Label title = MakeLabel("Недельник", 122, 27, 380, 40, 23, FontStyle.Bold,
+            Label title = MakeLabel("\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a", 122, 27, 380, 40, 23, FontStyle.Bold,
                 Color.FromArgb(34, 42, 69));
             top.Controls.Add(title);
-            top.Controls.Add(MakeLabel("Планировщик дел на неделю", 124, 71, 360, 28, 11,
+            top.Controls.Add(MakeLabel("\u041f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a \u0434\u0435\u043b \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e", 124, 71, 360, 28, 11,
                 FontStyle.Regular, Color.FromArgb(106, 116, 139)));
 
-            open = MakeButton("Открыть планировщик", 31, 156, 478, 58,
+            open = MakeButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a", 31, 156, 478, 58,
                 Color.FromArgb(91, 107, 224), Color.White);
             open.Font = new Font("Segoe UI", 13, FontStyle.Bold);
             open.Click += OpenClicked;
             Controls.Add(open);
             AcceptButton = open;
 
-            status = MakeLabel("Проверяем обновления...", 32, 238, 485, 24, 10,
+            status = MakeLabel("\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f...", 32, 238, 485, 24, 10,
                 FontStyle.Regular, Color.FromArgb(89, 101, 126));
             Controls.Add(status);
 
-            update = MakeButton("Проверить обновления", 31, 274, 219, 33,
+            update = MakeButton("\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f", 31, 274, 219, 33,
                 Color.FromArgb(232, 236, 248), Color.FromArgb(61, 75, 112));
             update.Font = new Font("Segoe UI", 9);
             update.Click += async (sender, args) => await CheckUpdatesAsync();
             Controls.Add(update);
 
-            Button folder = MakeButton("Открыть папку", 267, 274, 242, 33,
+            Button folder = MakeButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043f\u043a\u0443", 267, 274, 242, 33,
                 Color.FromArgb(232, 236, 248), Color.FromArgb(61, 75, 112));
             folder.Font = new Font("Segoe UI", 9);
             folder.Click += (sender, args) =>
             {
                 try { Process.Start("explorer.exe", "\"" + Program.Home + "\""); }
-                catch (Exception e) { MessageBox.Show(e.Message, "Недельник"); }
+                catch (Exception e) { MessageBox.Show(e.Message, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a"); }
             };
             Controls.Add(folder);
 
@@ -286,10 +286,10 @@ namespace NedelnikLauncher
             if (updating) return;
             updating = true;
             update.Enabled = false;
-            status.Text = "Проверяем обновления на GitHub...";
+            status.Text = "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043d\u0430 GitHub...";
             bool succeeded = await Task.Run(() => Program.PullUpdates());
-            status.Text = succeeded ? "Недельник готов. Обновления проверены."
-                : "Недельник готов. Можно работать без интернета.";
+            status.Text = succeeded ? "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u0433\u043e\u0442\u043e\u0432. \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u044b."
+                : "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u0433\u043e\u0442\u043e\u0432. \u041c\u043e\u0436\u043d\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c \u0431\u0435\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430.";
             update.Enabled = true;
             updating = false;
         }
@@ -303,7 +303,7 @@ namespace NedelnikLauncher
             }
             catch (Exception e)
             {
-                MessageBox.Show(e.Message, "Недельник", MessageBoxButtons.OK,
+                MessageBox.Show(e.Message, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a", MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
         }
