@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: windows-launcher-main-v3
+  group: windows-launcher-webview2
   cancel-in-progress: false
 
 jobs:
@@ -22,16 +22,32 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+      - name: Fetch official Microsoft WebView2 SDK
+        shell: pwsh
+        run: |
+          nuget install Microsoft.Web.WebView2 -Version 1.0.2739.15 -OutputDirectory .webview2-packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw 'Microsoft WebView2 SDK download failed' }
       - name: Compile launcher and embed calendar icon
         shell: pwsh
         run: |
           $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
-          if (-not (Test-Path $compiler)) { throw "Windows .NET Framework compiler not found" }
+          if (-not (Test-Path $compiler)) { throw 'Windows .NET Framework compiler not found' }
           $iconPath = (Resolve-Path 'windows/launcher/nedelnik.ico').Path
-          $sourcePath = (Resolve-Path 'windows/launcher/Program.cs').Path
+          $sourcePaths = @('windows/launcher/Program.cs', 'windows/launcher/PlannerWindow.cs') | ForEach-Object { (Resolve-Path $_).Path }
           $outputPath = Join-Path (Get-Location) 'windows\NedelnikLauncher.exe'
-          & $compiler '/nologo' '/target:winexe' '/optimize+' '/platform:anycpu' '/codepage:65001' "/win32icon:$iconPath" '/reference:System.dll' '/reference:System.Drawing.dll' '/reference:System.Windows.Forms.dll' "/out:$outputPath" $sourcePath
+          $pkg = (Resolve-Path '.webview2-packages/Microsoft.Web.WebView2.1.0.2739.15').Path
+          $managed = if (Test-Path (Join-Path $pkg 'lib/net462')) { 'lib/net462' } elseif (Test-Path (Join-Path $pkg 'lib/net45')) { 'lib/net45' } else { throw 'Missing .NET Framework WebView2 assemblies' }
+          $core = Join-Path $pkg "$managed/Microsoft.Web.WebView2.Core.dll"
+          $forms = Join-Path $pkg "$managed/Microsoft.Web.WebView2.WinForms.dll"
+          $loader = Join-Path $pkg 'runtimes/win-x64/native/WebView2Loader.dll'
+          foreach ($path in @($core, $forms, $loader)) {
+            if (-not (Test-Path $path)) { throw "SDK dependency missing: $path" }
+          }
+          & $compiler '/nologo' '/target:winexe' '/optimize+' '/platform:x64' '/codepage:65001' "/win32icon:$iconPath" '/reference:System.dll' '/reference:System.Drawing.dll' '/reference:System.Windows.Forms.dll' "/reference:$core" "/reference:$forms" "/out:$outputPath" $sourcePaths
           if ($LASTEXITCODE -ne 0) { throw "C# compiler failed with exit code $LASTEXITCODE" }
+          Copy-Item $core 'windows/Microsoft.Web.WebView2.Core.dll'
+          Copy-Item $forms 'windows/Microsoft.Web.WebView2.WinForms.dll'
+          Copy-Item $loader 'windows/WebView2Loader.dll'
           if (-not (Test-Path 'windows/NedelnikLauncher.exe')) { throw 'Missing Windows executable' }
       - name: Check executable icon and shortcut target
         shell: pwsh
@@ -47,6 +63,8 @@ jobs:
             else { Write-Host "Embedded icon: $($ico.Width)x$($ico.Height)"; $ico.Dispose() }
           } catch { Write-Host "Icon extraction error: $_" }
           if ($exitCode -ne 0) { throw 'The launcher icon self-test failed' }
+          $webviewCheck = Start-Process -FilePath $exePath -ArgumentList '--webview-check' -Wait -PassThru
+          if ($webviewCheck.ExitCode -ne 0) { throw 'WebView2 dependencies self-test failed' }
           $appFolder = Join-Path $env:LOCALAPPDATA 'Nedelnik\source\weekly-planner'
           New-Item -ItemType Directory -Path $appFolder -Force | Out-Null
           Set-Content -Path (Join-Path $appFolder 'planner-standalone.html') -Value '<!doctype html><title>Nedelnik</title>'
@@ -67,17 +85,25 @@ jobs:
           $expected = (Resolve-Path 'windows/NedelnikLauncher.exe').Path
           if ($shortcut.TargetPath -ne $expected) { throw "Unexpected shortcut target: $($shortcut.TargetPath)" }
           if ($shortcut.Arguments -match '(?i)powershell|bypass') { throw 'Unsafe legacy shortcut arguments' }
+          $planner = Start-Process -FilePath $exePath -ArgumentList '--planner' -PassThru
+          Start-Sleep -Seconds 4
+          if ($planner.HasExited) { throw 'The native planner process exited unexpectedly' }
+          $planner.Kill()
       - uses: actions/upload-artifact@v4
         with:
           name: NedelnikLauncher-windows
-          path: windows/NedelnikLauncher.exe
+          path: |
+            windows/NedelnikLauncher.exe
+            windows/Microsoft.Web.WebView2.Core.dll
+            windows/Microsoft.Web.WebView2.WinForms.dll
+            windows/WebView2Loader.dll
           if-no-files-found: error
       - name: Publish compiled executable into repository
         shell: pwsh
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add windows/NedelnikLauncher.exe
+          git add windows/NedelnikLauncher.exe windows/Microsoft.Web.WebView2.Core.dll windows/Microsoft.Web.WebView2.WinForms.dll windows/WebView2Loader.dll
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 0) {
             Write-Host 'Executable is already up to date.'
