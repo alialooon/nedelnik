@@ -27,7 +27,10 @@ jobs:
         run: |
           $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
           if (-not (Test-Path $compiler)) { throw "Windows .NET Framework compiler not found" }
-          & $compiler /nologo /target:winexe /optimize+ /platform:anycpu /codepage:65001 /win32icon:windows/launcher/nedelnik.ico /reference:System.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /out:windows/NedelnikLauncher.exe windows/launcher/Program.cs
+          $iconPath = (Resolve-Path 'windows/launcher/nedelnik.ico').Path
+          $sourcePath = (Resolve-Path 'windows/launcher/Program.cs').Path
+          $outputPath = Join-Path (Get-Location) 'windows\NedelnikLauncher.exe'
+          & $compiler '/nologo' '/target:winexe' '/optimize+' '/platform:anycpu' '/codepage:65001' "/win32icon:$iconPath" '/reference:System.dll' '/reference:System.Drawing.dll' '/reference:System.Windows.Forms.dll' "/out:$outputPath" $sourcePath
           if ($LASTEXITCODE -ne 0) { throw "C# compiler failed with exit code $LASTEXITCODE" }
           if (-not (Test-Path 'windows/NedelnikLauncher.exe')) { throw 'Missing Windows executable' }
       - name: Check executable icon and shortcut target
