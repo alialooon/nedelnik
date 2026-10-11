@@ -399,61 +399,117 @@ function renderStats() {
 function openStats() {
   renderStats();openModal('statsDialog');
 }
-$('newTaskButton').addEventListener('click',()=>openTask());
-$('previousWeek').addEventListener('click',()=>goToWeek(addDays(monday,-7)));
-$('nextWeek').addEventListener('click',()=>goToWeek(addDays(monday,7)));
-$('goToday').addEventListener('click',()=>goToWeek(today()));
-$('jumpDate').addEventListener('change',event=>goToWeek(event.target.value));
+function moveView(direction) {
+  if(viewMode==='weeks'){overviewAnchor=addDays(overviewAnchor,direction*42);render();}
+  else if(viewMode==='day'){
+    selectedDay=addDays(selectedDay,direction);
+    monday=startOfWeek(selectedDay);
+    dayPage=0;render();
+  }else{
+    monday=addDays(monday,direction*7);
+    render();
+  }
+}
+function backView() {
+  if(viewMode==='day'){viewMode='week';dayPage=0;}
+  else if(viewMode==='week'){
+    viewMode='weeks';
+    overviewAnchor=startOfWeek(addDays(monday,-14));
+  }
+  render();
+}
+function showDay(date) {
+  if(!parseDate(date))return;
+  selectedDay=date;monday=startOfWeek(date);dayPage=0;viewMode='day';
+  render();
+}
+$('previousWeek').addEventListener('click',()=>moveView(-1));
+$('nextWeek').addEventListener('click',()=>moveView(1));
+$('backView').addEventListener('click',backView);
+$('calendarPrev').addEventListener('click',()=>{
+  const d=parseDate(calendarMonth);d.setMonth(d.getMonth()-1,1);calendarMonth=toISO(d);renderCalendar();
+});
+$('calendarNext').addEventListener('click',()=>{
+  const d=parseDate(calendarMonth);d.setMonth(d.getMonth()+1,1);calendarMonth=toISO(d);renderCalendar();
+});
+$('calendarCurrent').addEventListener('click',()=>{
+  monday=startOfWeek(today());viewMode='week';calendarMonth=monday;$('weekPicker').open=false;
+  syncScrollLock();render();
+});
+$('calendarGrid').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-calendar-date]');
+  if(!button)return;
+  monday=startOfWeek(button.dataset.calendarDate);
+  viewMode='week';$('weekPicker').open=false;syncScrollLock();render();
+});
+$('weekPicker').addEventListener('toggle',()=>{
+  if($('weekPicker').open){calendarMonth=monday;renderCalendar();$('moreMenu').open=false;}
+  syncScrollLock();
+});
 $('statsButton').addEventListener('click',openStats);
-$('libraryButton').addEventListener('click',()=>openLibrary());
+$('libraryButton').addEventListener('click',openLibrary);
 $('closeLibrary').addEventListener('click',()=>closeModal('libraryDialog'));
 $('closeStats').addEventListener('click',()=>closeModal('statsDialog'));
-$('libraryForm').addEventListener('submit',addLibraryTemplate);
-$('libraryList').addEventListener('click',onLibraryAction);
+$('closeDay').addEventListener('click',()=>closeModal('dayDialog'));
 $('filtersToggle').addEventListener('click',()=>{
-  const panel=$('filtersPanel');panel.hidden=!panel.hidden;
-  $('filtersToggle').setAttribute('aria-expanded',String(!panel.hidden));
-  $('moreMenu').open=false;syncScrollLock();
-  if(!panel.hidden)$('searchInput').focus();
+  const p=$('filtersPanel');p.hidden=!p.hidden;
+  $('filtersToggle').setAttribute('aria-expanded',String(!p.hidden));
+  $('moreMenu').open=false;syncScrollLock();if(!p.hidden)$('searchInput').focus();
 });
 $('searchInput').addEventListener('input',event=>{filters.search=event.target.value.trim().toLocaleLowerCase('ru');render();});
 $('categoryFilter').addEventListener('change',event=>{filters.category=event.target.value;render();});
 $('hideCompleted').addEventListener('change',event=>{filters.hideCompleted=event.target.checked;render();});
 $('weekBoard').addEventListener('click',event=>{
-  const button=event.target.closest('button[data-action]');
-  if(!button)return;
-  const {action,id,date}=button.dataset;
-  if(action==='add')openTask(null,null,date);
-  else if(action==='library')openLibrary(date);
-  else if(action==='toggle')toggleTask(id,date);
-  else if(action==='edit'){
-    const task=data.tasks.find(t=>t.id===id);
-    if(task)openTask(task,date);
+  const b=event.target.closest('button[data-action]');
+  if(b){
+    const {action,id,date}=b.dataset;
+    if(action==='add')openTask(null,null,date);
+    else if(action==='day')showDay(date);
+    else if(action==='select-week'){monday=date;viewMode='week';render();}
+    else if(action==='toggle')toggleTask(id,date);
+    else if(action==='edit'){
+      const task=data.tasks.find(t=>t.id===id);
+      if(task)openTask(task,date);
+    }else if(action==='page-prev'){dayPage=Math.max(0,dayPage-1);render();}
+    else if(action==='page-next'){dayPage++;render();}
+    return;
   }
+  // The empty surface of any week column creates a task in that day's date.
+  const col=event.target.closest('.view-week .day-row');
+  if(col&&!event.target.closest('button,input,textarea,select,details,summary'))
+    openTask(null,null,col.dataset.date);
 });
-$('weekBoard').addEventListener('input',event=>{
-  if(!event.target.matches('textarea[data-day-note]'))return;
-  data.dayNotes[event.target.dataset.dayNote]=event.target.value;save();
+$('weekBoard').addEventListener('keydown',event=>{
+  if(!['Enter',' '].includes(event.key)||event.target.tagName!=='SECTION')return;
+  if(!event.target.classList.contains('day-row'))return;
+  event.preventDefault();openTask(null,null,event.target.dataset.date);
 });
 $('weekNote').addEventListener('input',event=>{data.weekNotes[monday]=event.target.value;save();});
 $('taskForm').addEventListener('submit',submitTask);
+$('taskMeasureMode').addEventListener('change',event=>setTaskMeasureMode(event.target.value));
+$('chooseTemplate').addEventListener('click',()=>{
+  renderTemplateChooser();$('templateChooser').hidden=!$('templateChooser').hidden;
+});
+$('templateChooser').addEventListener('click',event=>{
+  const b=event.target.closest('button[data-choose-template]');
+  if(!b)return;
+  const template=data.templates.find(t=>t.id===b.dataset.chooseTemplate);
+  if(template)chooseTemplate(template);
+});
 $('closeDialog').addEventListener('click',closeTask);
 $('cancelTask').addEventListener('click',closeTask);
 $('deleteTask').addEventListener('click',()=>{if(editingId)removeTask(editingId);});
 $('taskRepeat').addEventListener('change',event=>{$('recurrenceHint').hidden=event.target.value!=='weekly';});
-for(const [h,m,p,label] of [
+for(const [h,m,p,empty] of [
   ['planHours','planMinutes','plannedPreview','Необязательно'],
   ['actualHours','actualMinutes','actualPreview','Пока не записано']]){
-  [h,m].forEach(id=>$(id).addEventListener('input',()=>previewDuration(h,m,p,label)));
+  [h,m].forEach(id=>$(id).addEventListener('input',()=>previewDuration(h,m,p,empty)));
 }
-for(const id of ['taskDialog','libraryDialog','statsDialog']){
+for(const id of ['taskDialog','libraryDialog','statsDialog','dayDialog']){
   $(id).addEventListener('click',event=>{if(event.target===$(id))closeModal(id);});
   $(id).addEventListener('close',syncScrollLock);
 }
-$('moreMenu').addEventListener('toggle',syncScrollLock);
-document.addEventListener('wheel',event=>{
-  if($('moreMenu').open&&$('moreMenu').contains(event.target))event.preventDefault();
-},{passive:false});
+$('moreMenu').addEventListener('toggle',()=>{if($('moreMenu').open)$('weekPicker').open=false;syncScrollLock();});
 $('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;syncScrollLock();exportData();});
 $('importButton').addEventListener('click',()=>{$('moreMenu').open=false;syncScrollLock();$('importFile').click();});
 $('importFile').addEventListener('change',event=>importData(event.target.files?.[0]));
@@ -464,16 +520,21 @@ $('toastUndo').addEventListener('click',()=>{
 });
 $('toastClose').addEventListener('click',()=>{$('toast').hidden=true;clearTimeout(toastTimer);});
 document.addEventListener('click',event=>{
-  if(!$('moreMenu').contains(event.target)){$('moreMenu').open=false;syncScrollLock();}
+  if(!$('moreMenu').contains(event.target))$('moreMenu').open=false;
+  if(!$('weekPicker').contains(event.target))$('weekPicker').open=false;
+  syncScrollLock();
 });
 document.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&$('moreMenu').open){$('moreMenu').open=false;syncScrollLock();return;}
-  if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')
-    ||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open)return;
-  if(event.key.toLowerCase()==='n'){event.preventDefault();openTask();}
-  else if(event.key==='/'){
-    event.preventDefault();$('filtersPanel').hidden=false;
-    $('filtersToggle').setAttribute('aria-expanded','true');$('searchInput').focus();
+  if(event.key==='Escape'){
+    if($('moreMenu').open)$('moreMenu').open=false;
+    if($('weekPicker').open)$('weekPicker').open=false;
+    syncScrollLock();return;
   }
+  if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches('input,textarea,select,[contenteditable]')
+    ||$('taskDialog').open||$('libraryDialog').open||$('statsDialog').open||$('dayDialog').open)return;
+  if(event.key.toLowerCase()==='n'){event.preventDefault();openTask(null,null,viewMode==='day'?selectedDay:monday);}
+});
+window.addEventListener('resize',()=>{
+  if(viewMode==='day')render();
 });
 render();
