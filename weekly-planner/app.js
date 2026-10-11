@@ -394,7 +394,10 @@ function renderStats() {
     +'<div class="stats-metric"><small>Факт от плана</small><strong>'+(summary.timeRatio===null?'—':summary.timeRatio+'%')+'</strong><span>'
     +(summary.measured?'Записано: '+summary.measured+' дел':'Пока нет данных')+'</span></div>'
     +'<div class="stats-metric"><small>Выполнено</small><strong>'+summary.completion+'%</strong><span>'+summary.done+' из '+summary.total+' дел</span></div>'
-    +'</div><h3 class="stat-subheading">По дням <small>план / факт</small></h3>'+dayRows
+    +'</div>'+(summary.countPlan>0?'<p class="stats-count">Повторения: план <strong>'
+      +summary.countPlan+'</strong>, факт <strong>'+(summary.countMeasured?summary.countFact:'—')
+      +'</strong></p>':'')
+    +'<h3 class="stat-subheading">По дням <small>план / факт</small></h3>'+dayRows
     +'<p class="stats-footnote">Минуты переводятся в часы: 90 мин = 1 ч 30 мин = 1,5 ч. Если факт не записан, время не учитывается.</p>';
 }
 function openStats() {
