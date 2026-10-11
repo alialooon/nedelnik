@@ -57,3 +57,36 @@ test('Reusable tasks are assigned to one date independently and restored in back
   assert.equal(data.tasks[0].notes,'Тренировка');
   assert.equal(occurrencesForWeek(data.tasks,'2026-10-19').length,0);
 });
+
+
+test('Categories, colored importance and three statuses are accepted',()=>{
+  const original={...example,category:'sport',priority:'low',status:'partial',completed:false,
+    measureMode:'duration',plannedMinutes:30};
+  assert.equal(validateTask(original),null);
+  assert.match(validateTask({...original,status:'invalid'}),/статус/);
+  assert.match(validateTask({...original,category:'invalid'}),/категори/);
+  assert.match(validateTask({...original,priority:'invalid'}),/важность/);
+});
+test('Repeating a partial task does not mark it completed on subsequent weeks',()=>{
+  const task={...example,repeat:'weekly',completed:false,
+    statusByDate:{'2026-10-12':'partial','2026-10-19':'done'},
+    completedDates:['2026-10-19'],measureMode:'duration',plannedMinutes:45};
+  const data=sanitizeBackup({...blankData(),tasks:[task]});
+  const first=occurrencesForWeek(data.tasks,'2026-10-12')[0];
+  assert.equal(first.status,'partial');assert.equal(first.done,false);
+  const next=occurrencesForWeek(data.tasks,'2026-10-19')[0];
+  assert.equal(next.status,'done');assert.equal(next.done,true);
+  assert.equal(timeStats([first,next]).completion,75);
+});
+test('Count-based goals keep plan and fact separate from time',()=>{
+  const count={...example,measureMode:'count',start:'',end:'',targetCount:20,actualCount:12,
+    plannedMinutes:0,status:'partial',priority:'high'};
+  const result=sanitizeBackup({...blankData(),tasks:[count]});
+  const totals=timeStats(occurrencesForWeek(result.tasks,'2026-10-12'));
+  assert.equal(totals.countPlan,20);
+  assert.equal(totals.countFact,12);
+  assert.equal(totals.plan,0);
+  assert.equal(totals.fact,0);
+  assert.equal(totals.completion,50);
+  assert.match(validateTask({...count,targetCount:0}),/повторений/);
+});
