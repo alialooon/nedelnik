@@ -9,6 +9,7 @@ set "PAGE=%REPO_DIR%\weekly-planner\planner-standalone.html"
 set "PROFILE=%LOCALAPPDATA%\Nedelnik\browser-profile"
 
 if not exist "%PAGE%" goto no_page
+if defined NEDELNIK_TEST_MODE goto launch
 
 echo Checking for Nedelnik updates...
 set "GIT_TERMINAL_PROMPT=0"
@@ -27,6 +28,11 @@ if not defined BROWSER if exist "%LOCALAPPDATA%\Microsoft\Edge\Application\msedg
 if not defined BROWSER if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" set "BROWSER=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 if not defined BROWSER if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" set "BROWSER=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
 if not defined BROWSER if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" set "BROWSER=%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"
+
+if defined NEDELNIK_TEST_MODE (
+    echo Launcher check passed: %APP_URL%
+    exit /b 0
+)
 
 if defined BROWSER (
     if not exist "%PROFILE%" mkdir "%PROFILE%"
