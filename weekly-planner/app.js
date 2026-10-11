@@ -250,6 +250,52 @@ async function importData(file) {
   } catch(error) { showToast(`Ошибка импорта: ${error.message}`); }
   finally { $('importFile').value=''; }
 }
+function goToWeek(date) {
+  if(!parseDate(date))return;
+  monday=startOfWeek(date);
+  render();
+}
+function openLibrary(date) {
+  $('libraryDate').value=date||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
+  $('libraryForm').reset();$('libraryError').hidden=true;
+  renderLibrary();openModal('libraryDialog');
+}
+function renderLibrary() {
+  $('libraryList').innerHTML=data.templates.length?data.templates.map(t=>
+    '<div class="library-item"><div class="library-name"><strong>'+escapeHTML(t.title)
+    +'</strong><small>'+(t.plannedMinutes>0?'План: '+formatMinutes(t.plannedMinutes):'Без времени')
+    +'</small></div><button type="button" class="secondary-button" data-template-action="add" data-template-id="'
+    +escapeHTML(t.id)+'">В день</button><button type="button" class="library-delete" data-template-action="delete" data-template-id="'
+    +escapeHTML(t.id)+'" aria-label="Удалить '+escapeHTML(t.title)+'">×</button></div>').join('')
+    :'<p class="library-empty">Список пока пуст. Сохрани привычное дело ниже и добавляй его в любой день.</p>';
+}
+function addLibraryTemplate(event) {
+  event.preventDefault();
+  const title=$('libraryTitle').value.trim(),planned=readDuration('libraryHours','libraryMinutes');
+  if(!title||title.length>120||Number.isNaN(planned)){
+    $('libraryError').textContent='Укажите название и корректную длительность.';
+    $('libraryError').hidden=false;return;
+  }
+  data.templates.push({id:uid(),title,notes:'',category:'other',priority:'normal',plannedMinutes:planned??0});
+  $('libraryForm').reset();$('libraryError').hidden=true;
+  save();renderLibrary();showToast('Дело сохранено в общем списке');
+}
+function onLibraryAction(event) {
+  const button=event.target.closest('button[data-template-action]');
+  if(!button)return;
+  const t=data.templates.find(v=>v.id===button.dataset.templateId);
+  if(!t)return;
+  if(button.dataset.templateAction==='delete') {
+    if(!confirm('Удалить «'+t.title+'» из общего списка? Запланированные дела останутся.'))return;
+    data.templates=data.templates.filter(v=>v.id!==t.id);
+    save();renderLibrary();return;
+  }
+  const date=$('libraryDate').value;
+  if(!parseDate(date)){showToast('Выберите правильную дату.');return;}
+  data.tasks.push(createFromTemplate(t,date,uid()));
+  save();closeModal('libraryDialog');goToWeek(date);
+  showToast('«'+t.title+'» добавлено на '+formatDay(date));
+}
 $('newTaskButton').addEventListener('click',()=>openTask());
 $('previousWeek').addEventListener('click',()=>{monday=addDays(monday,-7);render();});
 $('nextWeek').addEventListener('click',()=>{monday=addDays(monday,7);render();});
