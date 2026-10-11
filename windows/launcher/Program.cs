@@ -281,7 +281,7 @@ namespace NedelnikLauncher
             Controls.Add(folder);
 
             ClientSize = new Size(540, 366);
-            Button legacy = MakeButton("Old tasks: open in browser", 31, 316, 478, 34,
+            Button legacy = MakeButton("\u0421\u0442\u0430\u0440\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438: \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435", 31, 316, 478, 34,
                 Color.FromArgb(243, 245, 251), Color.FromArgb(71, 82, 113));
             legacy.Font = new Font("Segoe UI", 9);
             legacy.Click += (sender, args) =>
