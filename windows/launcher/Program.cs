@@ -17,6 +17,23 @@ namespace NedelnikLauncher
         internal static readonly string Page = Path.Combine(Source, "weekly-planner", "planner-standalone.html");
         internal static readonly string Profile = Path.Combine(Home, "browser-profile");
 
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute,
+            ref int value, int size);
+
+        internal static void ApplyDarkTitleBar(Form form)
+        {
+            // DWM attribute 20: dark caption on modern Windows; fallback 19.
+            try
+            {
+                int enabled = 1;
+                int result = DwmSetWindowAttribute(form.Handle, 20, ref enabled, sizeof(int));
+                if (result != 0)
+                    DwmSetWindowAttribute(form.Handle, 19, ref enabled, sizeof(int));
+            }
+            catch { /* Older Windows versions retain their normal caption. */ }
+        }
+
         [STAThread]
         private static void Main(string[] args)
         {
@@ -219,7 +236,7 @@ namespace NedelnikLauncher
         {
             Text = "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a";
             ClientSize = new Size(540, 320);
-            BackColor = Color.FromArgb(248, 249, 254);
+            BackColor = Color.FromArgb(16, 18, 20);
             Font = new Font("Segoe UI", 10, FontStyle.Regular);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -232,7 +249,7 @@ namespace NedelnikLauncher
             Panel top = new Panel();
             top.Dock = DockStyle.Top;
             top.Height = 126;
-            top.BackColor = Color.White;
+            top.BackColor = Color.FromArgb(25, 28, 31);
             Controls.Add(top);
 
             PictureBox image = new PictureBox();
@@ -248,30 +265,30 @@ namespace NedelnikLauncher
             top.Controls.Add(image);
 
             Label title = MakeLabel("\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a", 122, 27, 380, 40, 23, FontStyle.Bold,
-                Color.FromArgb(34, 42, 69));
+                Color.FromArgb(235, 239, 240));
             top.Controls.Add(title);
             top.Controls.Add(MakeLabel("\u041f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a \u0434\u0435\u043b \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e", 124, 71, 360, 28, 11,
-                FontStyle.Regular, Color.FromArgb(106, 116, 139)));
+                FontStyle.Regular, Color.FromArgb(157, 168, 176)));
 
             open = MakeButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a", 31, 156, 478, 58,
-                Color.FromArgb(91, 107, 224), Color.White);
+                Color.FromArgb(214, 222, 226), Color.FromArgb(19, 22, 24));
             open.Font = new Font("Segoe UI", 13, FontStyle.Bold);
             open.Click += OpenClicked;
             Controls.Add(open);
             AcceptButton = open;
 
             status = MakeLabel("\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f...", 32, 238, 485, 24, 10,
-                FontStyle.Regular, Color.FromArgb(89, 101, 126));
+                FontStyle.Regular, Color.FromArgb(172, 182, 188));
             Controls.Add(status);
 
             update = MakeButton("\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f", 31, 274, 219, 33,
-                Color.FromArgb(232, 236, 248), Color.FromArgb(61, 75, 112));
+                Color.FromArgb(42, 48, 53), Color.FromArgb(222, 229, 232));
             update.Font = new Font("Segoe UI", 9);
             update.Click += async (sender, args) => await CheckUpdatesAsync();
             Controls.Add(update);
 
             Button folder = MakeButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043f\u043a\u0443", 267, 274, 242, 33,
-                Color.FromArgb(232, 236, 248), Color.FromArgb(61, 75, 112));
+                Color.FromArgb(42, 48, 53), Color.FromArgb(222, 229, 232));
             folder.Font = new Font("Segoe UI", 9);
             folder.Click += (sender, args) =>
             {
@@ -282,7 +299,7 @@ namespace NedelnikLauncher
 
             ClientSize = new Size(540, 366);
             Button legacy = MakeButton("\u0421\u0442\u0430\u0440\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438: \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435", 31, 316, 478, 34,
-                Color.FromArgb(243, 245, 251), Color.FromArgb(71, 82, 113));
+                Color.FromArgb(36, 41, 45), Color.FromArgb(184, 194, 201));
             legacy.Font = new Font("Segoe UI", 9);
             legacy.Click += (sender, args) =>
             {
@@ -291,7 +308,7 @@ namespace NedelnikLauncher
             };
             Controls.Add(legacy);
 
-            Shown += async (sender, args) => await CheckUpdatesAsync();
+            Shown += async (sender, args) => { Program.ApplyDarkTitleBar(this); await CheckUpdatesAsync(); };
         }
 
         private static Label MakeLabel(string value, int x, int y, int w, int h,
