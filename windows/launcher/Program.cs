@@ -37,8 +37,12 @@ namespace NedelnikLauncher
                 try { CreateShortcuts(); Environment.ExitCode = 0; }
                 catch (Exception e)
                 {
-                    MessageBox.Show("Не удалось создать ярлыки: " + e.Message,
-                        "Недельник", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    try
+                    {
+                        Directory.CreateDirectory(Home);
+                        File.WriteAllText(Path.Combine(Home, "shortcut-install-error.log"), e.ToString());
+                    }
+                    catch { }
                     Environment.ExitCode = 1;
                 }
                 return;
