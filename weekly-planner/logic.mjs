@@ -89,6 +89,6 @@ export function sanitizeBackup(value) {
     if (error) throw new Error(`Дело №${index+1}: ${error}`);
     return t;
   });
-  return { version:1, tasks, dayNotes: plainNotesMap(value.dayNotes), weekNotes: plainNotesMap(value.weekNotes), theme: value.theme === 'dark' ? 'dark' : 'light' };
+  return { version:1, tasks, dayNotes: plainNotesMap(value.dayNotes), weekNotes: plainNotesMap(value.weekNotes), theme: 'dark' };
 }
-export function blankData() { return { version:1, tasks:[], dayNotes:{}, weekNotes:{}, theme:'light' }; }
+export function blankData() { return { version:1, tasks:[], dayNotes:{}, weekNotes:{}, theme:'dark' }; }
