@@ -199,10 +199,13 @@ function setTaskMeasureMode(mode) {
   $('countFields').hidden=mode!=='count';
   $('actualFields').hidden=mode==='count';
 }
+function paintPriority() {
+  $('taskPriority').dataset.level=$('taskPriority').value;
+}
 function chooseTemplate(t) {
   $('taskTitle').value=t.title;
   $('taskCategory').value=t.category||'personal';
-  $('taskPriority').value=t.priority||'normal';
+  $('taskPriority').value=t.priority||'normal';paintPriority();
   $('taskNotes').value=t.notes||'';
   setTaskMeasureMode(t.measureMode||'duration');
   setDurationInputs('planHours','planMinutes',t.plannedMinutes??null);
@@ -222,7 +225,7 @@ function openTask(task=null,occurrenceDate=null,proposedDate=null) {
   $('taskTitle').value=task?.title||'';
   $('taskDate').value=task?.date||proposedDate||(today()>=monday&&today()<=addDays(monday,6)?today():monday);
   $('taskCategory').value=task?.category||'personal';
-  $('taskPriority').value=task?.priority||'normal';
+  $('taskPriority').value=task?.priority||'normal';paintPriority();
   $('taskRepeat').value=task?.repeat||'none';
   $('taskNotes').value=task?.notes||'';
   setTaskMeasureMode(task?.measureMode||((task?.start&&task?.end)?'interval':'duration'));
@@ -496,6 +499,7 @@ $('weekBoard').addEventListener('keydown',event=>{
 $('weekNote').addEventListener('input',event=>{data.weekNotes[monday]=event.target.value;save();});
 $('taskForm').addEventListener('submit',submitTask);
 $('taskMeasureMode').addEventListener('change',event=>setTaskMeasureMode(event.target.value));
+$('taskPriority').addEventListener('change',paintPriority);
 $('chooseTemplate').addEventListener('click',()=>{
   renderTemplateChooser();$('templateChooser').hidden=!$('templateChooser').hidden;
 });
