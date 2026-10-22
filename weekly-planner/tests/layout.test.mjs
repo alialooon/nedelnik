@@ -48,3 +48,19 @@ test('Drag and drop, local backup, focus timer and daily reviews are implemented
   assert.match(app,/sanitizeBackup/);
   assert.match(app,/localStorage\.setItem/);
 });
+
+test('Refined visual hierarchy keeps seven columns and compact add controls',()=>{
+  assert.match(app,/day-heading-main/);
+  assert.match(app,/day-number/);
+  assert.match(app,/add-symbol/);
+  assert.match(css,/Calm editorial polish/);
+  assert.match(css,/day-column\.today:before/);
+  assert.match(css,/\.day-add\{order:3/);
+  assert.match(css,/\.task-tile \.item-title\{display:block;font-size:12px/);
+});
+test('Calendar adjusts hour scale and drop position together',()=>{
+  assert.match(app,/const hourHeight=Math\.max/);
+  assert.match(app,/\-\-hour-height/);
+  assert.match(app,/getPropertyValue\('\-\-hour-height'\)/);
+  assert.match(css,/background-size:100% var\(\-\-hour-height,60px\)/);
+});
