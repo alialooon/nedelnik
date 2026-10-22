@@ -16,7 +16,10 @@ namespace NedelnikLauncher
         private readonly WebView2 browser;
         private readonly Label message;
         private readonly Button openOldTasks;
-        private readonly Label updateWarning;
+        private bool checkingUpdates;
+        private bool startupUpdateStarted;
+        private string updateState = "checking";
+        private string updateVersion = "?";
 
         internal PlannerWindow()
         {
@@ -29,17 +32,6 @@ namespace NedelnikLauncher
             ShowInTaskbar = true;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
-
-            updateWarning = new Label();
-            updateWarning.Text = "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f. \u041e\u0442\u043a\u0440\u044b\u0442\u0430 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0441\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u0435 \u0438\u043b\u0438 \u043f\u0435\u0440\u0435\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043b\u0430\u0443\u043d\u0447\u0435\u0440.";
-            updateWarning.Dock = DockStyle.Top;
-            updateWarning.Height = 34;
-            updateWarning.TextAlign = ContentAlignment.MiddleCenter;
-            updateWarning.Font = new Font("Segoe UI", 9);
-            updateWarning.BackColor = Color.FromArgb(80, 56, 39);
-            updateWarning.ForeColor = Color.FromArgb(249, 225, 194);
-            updateWarning.Visible = false;
-            Controls.Add(updateWarning);
 
             browser = new WebView2();
             browser.Dock = DockStyle.Fill;
@@ -80,49 +72,121 @@ namespace NedelnikLauncher
             Shown += async (sender, args) => { Program.ApplyDarkTitleBar(this); await LoadPlannerAsync(); };
         }
 
+        private void SendUpdateState()
+        {
+            try
+            {
+                if (!IsDisposed && browser.CoreWebView2 != null)
+                    browser.CoreWebView2.PostWebMessageAsString(
+                        "nedelnik:update:" + updateState + ":" + updateVersion);
+            }
+            catch { /* Web view is still loading. NavigationCompleted sends the state. */ }
+        }
+
+        private void OnPlannerMessage(object sender, CoreWebView2WebMessageReceivedEventArgs args)
+        {
+            try
+            {
+                // Only the installed planner may request a Git operation.
+                string expected = new Uri(Program.Page).AbsoluteUri;
+                if (!string.Equals(args.Source, expected, StringComparison.OrdinalIgnoreCase))
+                    return;
+                if (args.TryGetWebMessageAsString() == "nedelnik:check-updates")
+                    _ = CheckUpdatesAsync();
+            }
+            catch { /* Ignore malformed or unrelated messages. */ }
+        }
+
+        private async Task CheckUpdatesAsync()
+        {
+            if (checkingUpdates)
+            {
+                SendUpdateState();
+                return;
+            }
+            checkingUpdates = true;
+            updateState = "checking";
+            updateVersion = Program.InstalledVersion();
+            SendUpdateState();
+            string oldVersion = updateVersion;
+
+            try
+            {
+                bool succeeded = await Task.Run(() => Program.PullUpdates());
+                if (IsDisposed) return;
+                string newVersion = Program.InstalledVersion();
+                updateVersion = newVersion;
+                if (!succeeded)
+                    updateState = "failed";
+                else
+                    updateState = oldVersion == newVersion ? "current" : "updated";
+                SendUpdateState();
+
+                if (succeeded && oldVersion != newVersion && browser.CoreWebView2 != null)
+                {
+                    // Reload only the trusted offline page. WebView2 keeps its existing
+                    // profile and localStorage, so user tasks are not deleted.
+                    browser.CoreWebView2.Reload();
+                }
+            }
+            catch
+            {
+                if (!IsDisposed)
+                {
+                    updateState = "failed";
+                    SendUpdateState();
+                }
+            }
+            finally { checkingUpdates = false; }
+        }
+
         private async Task LoadPlannerAsync()
         {
             try
             {
-                message.Text = "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u0435\u0440\u0435\u0434 \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u0435\u043c...";
-                // This also runs when a shortcut points directly to --planner and bypasses
-                // the start screen, so an outdated planner is never opened silently.
-                bool updated = await Task.Run(() => Program.PullUpdates());
-                if (IsDisposed) return;
-                updateWarning.Visible = !updated;
-                updateWarning.BringToFront();
                 if (!File.Exists(Program.Page))
-                    throw new FileNotFoundException("\u0424\u0430\u0439\u043b \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d.", Program.Page);
+                    throw new FileNotFoundException("Planner files are missing. Please run the installer again.", Program.Page);
+                message.Text = "Opening planner...";
 
-                // Keep the old Edge/Chrome user profile intact.
-                // This separate WebView2 profile holds plans for the native Windows window.
+                // Reuse the exact same WebView2 profile and localStorage as before.
                 string profile = Path.Combine(Program.Home, "webview-profile");
                 Directory.CreateDirectory(profile);
                 CoreWebView2Environment environment =
                     await CoreWebView2Environment.CreateAsync(null, profile);
+                if (IsDisposed) return;
                 await browser.EnsureCoreWebView2Async(environment);
                 if (IsDisposed) return;
+
                 browser.CoreWebView2.Settings.IsStatusBarEnabled = false;
-                // File:// resources can be cached across app restarts by WebView2.
-                // Disable network cache while keeping localStorage and user data intact.
+                browser.CoreWebView2.WebMessageReceived += OnPlannerMessage;
+                browser.CoreWebView2.NavigationCompleted += (sender, args) =>
+                {
+                    if (!args.IsSuccess || IsDisposed) return;
+                    SendUpdateState();
+                    if (!startupUpdateStarted)
+                    {
+                        startupUpdateStarted = true;
+                        // Show the locally installed planner immediately, then update it.
+                        _ = CheckUpdatesAsync();
+                    }
+                };
+
                 try
                 {
                     await browser.CoreWebView2.CallDevToolsProtocolMethodAsync("Network.enable", "{}");
                     await browser.CoreWebView2.CallDevToolsProtocolMethodAsync(
                         "Network.setCacheDisabled", "{\"cacheDisabled\":true}");
                 }
-                catch { /* Loading the offline planner does not depend on DevTools. */ }
+                catch { /* Opening the local app does not depend on DevTools. */ }
+
                 browser.CoreWebView2.Navigate(new Uri(Program.Page).AbsoluteUri);
                 browser.Visible = true;
                 browser.BringToFront();
-                if (!updated) updateWarning.BringToFront();
             }
             catch (Exception error)
             {
-                message.Text =
-                    "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u043e\u0435 \u043e\u043a\u043d\u043e.\n" +
-                    "\u041d\u0443\u0436\u0435\u043d Microsoft Edge WebView2 Runtime.\n\n" +
-                    error.Message;
+                message.Text = "Could not open the planner. Microsoft Edge WebView2 Runtime may be missing.\n\n"
+                    + error.Message;
                 message.Height = 220;
                 openOldTasks.Top = 235;
                 openOldTasks.Visible = true;
