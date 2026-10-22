@@ -45,7 +45,7 @@ export function periodTasksForWeek(tasks,monday) {
 export function periodTasksForMonth(tasks,iso) {
   const month=periodAnchor(iso,'month');if(!month)return [];
   return tasks.filter(t=>(t.scope==='month'&&t.date===month)
-    ||(t.scope==='week'&&t.date.slice(0,7)===month))
+    ||(t.scope==='week'&&t.date.slice(0,7)===month.slice(0,7)))
     .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}));
 }
 export function timeMinutes(time) {
