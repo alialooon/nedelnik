@@ -90,3 +90,26 @@ test('Count-based goals keep plan and fact separate from time',()=>{
   assert.equal(totals.completion,50);
   assert.match(validateTask({...count,targetCount:0}),/повторений/);
 });
+
+
+test('Unscheduled Brain Dump tasks and daily reviews survive export/import',()=>{
+  const backup={...blankData(),
+    inbox:[{id:'in-1',title:'Позвонить врачу',plannedMinutes:45,category:'health',priority:'high',notes:'после обеда'}],
+    reviews:{'2026-10-22':'Сделал три важных дела'},
+    tasks:[example]};
+  const restored=sanitizeBackup(JSON.parse(JSON.stringify(backup)));
+  assert.equal(restored.inbox.length,1);
+  assert.equal(restored.inbox[0].title,'Позвонить врачу');
+  assert.equal(restored.reviews['2026-10-22'],'Сделал три важных дела');
+  assert.equal(restored.tasks.length,1);
+  assert.equal(restored.tasks[0].notes,'Важно');
+});
+test('Brain Dump and review import validates limits and unexpected values',()=>{
+  assert.throws(()=>sanitizeBackup({...blankData(),
+    inbox:[{title:'',plannedMinutes:15}]}),/без даты/);
+  const result=sanitizeBackup({...blankData(),reviews:{
+    '2026-10-22':'Хороший день','invalid':'malformed'
+  }});
+  assert.deepEqual(result.reviews,{'2026-10-22':'Хороший день'});
+  assert.equal(result.inbox.length,0);
+});
