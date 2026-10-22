@@ -37,6 +37,12 @@ try{
       const labels=[...cal.querySelectorAll('.hour-label')];
       const calendarBody=cal.querySelector('.timeline-body');
       const upper=labels[0]?.getBoundingClientRect(),lower=labels[23]?.getBoundingClientRect();
+      const bodyRect=calendarBody.getBoundingClientRect(),rowHeight=bodyRect.height/24;
+      document.body.dataset.probeHourAlign=labels.length===24
+        &&Math.abs((upper.top+upper.height/2)-(bodyRect.top+rowHeight*.5))<2
+        &&Math.abs((lower.top+lower.height/2)-(bodyRect.top+rowHeight*23.5))<2
+        &&getComputedStyle(labels[0]).textAlign==='right'
+        &&getComputedStyle(labels[23]).textAlign==='right'?'pass':'fail';
       document.body.dataset.probeHourDetails=JSON.stringify({
         count:labels.length,first:labels[0]?.textContent,last:labels[23]?.textContent,
         client:cal.clientHeight,scroll:cal.scrollHeight,
@@ -67,13 +73,51 @@ try{
       const pref=JSON.parse(localStorage.getItem('nedelnik-ui-preferences-v1')||'{}');
       document.body.dataset.probePreferences=pref.view==='focus'&&pref.inboxHidden?'pass':'fail';
       document.querySelector('[data-view="board"]').click();
+      const quick=document.querySelector('#inboxInput'),quickWrapper=quick.closest('.quick-add');
+      quick.blur();
+      const normalQuickBorder=getComputedStyle(quickWrapper).borderColor;
+      const normalQuickShadow=getComputedStyle(quickWrapper).boxShadow;
+      quick.focus();
+      const quickUnchanged=getComputedStyle(quick).outlineStyle==='none'
+        &&getComputedStyle(quick).boxShadow==='none'
+        &&getComputedStyle(quickWrapper).borderColor===normalQuickBorder
+        &&getComputedStyle(quickWrapper).boxShadow===normalQuickShadow;
       document.querySelector('[data-action="add-day"]').click();
-      const editorField=document.querySelector('#editTitle');
-      editorField.focus();
-      const focused=getComputedStyle(editorField);
-      document.body.dataset.probeThinFocus=focused.outlineStyle==='none'
-        &&focused.boxShadow==='none'&&focused.borderTopWidth==='1px'?'pass':'fail';
-      document.querySelector('#taskDialog').close();
+      const controls=['editTitle','editDate','editHours','editMinutes','editStart',
+        'editEnd','editActual','editCategory','editNotes'];
+      const neutral=controls.every(id=>{
+        const element=document.getElementById(id);
+        element.blur();
+        const normal=getComputedStyle(element),baseBorder=normal.borderColor;
+        const baseBackground=normal.backgroundColor;
+        element.focus();
+        const active=getComputedStyle(element);
+        return active.outlineStyle==='none'&&active.boxShadow==='none'
+          &&active.borderColor===baseBorder&&active.backgroundColor===baseBackground;
+      });
+      document.body.dataset.probeNeutralFocus=neutral&&quickUnchanged?'pass':'fail';
+      document.querySelector('#editTitle').value='Тест шаблона';
+      document.querySelector('#saveTemplate').checked=true;
+      document.querySelector('#taskForm').requestSubmit();
+      const before=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const saved=before.templates.length===1&&before.tasks.length>=1
+        &&document.querySelector('#templateCount').textContent==='1';
+      document.querySelector('#openQuickTemplate').click();
+      const deleteButton=document.querySelector('[data-template-delete]');
+      const hasDelete=!!deleteButton;
+      let asked=false;
+      window.confirm=message=>{asked=message.includes('Удалить шаблон');return false;};
+      deleteButton?.click();
+      const preserved=JSON.parse(localStorage.getItem('nedelnik-planner-v1')).templates.length===1;
+      window.confirm=message=>{asked=asked&&message.includes('Удалить шаблон');return true;};
+      deleteButton?.click();
+      const after=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      document.body.dataset.probeTemplates=saved&&hasDelete&&asked&&preserved
+        &&after.templates.length===0&&after.tasks.length===before.tasks.length
+        &&document.querySelector('#templateCount').textContent==='0'
+        &&document.querySelectorAll('#templateContent [data-template-delete]').length===0
+        &&document.querySelector('#templateDialog').open?'pass':'fail';
+      document.querySelector('#templateDialog').close();
       document.body.dataset.probeIcons=document.querySelector('#prevPeriod .ui-icon')
         &&document.querySelector('#openStats .ui-icon')?'pass':'fail';
     } catch(error){
@@ -99,7 +143,7 @@ try{
   assert.match(dom,/id="weekProgress">/);
   const bodyTag=dom.match(/<body\b[^>]*>/)?.[0]||'';
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
-  for(const name of ['mac','calendar','allhours','thin-focus','focus','example','inbox','sidebar','preferences','icons']){
+  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','focus','example','inbox','sidebar','preferences','icons']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
       'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,1250));
   }
