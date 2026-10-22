@@ -3,12 +3,35 @@ import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrenc
   validateTask, sanitizeBackup, blankData } from './logic.mjs';
 
 const KEY='nedelnik-planner-v1';
+const UI_KEY='nedelnik-ui-preferences-v1';
 const $=id=>document.getElementById(id);
 const today=()=>toISO(new Date());
 const shortDays=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const escapeHTML=text=>String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||'task-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-let state=load(),week=startOfWeek(today()),focusedDay=today(),view='board',editor=null;
+function loadUIPrefs() {
+  const fallback={week:startOfWeek(today()),focusedDay:today(),view:'board',inboxHidden:false};
+  try {
+    const raw=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
+    if(!raw || typeof raw!=='object')return fallback;
+    return {
+      week:parseDate(raw.week)?startOfWeek(raw.week):fallback.week,
+      focusedDay:parseDate(raw.focusedDay)?raw.focusedDay:fallback.focusedDay,
+      view:['board','calendar','focus'].includes(raw.view)?raw.view:'board',
+      inboxHidden:raw.inboxHidden===true
+    };
+  } catch{return fallback;}
+}
+const savedUI=loadUIPrefs();
+function saveUIPrefs() {
+  try {
+    localStorage.setItem(UI_KEY,JSON.stringify({
+      week,focusedDay,view,
+      inboxHidden:document.querySelector('.workspace')?.classList.contains('inbox-hidden')===true
+    }));
+  }catch(error){console.warn('Не удалось сохранить настройки окна',error);}
+}
+let state=load(),week=savedUI.week,focusedDay=savedUI.focusedDay,view=savedUI.view,editor=null;
 let dragItem=null,toastTimeout=null,focusRemaining=25*60,focusRunning=false,focusEndsAt=0,timerHandle=null;
 
 function load() {
@@ -48,6 +71,32 @@ function statusOf(task,date){
 }
 function planned(task){return Number.isInteger(task.plannedMinutes)?task.plannedMinutes:taskDuration(task);}
 function duration(estimate){return estimate>0?formatMinutes(estimate):'Без оценки';}
+const ICON_PATHS={
+  'plus':'<path d="M12 5v14M5 12h14"/>',
+  'panel':'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
+  'calendar':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/>',
+  'layers':'<rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 21h12a2 2 0 0 0 2-2V7"/>',
+  'checklist':'<path d="m3 7 2 2 4-4M12 7h9M3 17l2 2 4-4m3 2h9"/>',
+  'chart':'<path d="M4 20V12M10 20V4M16 20v-9M22 20v-6"/>',
+  'chevron-left':'<path d="m15 18-6-6 6-6"/>',
+  'chevron-right':'<path d="m9 18 6-6-6-6"/>'
+};
+function icon(name){
+  return '<svg class="ui-icon" width="17" height="17" viewBox="0 0 24 24" fill="none"'
+    +' stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    +(ICON_PATHS[name]||ICON_PATHS.plus)+'</svg>';
+}
+function decorateIcons(){
+  for(const el of document.querySelectorAll('[data-ui-icon]')){
+    const glyph=icon(el.dataset.uiIcon);
+    if(el.tagName==='BUTTON'){
+      const iconOnly=['inboxToggle','newInboxTask','prevPeriod','nextPeriod'].includes(el.id)
+        ||el.closest('.quick-add');
+      if(iconOnly)el.innerHTML=glyph;
+      else el.insertAdjacentHTML('afterbegin',glyph);
+    }else el.innerHTML=glyph;
+  }
+}
 function dot(category){return '<span class="category-dot '+escapeHTML(category||'other')+'"></span>';}
 function renderInbox(){
   $('inboxCount').textContent=state.inbox.length;
@@ -104,7 +153,7 @@ function renderBoard(){
       :'<div class="day-blank"><span class="day-blank-icon" aria-hidden="true">＋</span>'
       +'<strong>Свободный день</strong><span>Перетащи дело сюда</span></div>')+'</div>'
       +'<button type="button" class="day-add" data-action="add-day" data-date="'+date
-      +'" aria-label="Добавить задачу: '+weekday+' '+dayNumber+'"><span class="add-symbol" aria-hidden="true">＋</span> Новая задача</button>'
+      +'" aria-label="Добавить задачу: '+weekday+' '+dayNumber+'">'+icon('plus')+' Новая задача</button>'
       +'</section>';
   }).join('');
 }
@@ -168,7 +217,7 @@ function renderFocus(){
       +'<strong>Выбери главное дело</strong><span>Добавь задачу или перетащи её из списка слева.</span></div>')
     +(later.length?'<div class="focus-section-title">Остальные дела · '+later.length+'</div>'
       +later.map(t=>card(t,focusedDay)).join(''):'')
-    +'<button class="focus-add" type="button" data-action="add-day" data-date="'+focusedDay+'">＋ Добавить задачу</button></div>'
+    +'<button class="focus-add" type="button" data-action="add-day" data-date="'+focusedDay+'">'+icon('plus')+' Добавить задачу</button></div>'
     +'<div class="focus-timer"><span class="eyebrow">Сосредоточенная работа</span>'
     +'<h2>Фокус-таймер</h2><div class="timer-ring"><div class="timer-face" id="timerFace">25:00</div></div>'
     +'<p>Одна задача за раз. 25 минут работы — короткий перерыв.</p>'
@@ -437,6 +486,8 @@ function refreshTimer(){
   if(!$('timerFace'))return;
   const s=focusRemaining;
   $('timerFace').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  const ring=$('timerFace').closest('.timer-ring');
+  if(ring)ring.style.setProperty('--timer-ratio',Math.max(0,Math.min(100,s/1500*100))+'%');
 }
 function timerTick(){
   if(!focusRunning)return;
@@ -516,6 +567,11 @@ function setupClick(){
         category:tpl.category,priority:tpl.priority,notes:tpl.notes});save();render();
         closeDialog('templateDialog');notify('Шаблон добавлен в список');}
     }
+    const suggestion=event.target.closest('[data-suggestion]');
+    if(suggestion){
+      $('inboxInput').value=suggestion.dataset.suggestion;
+      $('inboxInput').focus();return;
+    }
     if(event.target.id==='timerToggle')toggleTimer();
     if(event.target.id==='timerReset')resetTimer();
     const blankDay=event.target.closest('.day-column');
@@ -536,8 +592,13 @@ function setup(){
     event.preventDefault();captureInbox($('inboxInput').value);$('inboxInput').value='';$('inboxInput').focus();
   });
   $('newInboxTask').addEventListener('click',()=>$('inboxInput').focus());
+  $('sidebarToday').addEventListener('click',()=>{
+    chooseDate(today());view='board';render();
+  });
   $('inboxToggle').addEventListener('click',()=>{
-    document.querySelector('.workspace').classList.toggle('inbox-hidden');
+    const hidden=document.querySelector('.workspace').classList.toggle('inbox-hidden');
+    $('inboxToggle').setAttribute('aria-expanded',String(!hidden));
+    saveUIPrefs();
   });
   $('prevPeriod').addEventListener('click',()=>{week=addDays(week,-7);focusedDay=week;render();});
   $('nextPeriod').addEventListener('click',()=>{week=addDays(week,7);focusedDay=week;render();});
@@ -573,6 +634,9 @@ function setup(){
     if(event.key.toLowerCase()==='n'){event.preventDefault();$('inboxInput').focus();}
   });
   setupDrag();setupClick();
+  document.querySelector('.workspace').classList.toggle('inbox-hidden',savedUI.inboxHidden);
+  $('inboxToggle').setAttribute('aria-expanded',String(!savedUI.inboxHidden));
+  decorateIcons();
   window.addEventListener('resize',()=>{if(view==='calendar')renderCalendar();});
   render();
 }
