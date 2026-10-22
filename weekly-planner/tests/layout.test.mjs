@@ -197,7 +197,8 @@ test('Typing never adds a highlight to text, date, time or notes fields',()=>{
   assert.match(css,/\.inbox-panel \.quick-add:focus-within/);
   assert.match(css,/outline:none!important/);
   assert.match(css,/box-shadow:none!important/);
-  assert.match(css,/dialog \.field input:is\(:focus,:focus-visible\)/);
+  assert.match(css,/\.editor-dialog \.field input:is\(:focus,:focus-visible\)/);
+  assert.match(css,/\.panel-dialog \.field textarea:is\(:focus,:focus-visible\)/);
   assert.match(css,/#focusDate:is\(:focus,:focus-visible\)/);
   assert.match(css,/#jumpDate:is\(:focus,:focus-visible\)/);
 });
