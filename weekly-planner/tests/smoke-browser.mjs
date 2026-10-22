@@ -21,6 +21,16 @@ try{
       document.querySelector('[data-view="calendar"]').click();
       document.body.dataset.probeCalendar=document.querySelector('#calendarView .timeline-body')
         &&document.querySelector('.timebox-empty')?'pass':'fail';
+      const cal=document.querySelector('#calendarView');
+      const labels=[...cal.querySelectorAll('.hour-label')];
+      const calendarBody=cal.querySelector('.timeline-body');
+      const upper=labels[0]?.getBoundingClientRect(),lower=labels[23]?.getBoundingClientRect();
+      document.body.dataset.probeAllhours=labels.length===24
+        &&labels[0].textContent==='00:00'&&labels[23].textContent==='23:00'
+        &&cal.scrollHeight<=cal.clientHeight+2
+        &&lower.bottom<=calendarBody.getBoundingClientRect().bottom+2
+        &&upper.top>=calendarBody.getBoundingClientRect().top-1
+        &&getComputedStyle(cal).overflowY==='hidden'?'pass':'fail';
       document.querySelector('[data-view="focus"]').click();
       document.body.dataset.probeFocus=document.querySelector('#timerFace')?.textContent==='25:00'
         &&document.querySelector('.focus-summary')?'pass':'fail';
@@ -37,6 +47,13 @@ try{
       const pref=JSON.parse(localStorage.getItem('nedelnik-ui-preferences-v1')||'{}');
       document.body.dataset.probePreferences=pref.view==='focus'&&pref.inboxHidden?'pass':'fail';
       document.querySelector('[data-view="board"]').click();
+      document.querySelector('[data-action="add-day"]').click();
+      const editorField=document.querySelector('#editTitle');
+      editorField.focus();
+      const focused=getComputedStyle(editorField);
+      document.body.dataset.probeThinFocus=focused.outlineStyle==='none'
+        &&focused.boxShadow==='none'&&focused.borderTopWidth==='1px'?'pass':'fail';
+      document.querySelector('#taskDialog').close();
       document.body.dataset.probeIcons=document.querySelector('#prevPeriod .ui-icon')
         &&document.querySelector('#openStats .ui-icon')?'pass':'fail';
     } catch(error){
@@ -62,7 +79,7 @@ try{
   assert.match(dom,/id="weekProgress">/);
   const bodyTag=dom.match(/<body\b[^>]*>/)?.[0]||'';
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
-  for(const name of ['calendar','focus','example','inbox','sidebar','preferences','icons']){
+  for(const name of ['calendar','allhours','thin-focus','focus','example','inbox','sidebar','preferences','icons']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
       'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,750));
   }
