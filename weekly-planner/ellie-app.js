@@ -585,7 +585,12 @@ function rollTomorrow(){
   const tasks=state.tasks.filter(t=>t.repeat==='none'&&t.date===date&&statusOf(t,date)!=='done');
   if(!tasks.length){notify('Нет незавершённых задач для переноса');return;}
   if(!confirm('Перенести '+tasks.length+' незавершённых задач на '+dayLabel(tomorrow)+'?'))return;
-  tasks.forEach(t=>t.date=tomorrow);
+  tasks.forEach(t=>{
+    state.rolloverLog=state.rolloverLog||[];
+    state.rolloverLog.push({id:t.id,from:t.date,to:tomorrow,title:t.title});
+    t.date=tomorrow;
+  });
+  state.rolloverLog=state.rolloverLog.slice(-2000);
   save();reviewSummary();render();notify('Незавершённые дела перенесены');
 }
 function openAnalytics(){
@@ -861,9 +866,28 @@ function setupClick(){
       else if(verb==='edit-task')openEditor('task',id,date);
       else if(verb==='edit-inbox')openEditor('inbox',id);
       else if(verb==='inbox-today')addInboxToDay(id,today());
+      else if(verb==='start-focus'){
+        if(focusRunning&&focusTaskId!==id){notify('Сначала остановите текущий таймер');return;}
+        if(!focusRunning)resetTimer();
+        focusTaskId=id;chooseDate(date);view='focus';render();
+        if(!focusRunning)toggleTimer();
+      }
       return;
     }
     if(event.target.closest('[data-close]'))closeDialog(event.target.closest('[data-close]').dataset.close);
+    const subRemove=event.target.closest('[data-subtask-remove]');
+    if(subRemove&&editor){
+      editor.subtasks=collectEditorSubtasks().filter(s=>s.id!==subRemove.dataset.subtaskRemove);
+      renderEditorSubtasks();return;
+    }
+    const editTemplateButton=event.target.closest('[data-template-edit]');
+    if(editTemplateButton){editTemplate(editTemplateButton.dataset.templateEdit);return;}
+    const restoreItem=event.target.closest('[data-restore-trash]');
+    if(restoreItem){restoreTrash(Number(restoreItem.dataset.restoreTrash));return;}
+    const restoreCopy=event.target.closest('[data-restore-backup]');
+    if(restoreCopy){restoreBackup(Number(restoreCopy.dataset.restoreBackup));return;}
+    const scopeButton=event.target.closest('[data-stats-scope]');
+    if(scopeButton){statsScope=scopeButton.dataset.statsScope;renderAnalytics();return;}
     const deleteButton=event.target.closest('[data-template-delete]');
     if(deleteButton){
       deleteTemplate(deleteButton.dataset.templateDelete);
@@ -956,17 +980,39 @@ function setup(){
   $('rollTomorrow').addEventListener('click',rollTomorrow);
   $('openStats').addEventListener('click',openAnalytics);
   $('openTemplates').addEventListener('click',openTemplates);
+  $('openTrash').addEventListener('click',()=>{renderTrash();openDialog('trashDialog');});
+  $('autoCarry').checked=state.settings?.autoCarry===true;
+  $('autoCarry').addEventListener('change',event=>{
+    if(event.target.checked&&!confirm('Включить автоперенос? При открытии планировщика все просроченные невыполненные разовые дела перейдут на сегодняшний день.')){
+      event.target.checked=false;return;
+    }
+    state.settings=state.settings||{};
+    state.settings.autoCarry=event.target.checked;
+    save();maybeCarryOverdue();render();$('moreMenu').open=false;
+    notify(event.target.checked?'Автоперенос включён':'Автоперенос выключен');
+  });
   $('openQuickTemplate').addEventListener('click',openTemplates);
   $('templateCreateForm').addEventListener('submit',createTemplate);
+  $('cancelTemplateEdit').addEventListener('click',resetTemplateEditor);
+  $('editMeasure').addEventListener('change',toggleEditorExtras);
+  $('editRepeat').addEventListener('change',toggleEditorExtras);
+  $('addSubtask').addEventListener('click',addEditorSubtask);
+  $('newSubtask').addEventListener('keydown',event=>{
+    if(event.key==='Enter'){event.preventDefault();addEditorSubtask();}
+  });
   $('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;exportData();});
   $('importButton').addEventListener('click',()=>{$('moreMenu').open=false;$('importFile').click();});
   $('importFile').addEventListener('change',e=>importData(e.target.files?.[0]));
   $('taskForm').addEventListener('submit',submitEditor);
   $('deleteTask').addEventListener('click',deleteEditor);
   document.addEventListener('change',event=>{
-    if(event.target.id==='focusDate'){chooseDate(event.target.value);view='focus';render();}
+    if(event.target.id==='focusDate'){
+      if(focusRunning){notify('Сначала остановите таймер');event.target.value=focusedDay;return;}
+      chooseDate(event.target.value);view='focus';render();
+    }
+    if(event.target.id==='focusTaskSelect'&&!focusRunning)focusTaskId=event.target.value||null;
   });
-  for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog']){
+  for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog','trashDialog']){
     $(id).addEventListener('click',event=>{if(event.target===$(id))closeDialog(id);});
   }
   document.addEventListener('keydown',event=>{
@@ -979,7 +1025,10 @@ function setup(){
   $('inboxToggle').setAttribute('aria-expanded',String(!savedUI.inboxHidden));
   decorateIcons();
   window.addEventListener('resize',()=>{if(view==='calendar')renderCalendar();});
+  window.addEventListener('focus',()=>{maybeCarryOverdue();});
+  maybeCarryOverdue();
   render();
+  if(recoveredFromBackup)notify('Данные восстановлены из последней локальной копии. Рекомендуется экспорт JSON.');
   // Let the native Windows host reveal the window only after its UI exists.
   // Keep browser-only use working even when the WebView2 bridge is absent.
   if(window.chrome?.webview?.postMessage){
