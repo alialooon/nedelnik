@@ -60,6 +60,20 @@ try{
       document.querySelector('[data-view="focus"]').click();
       document.body.dataset.probeFocus=document.querySelector('#timerFace')?.textContent==='25:00'
         &&document.querySelector('.focus-summary')?'pass':'fail';
+      const preset=document.querySelector('#focusDurationPreset');
+      preset.value='45';preset.dispatchEvent(new Event('change',{bubbles:true}));
+      const selected45=document.querySelector('#timerFace').textContent==='45:00'
+        &&focusRemaining===45*60;
+      preset.value='custom';preset.dispatchEvent(new Event('change',{bubbles:true}));
+      const customInput=document.querySelector('#focusCustomMinutes');
+      customInput.value='37';customInput.dispatchEvent(new Event('change',{bubbles:true}));
+      const selected37=document.querySelector('#timerFace').textContent==='37:00'
+        &&JSON.parse(localStorage.getItem('nedelnik-ui-preferences-v1')).focusMinutes===37;
+      document.querySelector('#timerReset').click();
+      const reset37=document.querySelector('#timerFace').textContent==='37:00';
+      preset.value='25';preset.dispatchEvent(new Event('change',{bubbles:true}));
+      document.body.dataset.probeTimerDuration=selected45&&selected37&&reset37
+        &&document.querySelector('#timerFace').textContent==='25:00'?'pass':'fail';
       const example=document.querySelector('[data-suggestion]');
       example.click();
       const input=document.querySelector('#inboxInput');
@@ -218,6 +232,54 @@ try{
       document.querySelector('#trashDialog').close();
       document.body.dataset.probeAdvanced=templateEdit&&repeatOk&&focused&&timerOk
         &&analyticsOk&&trashed&&recovered&&snapshots.length>0?'pass':'fail';
+      // Week and month plans must remain outside daily columns and can later
+      // be assigned to a concrete day without duplicating the original record.
+      document.querySelector('#openPeriodPlans').click();
+      document.querySelector('#newWeekPlan').click();
+      const weekDate=document.querySelector('#editDate').value;
+      const weekScopeSelected=document.querySelector('#editScope').value==='week';
+      document.querySelector('#editTitle').value='Задача на неделю';
+      document.querySelector('#taskForm').requestSubmit();
+      let plans=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const weekPlan=plans.tasks.find(t=>t.title==='Задача на неделю');
+      const weeklyOk=weekScopeSelected&&weekPlan?.scope==='week'
+        &&weekPlan.date===periodAnchor(weekDate,'week')
+        &&!occurrencesForWeek(plans.tasks,periodAnchor(weekDate,'week')).some(t=>t.id===weekPlan.id);
+      document.querySelector('#openPeriodPlans').click();
+      const statusBtn=[...document.querySelectorAll('[data-action="period-status"]')]
+        .find(btn=>btn.dataset.id===weekPlan?.id);
+      statusBtn?.click();
+      plans=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const weekDone=plans.tasks.find(t=>t.id===weekPlan?.id)?.status==='done';
+      document.querySelector('#newMonthPlan').click();
+      document.querySelector('#editTitle').value='Задача на месяц';
+      const monthDate=document.querySelector('#editDate').value;
+      const monthSelected=document.querySelector('#editScope').value==='month';
+      document.querySelector('#taskForm').requestSubmit();
+      plans=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const monthPlan=plans.tasks.find(t=>t.title==='Задача на месяц');
+      const monthlyOk=monthSelected&&monthPlan?.scope==='month'
+        &&monthPlan.date===periodAnchor(monthDate,'month')
+        &&periodTasksForWeek(plans.tasks,week).some(t=>t.id===monthPlan.id);
+      document.querySelector('#openPeriodPlans').click();
+      const assign=[...document.querySelectorAll('[data-action="period-schedule"]')]
+        .find(btn=>btn.dataset.id===weekPlan?.id);
+      assign?.click();
+      const dayConversion=document.querySelector('#editScope').value==='day';
+      const targetDay=document.querySelector('#editDate').value;
+      document.querySelector('#taskForm').requestSubmit();
+      plans=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const scheduled=plans.tasks.find(t=>t.id===weekPlan?.id);
+      const noDup=plans.tasks.filter(t=>t.id===weekPlan?.id).length===1
+        &&scheduled.scope==='day'&&scheduled.date===targetDay
+        &&occurrencesForWeek(plans.tasks,startOfWeek(targetDay)).some(t=>t.id===scheduled.id)
+        &&periodTasksForWeek(plans.tasks,week).every(t=>t.id!==scheduled.id);
+      document.querySelector('#openStats').click();
+      document.querySelector('[data-stats-scope="month"]').click();
+      const monthlySummary=document.querySelector('#statsContent')?.textContent.includes('Планы без конкретной даты');
+      document.querySelector('#statsDialog').close();
+      document.body.dataset.probePeriodPlans=weeklyOk&&weekDone&&monthlyOk&&dayConversion
+        &&noDup&&monthlySummary?'pass':'fail';
     } catch(error){
       document.body.dataset.probeError=String(error.message||error).slice(0,160);
     }
@@ -241,7 +303,7 @@ try{
   assert.match(dom,/id="weekProgress">/);
   const bodyTag=dom.match(/<body\b[^>]*>/)?.[0]||'';
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
-  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','direct-template','focus','example','inbox','sidebar','preferences','icons','advanced']){
+  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','direct-template','focus','timer-duration','example','inbox','sidebar','preferences','icons','advanced','period-plans']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
       'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,1250));
   }
