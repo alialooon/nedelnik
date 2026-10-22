@@ -48,6 +48,8 @@
       <details id="moreMenu" class="more-menu"><summary aria-label="Ещё действия">•••</summary>
         <div class="more-content">
           <button type="button" id="openTemplates">Шаблоны задач</button>
+          <button type="button" id="openTrash">Корзина и копии</button>
+          <label class="auto-carry-setting"><input type="checkbox" id="autoCarry" /> Автоперенос невыполненного</label>
           <button type="button" id="exportButton">Экспорт JSON</button>
           <button type="button" id="importButton">Импорт JSON</button>
           <div class="menu-separator"></div>
@@ -111,11 +113,18 @@
           <option value="health">Здоровье</option><option value="other">Другое</option>
         </select></label>
       </div>
-      <div class="field-pair">
+      <label class="field"><span>Планировать по</span><select id="editMeasure">
+        <option value="duration">Продолжительности</option><option value="interval">Конкретному времени</option>
+        <option value="count">Количеству повторений</option></select></label>
+      <div id="durationFields" class="field-pair">
         <label class="field"><span>Оценка — часы</span><input id="editHours" type="number" min="0" max="744" step="1" placeholder="0" /></label>
         <label class="field"><span>Оценка — минуты</span><input id="editMinutes" type="number" min="0" max="44640" step="1" placeholder="30" /></label>
       </div>
-      <div class="field-pair">
+      <div id="countFields" class="field-pair" hidden>
+        <label class="field"><span>Количество в плане</span><input id="editTargetCount" type="number" min="1" max="100000" step="1" placeholder="30" /></label>
+        <label class="field"><span>Фактически</span><input id="editActualCount" type="number" min="0" max="100000" step="1" placeholder="0" /></label>
+      </div>
+      <div id="intervalFields" class="field-pair">
         <label class="field"><span>Начало по расписанию</span><input id="editStart" type="time" /></label>
         <label class="field"><span>Окончание</span><input id="editEnd" type="time" /></label>
       </div>
@@ -123,14 +132,29 @@
         <summary>Дополнительные параметры</summary>
         <div class="advanced-inner">
           <div class="field-pair">
-            <label class="field"><span>Повторение</span><select id="editRepeat"><option value="none">Не повторять</option><option value="daily">Ежедневно</option><option value="weekly">Еженедельно</option></select></label>
+            <label class="field"><span>Повторение</span><select id="editRepeat"><option value="none">Не повторять</option><option value="daily">Ежедневно</option><option value="weekly">Еженедельно</option><option value="custom">По дням недели</option>
+            <option value="interval">Каждые N дней</option><option value="monthly">Ежемесячно</option></select></label>
             <label class="field"><span>Статус</span><select id="editStatus"><option value="todo">Не выполнена</option><option value="partial">Частично</option><option value="done">Выполнена</option></select></label>
           </div>
+          <div id="repeatDayFields" class="repeat-days" hidden>
+            <span>Дни повторения</span>
+            <label><input type="checkbox" value="0" /> Пн</label><label><input type="checkbox" value="1" /> Вт</label>
+            <label><input type="checkbox" value="2" /> Ср</label><label><input type="checkbox" value="3" /> Чт</label>
+            <label><input type="checkbox" value="4" /> Пт</label><label><input type="checkbox" value="5" /> Сб</label>
+            <label><input type="checkbox" value="6" /> Вс</label>
+          </div>
+          <label id="repeatIntervalField" class="field" hidden><span>Повторять каждые N дней</span>
+            <input id="editRepeatInterval" type="number" min="2" max="365" step="1" value="2" /></label>
           <div class="field-pair">
             <label class="field"><span>Приоритет</span><select id="editPriority"><option value="normal">Обычный</option><option value="low">Низкий</option><option value="high">Высокий</option></select></label>
             <label class="field"><span>Факт — минуты</span><input id="editActual" type="number" min="0" max="44640" step="1" placeholder="Не записано" /></label>
           </div>
-          <label class="field"><span>Комментарий / подзадачи</span><textarea id="editNotes" rows="3" maxlength="5000" placeholder="Заметка или чек-лист"></textarea></label>
+          <div class="field subtask-editor"><span>Подзадачи</span>
+            <div id="editSubtasks" class="subtask-list"></div>
+            <div class="subtask-add-row"><input id="newSubtask" type="text" maxlength="180" placeholder="Новая подзадача…" />
+              <button type="button" id="addSubtask">＋ Добавить</button></div>
+          </div>
+          <label class="field"><span>Комментарий</span><textarea id="editNotes" rows="3" maxlength="5000" placeholder="Заметка или чек-лист"></textarea></label>
           <label class="checkbox-line"><input id="saveTemplate" type="checkbox" /> Сохранить как шаблон</label>
         </div>
       </details>
@@ -155,9 +179,14 @@
   <header class="dialog-header"><h2>Аналитика недели</h2><button type="button" class="close-dialog" data-close="statsDialog" aria-label="Закрыть">×</button></header>
   <div class="panel-content" id="statsContent"></div>
 </dialog>
+<dialog id="trashDialog" class="panel-dialog">
+  <header class="dialog-header"><h2>Корзина и резервные копии</h2><button type="button" class="close-dialog" data-close="trashDialog" aria-label="Закрыть">×</button></header>
+  <div id="trashContent" class="panel-content"></div>
+</dialog>
 <dialog id="templateDialog" class="panel-dialog">
   <header class="dialog-header"><h2>Шаблоны дел</h2><button type="button" class="close-dialog" data-close="templateDialog" aria-label="Закрыть">×</button></header>
   <form id="templateCreateForm" class="template-create-form" autocomplete="off">
+    <input type="hidden" id="templateEditId" value="" />
     <label class="template-create-title" for="templateNewTitle">Новая задача</label>
     <input id="templateNewTitle" name="title" type="text" maxlength="120" required placeholder="Название задачи…" />
     <div class="template-create-options">
@@ -174,7 +203,8 @@
       <label for="templateNewMinutes">Время, мин
         <input id="templateNewMinutes" name="minutes" type="number" min="0" max="1440" step="1" value="30" required />
       </label>
-      <button type="submit" class="template-create-button">＋ Создать</button>
+      <button type="submit" class="template-create-button" id="templateSaveButton">＋ Создать</button>
+      <button type="button" id="cancelTemplateEdit" hidden>Отмена</button>
     </div>
   </form>
   <div class="panel-content" id="templateContent"></div>
