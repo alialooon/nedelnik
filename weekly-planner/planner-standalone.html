@@ -1285,6 +1285,85 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
   color:#bd5765;background:#fff0f1;border-color:#f1d6d9;
 }
 
+
+/* Add a reusable task directly in the templates dialog, without leaving the list. */
+.template-create-form{
+  display:grid;
+  gap:9px;
+  padding:16px 22px 14px;
+  border-bottom:1px solid #e3ebf7;
+  background:linear-gradient(180deg,#fff,#f9fbff);
+}
+.template-create-title{
+  font-size:11px;
+  font-weight:660;
+  color:#587292;
+}
+.template-create-form input,
+.template-create-form select{
+  box-sizing:border-box;
+  min-width:0;
+  width:100%;
+  min-height:35px;
+  padding:8px 10px;
+  border:1px solid #d8e3f1;
+  border-radius:10px;
+  background:#fcfdff;
+  color:#304867;
+  font:inherit;
+  font-size:12px;
+  box-shadow:none;
+}
+.template-create-form input::placeholder{color:#a0aec0}
+.template-create-form input:is(:focus,:focus-visible),
+.template-create-form select:is(:focus,:focus-visible){
+  outline:none;
+  outline-offset:0;
+  border-color:#d8e3f1;
+  background:#fcfdff;
+  box-shadow:none;
+}
+.template-create-options{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(94px,112px) auto;
+  align-items:end;
+  gap:9px;
+}
+.template-create-options label{
+  display:grid;
+  gap:5px;
+  color:#7388a2;
+  font-size:10px;
+}
+.template-create-options .template-create-button{
+  min-height:35px;
+  white-space:nowrap;
+  padding:8px 12px;
+  border:1px solid #4688ed;
+  border-radius:10px;
+  background:linear-gradient(145deg,#72aaff,#4585eb);
+  color:#fff;
+  font-size:11px;
+  font-weight:650;
+  box-shadow:0 2px 7px rgba(66,126,215,.12);
+}
+.template-create-options .template-create-button:hover{
+  background:linear-gradient(145deg,#68a4fc,#3077e4);
+}
+#templateDialog .panel-content{
+  padding:14px 22px 19px;
+}
+#templateDialog .inbox-empty{
+  padding:19px 10px;
+  margin:0;
+}
+@media(max-width:470px){
+  .template-create-form{padding:13px 14px}
+  #templateDialog .panel-content{padding:12px 14px}
+  .template-create-options{grid-template-columns:minmax(0,1fr) 95px}
+  .template-create-button{grid-column:1/-1}
+}
+
   </style>
 </head>
 <body>
@@ -1435,6 +1514,26 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
 </dialog>
 <dialog id="templateDialog" class="panel-dialog">
   <header class="dialog-header"><h2>Шаблоны дел</h2><button type="button" class="close-dialog" data-close="templateDialog" aria-label="Закрыть">×</button></header>
+  <form id="templateCreateForm" class="template-create-form" autocomplete="off">
+    <label class="template-create-title" for="templateNewTitle">Новая задача</label>
+    <input id="templateNewTitle" name="title" type="text" maxlength="120" required placeholder="Название задачи…" />
+    <div class="template-create-options">
+      <label for="templateNewCategory">Категория
+        <select id="templateNewCategory" name="category">
+          <option value="personal">Личное время</option>
+          <option value="work">Работа</option>
+          <option value="study">Учёба</option>
+          <option value="sport">Спорт</option>
+          <option value="health">Здоровье</option>
+          <option value="other">Другое</option>
+        </select>
+      </label>
+      <label for="templateNewMinutes">Время, мин
+        <input id="templateNewMinutes" name="minutes" type="number" min="0" max="1440" step="1" value="30" required />
+      </label>
+      <button type="submit" class="template-create-button">＋ Создать</button>
+    </div>
+  </form>
   <div class="panel-content" id="templateContent"></div>
 </dialog>
 
@@ -2137,7 +2236,31 @@ function renderTemplates(){
 }
 function openTemplates(){
   renderTemplates();
+  $('templateCreateForm').reset();
   openDialog('templateDialog');
+}
+function createTemplate(event){
+  event.preventDefault();
+  const title=$('templateNewTitle').value.trim();
+  const minsText=$('templateNewMinutes').value.trim();
+  const plannedMinutes=Number(minsText);
+  const category=$('templateNewCategory').value;
+  if(!title||title.length>120){notify('Введите название задачи до 120 символов');return;}
+  if(!minsText||!Number.isInteger(plannedMinutes)||plannedMinutes<0||plannedMinutes>1440){
+    notify('Укажите время от 0 до 1440 минут');return;
+  }
+  if(!CATEGORIES[category]){notify('Выберите категорию');return;}
+  if(state.templates.length>=2000){notify('Достигнут лимит шаблонов');return;}
+  if(state.templates.some(t=>t.title.toLocaleLowerCase('ru-RU')===title.toLocaleLowerCase('ru-RU'))){
+    notify('Шаблон с таким названием уже существует');return;
+  }
+  state.templates.push({id:uid(),title,plannedMinutes,category,priority:'normal',notes:''});
+  save();
+  render();
+  renderTemplates();
+  $('templateCreateForm').reset();
+  $('templateNewTitle').focus();
+  notify('Шаблон создан');
 }
 function deleteTemplate(id){
   const template=state.templates.find(t=>t.id===id);
@@ -2333,6 +2456,7 @@ function setup(){
   $('openStats').addEventListener('click',openAnalytics);
   $('openTemplates').addEventListener('click',openTemplates);
   $('openQuickTemplate').addEventListener('click',openTemplates);
+  $('templateCreateForm').addEventListener('submit',createTemplate);
   $('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;exportData();});
   $('importButton').addEventListener('click',()=>{$('moreMenu').open=false;$('importFile').click();});
   $('importFile').addEventListener('change',e=>importData(e.target.files?.[0]));
