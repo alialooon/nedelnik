@@ -1,6 +1,6 @@
 import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrencesForWeek,
   timeMinutes, minutesFromParts, formatMinutes, taskDuration, timeStats,
-  validateTask, sanitizeBackup, blankData } from './logic.mjs';
+  validateTask, sanitizeBackup, blankData, periodAnchor, periodTasksForWeek, periodTasksForMonth } from './logic.mjs';
 
 const KEY='nedelnik-planner-v1';
 const UI_KEY='nedelnik-ui-preferences-v1';
@@ -11,7 +11,7 @@ const shortDays=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const escapeHTML=text=>String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||'task-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 function loadUIPrefs() {
-  const fallback={week:startOfWeek(today()),focusedDay:today(),view:'board',inboxHidden:false};
+  const fallback={week:startOfWeek(today()),focusedDay:today(),view:'board',inboxHidden:false,focusMinutes:25};
   try {
     const raw=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
     if(!raw || typeof raw!=='object')return fallback;
@@ -19,7 +19,8 @@ function loadUIPrefs() {
       week:parseDate(raw.week)?startOfWeek(raw.week):fallback.week,
       focusedDay:parseDate(raw.focusedDay)?raw.focusedDay:fallback.focusedDay,
       view:['board','calendar','focus'].includes(raw.view)?raw.view:'board',
-      inboxHidden:raw.inboxHidden===true
+      inboxHidden:raw.inboxHidden===true,
+      focusMinutes:Number.isInteger(raw.focusMinutes)&&raw.focusMinutes>=1&&raw.focusMinutes<=240?raw.focusMinutes:25
     };
   } catch{return fallback;}
 }
@@ -27,7 +28,7 @@ const savedUI=loadUIPrefs();
 function saveUIPrefs() {
   try {
     localStorage.setItem(UI_KEY,JSON.stringify({
-      week,focusedDay,view,
+      week,focusedDay,view,focusMinutes:focusDurationMinutes,
       inboxHidden:document.querySelector('.workspace')?.classList.contains('inbox-hidden')===true
     }));
   }catch(error){console.warn('Не удалось сохранить настройки окна',error);}
@@ -35,7 +36,8 @@ function saveUIPrefs() {
 let recoveredFromBackup=false;
 let state=load(),week=savedUI.week,focusedDay=savedUI.focusedDay,view=savedUI.view,editor=null;
 let focusTaskId=null,focusTrackedSeconds=0,focusRemainderSeconds=0,statsScope='week';
-let dragItem=null,toastTimeout=null,focusRemaining=25*60,focusRunning=false,focusEndsAt=0,timerHandle=null;
+let focusDurationMinutes=savedUI.focusMinutes;
+let dragItem=null,toastTimeout=null,focusRemaining=focusDurationMinutes*60,focusRunning=false,focusEndsAt=0,timerHandle=null;
 
 function load() {
   try {
@@ -800,7 +802,7 @@ function refreshTimer(){
   const s=focusRemaining;
   $('timerFace').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
   const ring=$('timerFace').closest('.timer-ring');
-  if(ring)ring.style.setProperty('--timer-ratio',Math.max(0,Math.min(100,s/1500*100))+'%');
+  if(ring)ring.style.setProperty('--timer-ratio',Math.max(0,Math.min(100,s/(focusDurationMinutes*60)*100))+'%');
 }
 function timerTick(){
   if(!focusRunning)return;
@@ -823,7 +825,7 @@ function toggleTimer(){
     focusRemaining=Math.max(0,Math.ceil((focusEndsAt-Date.now())/1000));
     focusRunning=false;clearInterval(timerHandle);
   }else{
-    if(focusRemaining<=0)focusRemaining=25*60;
+    if(focusRemaining<=0)focusRemaining=focusDurationMinutes*60;
     const selector=$('focusTaskSelect');
     if(selector)focusTaskId=selector.value||null;
     focusTaskDate=focusedDay;
@@ -837,7 +839,7 @@ function toggleTimer(){
 }
 function resetTimer(){
   if(focusRunning)creditFocusTime();
-  focusRunning=false;clearInterval(timerHandle);focusRemaining=25*60;focusCarryReset();
+  focusRunning=false;clearInterval(timerHandle);focusRemaining=focusDurationMinutes*60;focusCarryReset();
   if($('timerToggle'))$('timerToggle').textContent='Начать';
   if($('focusTaskSelect'))$('focusTaskSelect').disabled=false;
   refreshTimer();
