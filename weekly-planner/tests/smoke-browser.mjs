@@ -25,6 +25,14 @@ try{
       const labels=[...cal.querySelectorAll('.hour-label')];
       const calendarBody=cal.querySelector('.timeline-body');
       const upper=labels[0]?.getBoundingClientRect(),lower=labels[23]?.getBoundingClientRect();
+      document.body.dataset.probeHourDetails=JSON.stringify({
+        count:labels.length,first:labels[0]?.textContent,last:labels[23]?.textContent,
+        client:cal.clientHeight,scroll:cal.scrollHeight,
+        upperTop:Math.round(upper.top),bodyTop:Math.round(calendarBody.getBoundingClientRect().top),
+        lowerBottom:Math.round(lower.bottom),bodyBottom:Math.round(calendarBody.getBoundingClientRect().bottom),
+        overflow:getComputedStyle(cal).overflowY,
+        bodyHeight:calendarBody.clientHeight
+      });
       document.body.dataset.probeAllhours=labels.length===24
         &&labels[0].textContent==='00:00'&&labels[23].textContent==='23:00'
         &&cal.scrollHeight<=cal.clientHeight+2
@@ -81,7 +89,7 @@ try{
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
   for(const name of ['calendar','allhours','thin-focus','focus','example','inbox','sidebar','preferences','icons']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
-      'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,750));
+      'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,1250));
   }
   assert.doesNotMatch(bodyTag,/data-probe-error=/,'Unexpected runtime error during interaction');
 
