@@ -1202,3 +1202,28 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
   .planner .day-column,
   .planner .task-tile{transition:none}
 }
+
+
+/* Only task-card color changes with category; no priority or status logic changes. */
+.planner .task-tile.category-work:not(.priority-high){
+  border-left:3px solid #ed9aac;
+  background:linear-gradient(140deg,#fff,#fff5f7);
+}
+.planner .task-tile.category-study:not(.priority-high){
+  border-left:3px solid #b5a1ec;
+  background:linear-gradient(140deg,#fff,#f9f6ff);
+}
+.planner .task-tile.category-personal:not(.priority-high){
+  border-left:3px solid #e9b98c;
+  background:linear-gradient(140deg,#fff,#fffaf4);
+}
+.planner .task-tile.category-sport:not(.priority-high),
+.planner .task-tile.category-health:not(.priority-high){
+  border-left:3px solid #92c7ad;
+  background:linear-gradient(140deg,#fff,#f5fdf9);
+}
+.planner .task-tile.category-other:not(.priority-high){
+  border-left:3px solid #abc5e8;
+}
+.planner .task-tile.priority-high{border-left:3px solid #df788f}
+.planner .task-tile.priority-low{border-left:3px solid #83c4a8}
