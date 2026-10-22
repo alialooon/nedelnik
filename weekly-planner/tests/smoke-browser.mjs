@@ -152,6 +152,72 @@ try{
         &&used.tasks.length===tasksBeforeQuick?'pass':'fail';
       document.body.dataset.probeIcons=document.querySelector('#prevPeriod .ui-icon')
         &&document.querySelector('#openStats .ui-icon')?'pass':'fail';
+      // New functions must work through real DOM controls in the standalone page.
+      document.querySelector('#openQuickTemplate').click();
+      document.querySelector('[data-template-edit]').click();
+      document.querySelector('#templateNewMinutes').value='45';
+      document.querySelector('#templateCreateForm').requestSubmit();
+      const edited=JSON.parse(localStorage.getItem('nedelnik-planner-v1')).templates;
+      const templateEdit=edited.length===1&&edited[0].plannedMinutes===45;
+      document.querySelector('#templateDialog').close();
+
+      document.querySelector('[data-view="board"]').click();
+      document.querySelector('[data-action="add-day"]').click();
+      document.querySelector('#editTitle').value='Тестовая тренировка';
+      const taskDay=document.querySelector('#editDate').value;
+      document.querySelector('#editRepeat').value='custom';
+      document.querySelector('#editRepeat').dispatchEvent(new Event('change',{bubbles:true}));
+      const weekday=(new Date(taskDay+'T12:00:00').getDay()+6)%7;
+      document.querySelector('#repeatDayFields input[value="'+weekday+'"]').checked=true;
+      document.querySelector('#editMeasure').value='count';
+      document.querySelector('#editMeasure').dispatchEvent(new Event('change',{bubbles:true}));
+      document.querySelector('#editTargetCount').value='25';
+      document.querySelector('#editActualCount').value='18';
+      document.querySelector('#newSubtask').value='Разминка';
+      document.querySelector('#addSubtask').click();
+      document.querySelector('.subtask-done').checked=true;
+      document.querySelector('#taskForm').requestSubmit();
+      let enhanced=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const countTask=enhanced.tasks.find(t=>t.title==='Тестовая тренировка');
+      const repeatOk=countTask?.repeat==='custom'&&countTask.repeatDays.includes(weekday)
+        &&countTask.measureMode==='count'&&countTask.targetCount===25
+        &&countTask.actualCountByDate[taskDay]===18
+        &&countTask.subtaskByDate[taskDay][countTask.subtasks[0].id]===true;
+      const card=[...document.querySelectorAll('[data-action="start-focus"]')]
+        .find(btn=>btn.dataset.id===countTask?.id);
+      card?.click();
+      const focused=document.querySelector('#focusTaskSelect')?.value===countTask?.id;
+      if(focused){
+        focusStartedAt=Date.now()-65000;
+        timerTick();
+        document.querySelector('#timerToggle').click();
+      }
+      enhanced=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const timerOk=enhanced.tasks.find(t=>t.id===countTask?.id)?.actualByDate?.[taskDay]===1;
+      document.querySelector('#openStats').click();
+      document.querySelector('[data-stats-scope="month"]').click();
+      const analyticsOk=document.querySelector('#statsContent')?.textContent.includes('По категориям')
+        &&document.querySelector('[data-stats-scope="month"]')?.classList.contains('active');
+      document.querySelector('#statsDialog').close();
+      document.querySelector('[data-view="board"]').click();
+      const editor=[...document.querySelectorAll('[data-action="edit-task"]')]
+        .find(btn=>btn.dataset.id===countTask.id);
+      editor?.click();
+      document.querySelector('#deleteTask').click();
+      const deleted=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const trashed=deleted.trash.some(x=>x.kind==='task'&&x.value.id===countTask.id)
+        &&!deleted.tasks.some(t=>t.id===countTask.id);
+      document.querySelector('#openTrash').click();
+      const restore=[...document.querySelectorAll('[data-restore-trash]')]
+        .find(btn=>btn.closest('.template-row')?.textContent.includes('Тестовая тренировка'));
+      restore?.click();
+      const restored=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const recovered=restored.tasks.some(t=>t.id===countTask.id)&&
+        !restored.trash.some(x=>x.value.id===countTask.id);
+      const snapshots=JSON.parse(localStorage.getItem('nedelnik-planner-backups-v1')||'[]');
+      document.querySelector('#trashDialog').close();
+      document.body.dataset.probeAdvanced=templateEdit&&repeatOk&&focused&&timerOk
+        &&analyticsOk&&trashed&&recovered&&snapshots.length>0?'pass':'fail';
     } catch(error){
       document.body.dataset.probeError=String(error.message||error).slice(0,160);
     }
@@ -175,7 +241,7 @@ try{
   assert.match(dom,/id="weekProgress">/);
   const bodyTag=dom.match(/<body\b[^>]*>/)?.[0]||'';
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
-  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','direct-template','focus','example','inbox','sidebar','preferences','icons']){
+  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','direct-template','focus','example','inbox','sidebar','preferences','icons','advanced']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
       'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,1250));
   }
