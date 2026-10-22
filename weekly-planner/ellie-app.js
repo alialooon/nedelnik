@@ -51,6 +51,11 @@ function duration(estimate){return estimate>0?formatMinutes(estimate):'Без о
 function dot(category){return '<span class="category-dot '+escapeHTML(category||'other')+'"></span>';}
 function renderInbox(){
   $('inboxCount').textContent=state.inbox.length;
+  const selected=today(),items=occurrencesForWeek(state.tasks,startOfWeek(selected))
+    .filter(t=>t.occurrenceDate===selected);
+  $('sidebarTodayCount').textContent=items.length;
+  $('sidebarTodayDate').textContent=parseDate(selected).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  $('templateCount').textContent=state.templates.length;
   $('inboxList').innerHTML=state.inbox.length?state.inbox.map(t=>
     '<article class="inbox-item" draggable="true" data-source="inbox" data-id="'+escapeHTML(t.id)+'">'
     +'<button type="button" data-action="edit-inbox" data-id="'+escapeHTML(t.id)+'" aria-label="Изменить задачу">○</button>'
@@ -58,7 +63,11 @@ function renderInbox(){
     +'<div class="item-subline">'+dot(t.category)+escapeHTML(CATEGORIES[t.category]||'Личное')+' · '+duration(planned(t))+'</div></div>'
     +'<button type="button" data-action="inbox-today" data-id="'+escapeHTML(t.id)+'" title="Запланировать на сегодня">→</button>'
     +'</article>').join('')
-    :'<p class="inbox-empty">Здесь живут дела без даты.<br>Добавь мысль — затем перетащи её в расписание.</p>';
+    :'<div class="inbox-empty"><span class="empty-marker" aria-hidden="true">✓</span>'
+    +'<strong>Всё записано</strong><span>Не держи дела в голове. Начни с одной задачи.</span>'
+    +'<div class="example-suggestions"><button type="button" data-suggestion="Разобрать почту">Разобрать почту</button>'
+    +'<button type="button" data-suggestion="Купить продукты">Купить продукты</button></div>'
+    +'<small>Примеры не добавляются, пока ты не нажмёшь «+».</small></div>';
 }
 function card(t,day){
   const status=statusOf(t,day),done=status==='done';
@@ -80,13 +89,20 @@ function renderBoard(){
   $('boardView').innerHTML=Array.from({length:7},(_,i)=>{
     const date=addDays(week,i),tasks=all.filter(t=>t.occurrenceDate===date),now=date===today();
     const estimate=tasks.reduce((sum,t)=>sum+planned(t),0);
+    const done=tasks.filter(t=>t.done).length,partial=tasks.filter(t=>t.status==='partial').length;
+    const percent=tasks.length?Math.round((done+partial*.5)/tasks.length*100):0;
     const weekday=WEEKDAYS[i],dayNumber=parseDate(date).getDate();
     return '<section class="day-column '+(now?'today ':'')+(i>=5?'weekend':'')
       +'" data-drop-date="'+date+'" aria-label="'+weekday+' '+dayLabel(date)+'">'
       +'<div class="day-heading"><div class="day-heading-main"><span class="day-weekday">'+weekday
-      +'</span><strong class="day-number">'+dayNumber+'</strong></div>'
+      +'</span><strong class="day-number">'+dayNumber+'</strong>'
+      +'<span class="day-count">'+(tasks.length?done+' / '+tasks.length+' выполнено':'Нет задач')+'</span></div>'
       +(estimate?'<span class="day-estimate" title="Запланировано времени">'+formatMinutes(estimate)+'</span>':'')
-      +'</div><div class="day-tasks">'+tasks.map(t=>card(t,date)).join('')+'</div>'
+      +'<div class="day-progress" role="progressbar" aria-label="Выполнение задач: '+weekday+'" aria-valuenow="'+percent
+      +'" aria-valuemin="0" aria-valuemax="100"><span style="width:'+percent+'%"></span></div>'
+      +'</div><div class="day-tasks">'+(tasks.length?tasks.map(t=>card(t,date)).join('')
+      :'<div class="day-blank"><span class="day-blank-icon" aria-hidden="true">＋</span>'
+      +'<strong>Свободный день</strong><span>Перетащи дело сюда</span></div>')+'</div>'
       +'<button type="button" class="day-add" data-action="add-day" data-date="'+date
       +'" aria-label="Добавить задачу: '+weekday+' '+dayNumber+'"><span class="add-symbol" aria-hidden="true">＋</span> Новая задача</button>'
       +'</section>';
@@ -94,61 +110,91 @@ function renderBoard(){
 }
 function renderCalendar(){
   const tasks=allTasks(),startHour=6,endHour=23;
-  // Keep the entire 06:00–23:00 time grid inside the available desktop height.
-  // All placement math shares this scale, including drag/drop.
+  const timed=tasks.filter(t=>t.start);
+  // All placement math and the hour grid share the same responsive scale.
   const hourHeight=Math.max(33,Math.min(56,(window.innerHeight-226)/(endHour-startHour)));
   const offset=minutes=>(minutes-startHour*60)*hourHeight/60;
   const head='<div class="timeline-head"><span></span>'
-    +Array.from({length:7},(_,i)=>'<div>'+shortDays[i]+' '+parseDate(addDays(week,i)).getDate()+'</div>').join('')
+    +Array.from({length:7},(_,i)=>'<div class="'+(addDays(week,i)===today()?'is-current':'')
+    +'">'+shortDays[i]+' '+parseDate(addDays(week,i)).getDate()+'</div>').join('')
     +'</div>';
   const labels='<div class="hour-labels">'+Array.from({length:endHour-startHour+1},(_,i)=>
     '<span class="hour-label" style="top:'+(i*hourHeight)+'px">'+String(i+startHour).padStart(2,'0')+':00</span>').join('')+'</div>';
+  const now=new Date(),nowMins=now.getHours()*60+now.getMinutes();
   const columns=Array.from({length:7},(_,i)=>{
-    const date=addDays(week,i);
-    return '<div class="calendar-day" data-drop-date="'+date+'">'+tasks.filter(t=>t.occurrenceDate===date&&t.start).map(t=>{
+    const date=addDays(week,i),isToday=date===today();
+    const blocks=tasks.filter(t=>t.occurrenceDate===date&&t.start).map(t=>{
       const start=timeMinutes(t.start);if(Number.isNaN(start))return '';
-      const mins=planned(t)>0?planned(t):60;
-      const top=Math.max(0,offset(start));
+      const mins=planned(t)>0?planned(t):60,top=Math.max(0,offset(start));
       if(top>(endHour-startHour)*hourHeight)return '';
       const ht=Math.min((endHour-startHour)*hourHeight-top,Math.max(24,mins*hourHeight/60));
       return '<div class="time-block '+escapeHTML(t.category)+'" draggable="true" data-source="task" data-id="'
         +escapeHTML(t.id)+'" data-date="'+date+'" style="top:'+top+'px;height:'+ht
         +'px" title="'+escapeHTML(t.title)+'"><strong>'+escapeHTML(t.title)
         +'</strong><small>'+escapeHTML(t.start)+(t.end?'–'+escapeHTML(t.end):' · '+formatMinutes(mins))+'</small></div>';
-    }).join('')+'</div>';
+    }).join('');
+    const nowLine=isToday&&nowMins>=startHour*60&&nowMins<=endHour*60
+      ?'<div class="current-time-line" style="top:'+offset(nowMins)+'px" aria-label="Сейчас"></div>':'';
+    return '<div class="calendar-day '+(isToday?'calendar-today ':'')+(i>=5?'calendar-weekend':'')
+      +'" data-drop-date="'+date+'">'+blocks+nowLine+'</div>';
   }).join('');
   const unscheduled=tasks.filter(t=>!t.start).length;
   $('calendarView').innerHTML=head+'<div class="timeline-body" style="height:'+((endHour-startHour)*hourHeight)
-    +'px;--hour-height:'+hourHeight+'px">'+labels+columns+'</div>'
-    +'<div class="calendar-unscheduled">Перетаскивай задачи на свободное время с 06:00 до 23:00. '
+    +'px;--hour-height:'+hourHeight+'px">'+labels+columns
+    +(!timed.length?'<div class="timebox-empty" aria-hidden="true"><span class="timebox-empty-icon">⌁</span>'
+      +'<strong>Расписание пока свободно</strong><span>Перетащи задачу из списка без даты на нужный час</span></div>':'')
+    +'</div><div class="calendar-unscheduled">Перетаскивай задачи на свободное время с 06:00 до 23:00. '
     +unscheduled+' дел без конкретного времени — на вкладке «Задачи».</div>';
 }
 function renderFocus(){
-  const tasks=dayTasks(focusedDay),done=tasks.filter(t=>t.done).length;
-  $('focusView').innerHTML='<div class="focus-list"><h2>План на '+dayLabel(focusedDay)+'</h2>'
-    +'<div class="focus-day-picker"><input type="date" id="focusDate" value="'+focusedDay+'" aria-label="Дата для режима фокуса" />'
-    +'　'+done+' из '+tasks.length+' выполнено</div>'
-    +'<button class="day-add" type="button" data-action="add-day" data-date="'+focusedDay+'">＋ Добавить задачу</button>'
-    +(tasks.length?tasks.map(t=>card(t,focusedDay)).join(''):'<p class="inbox-empty">На этот день пока нет задач</p>')+'</div>'
-    +'<div class="focus-timer"><span class="eyebrow">Сосредоточенная работа</span><h2>Фокус-таймер</h2>'
-    +'<div class="timer-face" id="timerFace">25:00</div><p>25 минут работы, затем небольшой перерыв</p>'
+  const tasks=dayTasks(focusedDay);
+  const summary=timeStats(tasks),done=tasks.filter(t=>t.done).length;
+  const rank=t=>t.priority==='high'?0:t.priority==='normal'?1:2;
+  const ordered=[...tasks].sort((a,b)=>Number(a.done)-Number(b.done)||rank(a)-rank(b)
+    ||(a.start||'').localeCompare(b.start||''));
+  const priorities=ordered.slice(0,3),later=ordered.slice(3);
+  const percent=summary.completion,hasFact=summary.measured>0;
+  $('focusView').innerHTML='<div class="focus-list">'
+    +'<div class="focus-header"><div><span class="eyebrow">Главное на день</span><h2>План на '+dayLabel(focusedDay)+'</h2></div>'
+    +'<input type="date" id="focusDate" value="'+focusedDay+'" aria-label="Дата для режима фокуса" /></div>'
+    +'<div class="focus-summary"><div><small>Выполнено</small><strong>'+done+' / '+tasks.length
+    +'</strong></div><div><small>План</small><strong>'+formatMinutes(summary.plan)
+    +'</strong></div><div><small>Факт</small><strong>'+(hasFact?formatMinutes(summary.fact):'—')
+    +'</strong></div></div><div class="focus-completion" role="progressbar" aria-label="Выполнение задач" aria-valuenow="'
+    +percent+'" aria-valuemin="0" aria-valuemax="100"><span style="width:'+percent+'%"></span></div>'
+    +'<div class="focus-section-title">Приоритеты дня</div>'
+    +(priorities.length?priorities.map(t=>card(t,focusedDay)).join('')
+      :'<div class="focus-empty"><span class="focus-empty-icon" aria-hidden="true">✓</span>'
+      +'<strong>Выбери главное дело</strong><span>Добавь задачу или перетащи её из списка слева.</span></div>')
+    +(later.length?'<div class="focus-section-title">Остальные дела · '+later.length+'</div>'
+      +later.map(t=>card(t,focusedDay)).join(''):'')
+    +'<button class="focus-add" type="button" data-action="add-day" data-date="'+focusedDay+'">＋ Добавить задачу</button></div>'
+    +'<div class="focus-timer"><span class="eyebrow">Сосредоточенная работа</span>'
+    +'<h2>Фокус-таймер</h2><div class="timer-ring"><div class="timer-face" id="timerFace">25:00</div></div>'
+    +'<p>Одна задача за раз. 25 минут работы — короткий перерыв.</p>'
     +'<div class="timer-actions"><button type="button" class="primary-action" id="timerToggle">'
-    +(focusRunning?'Пауза':'Начать')+'</button><button type="button" class="quiet-action" id="timerReset">Сброс</button></div></div>';
+    +(focusRunning?'Пауза':'Начать')+'</button><button type="button" class="quiet-action" id="timerReset">Сброс</button></div>'
+    +'<p class="focus-timer-note">Реальное время укажи в задаче — оно появится в статистике.</p></div>';
   refreshTimer();
 }
 function render(){
   $('periodTitle').textContent=weekLabel(week);
   $('jumpDate').value=focusedDay;
   $('boardView').hidden=view!=='board';$('calendarView').hidden=view!=='calendar';$('focusView').hidden=view!=='focus';
-  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
-  $('viewDescription').textContent=view==='board'?'Перетаскивай задачи между днями'
-    :view==='calendar'?'Планируй время по часам':'Выбери главное и работай над этим';
+  document.querySelectorAll('[data-view]').forEach(b=>{
+    const active=b.dataset.view===view;
+    b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  });
+  $('viewDescription').textContent=view==='board'?'Распределяй дела по дням недели'
+    :view==='calendar'?'Расписание по часам':'Самое важное — в одном месте';
   const stats=timeStats(allTasks());
-  $('weekProgress').textContent=stats.done+' из '+stats.total+' выполнено · '+formatMinutes(stats.plan)+' в планах';
+  $('weekProgress').textContent=stats.total+' дел · '+stats.done+' выполнено · '+formatMinutes(stats.plan)+' в плане';
+  $('inlineProgressFill').style.width=stats.completion+'%';
   renderInbox();
   if(view==='board')renderBoard();
   else if(view==='calendar')renderCalendar();
   else renderFocus();
+  saveUIPrefs();
 }
 function defaultTask(title,date){
   return {id:uid(),title,date,start:'',end:'',plannedMinutes:30,actualMinutes:null,actualByDate:{},
