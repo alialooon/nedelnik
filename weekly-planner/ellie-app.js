@@ -233,9 +233,10 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
   }
   $('editRepeat').value=task?.repeat||'none';
   $('editStatus').value=task&&source==='task'?statusOf(task,occurrence||task.date):'todo';
-  $('editActual').value=source==='task'&&(task.repeat!=='none'?
-    task.actualByDate?.[occurrence||task.date] : task.actualMinutes)!=null
-    ?(task.repeat!=='none'?task.actualByDate?.[occurrence||task.date]:task.actualMinutes):'';
+  const actualValue=source==='task'&&task
+    ?(task.repeat!=='none'?task.actualByDate?.[occurrence||task.date]:task.actualMinutes)
+    :null;
+  $('editActual').value=actualValue??'';
   $('editNotes').value=task?.notes||'';
   $('deleteTask').hidden=source==='new';
   $('saveTemplate').checked=false;
@@ -479,7 +480,10 @@ function setup(){
   $('prevPeriod').addEventListener('click',()=>{week=addDays(week,-7);focusedDay=week;render();});
   $('nextPeriod').addEventListener('click',()=>{week=addDays(week,7);focusedDay=week;render();});
   $('goToday').addEventListener('click',()=>chooseDate(today()));
-  $('periodButton').addEventListener('click',()=>{$('jumpDate').showPicker?.()||$('jumpDate').focus();});
+  $('periodButton').addEventListener('click',()=>{
+    try{if($('jumpDate').showPicker)$('jumpDate').showPicker();else $('jumpDate').focus();}
+    catch{$('jumpDate').focus();}
+  });
   $('jumpDate').addEventListener('change',event=>chooseDate(event.target.value));
   document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{
     view=btn.dataset.view;render();
