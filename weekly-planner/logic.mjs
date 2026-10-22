@@ -68,21 +68,39 @@ export function validateTask(task) {
   if (!validMinutes(task.actualMinutes,true)) return 'Фактическое время должно быть целым числом минут.';
   if (!Object.hasOwn(CATEGORIES,task.category)) return 'Выберите категорию.';
   if (!['low','normal','high'].includes(task.priority)) return 'Выберите важность.';
-  if (!['none','daily','weekly'].includes(task.repeat)) return 'Выберите повторение.';
+  if (!['none','daily','weekly','custom','interval','monthly'].includes(task.repeat)) return 'Выберите повторение.';
+  if(task.repeat==='custom'&&(!Array.isArray(task.repeatDays)||!task.repeatDays.length
+    ||task.repeatDays.some(day=>!Number.isInteger(day)||day<0||day>6)))return 'Выберите дни повторения.';
+  if(task.repeat==='interval'&&(!Number.isInteger(task.repeatInterval)||task.repeatInterval<2||task.repeatInterval>365))return 'Период повторения должен быть от 2 до 365 дней.';
   if (typeof task.notes!=='string' || task.notes.length>5000) return 'Комментарий слишком длинный.';
   return null;
+}
+export function repeatsOn(task,date) {
+  if(!task||!parseDate(date)||!parseDate(task.date)||date<task.date)return false;
+  if(task.repeat==='daily')return true;
+  if(task.repeat==='weekly')return parseDate(date).getDay()===parseDate(task.date).getDay();
+  if(task.repeat==='custom')return Array.isArray(task.repeatDays)&&task.repeatDays.includes((parseDate(date).getDay()+6)%7);
+  if(task.repeat==='interval'){
+    const elapsed=Math.round((parseDate(date)-parseDate(task.date))/86400000);
+    return Number.isInteger(task.repeatInterval)&&task.repeatInterval>1&&elapsed%task.repeatInterval===0;
+  }
+  if(task.repeat==='monthly'){
+    const anchor=parseDate(task.date),d=parseDate(date);
+    const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    return d.getDate()===Math.min(anchor.getDate(),lastDay);
+  }
+  return false;
 }
 export function occurrencesForWeek(tasks,monday) {
   const sunday=addDays(monday,6),results=[];
   for(const task of tasks) {
-    if(task.repeat==='weekly' || task.repeat==='daily') {
-      const dates=task.repeat==='daily'
-        ?Array.from({length:7},(_,i)=>addDays(monday,i))
-        :[addDays(monday,(parseDate(task.date).getDay()+6)%7)];
-      for(const date of dates) {
-        if(date<task.date)continue;
+    if(task.repeat && task.repeat!=='none') {
+      for(let i=0;i<7;i++){
+        const date=addDays(monday,i);
+        if(!repeatsOn(task,date))continue;
         const status=task.statusByDate?.[date] ?? ((task.completedDates||[]).includes(date)?'done':'todo');
-        results.push({...task,occurrenceDate:date,status,done:status==='done',
+        const subtasks=(task.subtasks||[]).map(s=>({...s,done:task.subtaskByDate?.[date]?.[s.id]===true}));
+        results.push({...task,subtasks,occurrenceDate:date,status,done:status==='done',
           actualMinutes:task.actualByDate?.[date]??null,
           actualCount:task.actualCountByDate?.[date]??null});
       }
@@ -116,7 +134,8 @@ export function createFromTemplate(template,date,id) {
   return {id,title:template.title,date,start:'',end:'',plannedMinutes:template.plannedMinutes??0,
     actualMinutes:null,actualByDate:{},category:template.category||'other',
     priority:template.priority||'normal',repeat:'none',notes:template.notes||'',completed:false,
-    status:'todo',statusByDate:{},completedDates:[],measureMode:template.measureMode||'duration',
+    status:'todo',statusByDate:{},completedDates:[],repeatDays:[],repeatInterval:2,
+    subtasks:[],subtaskByDate:{},measureMode:template.measureMode||'duration',
     targetCount:template.targetCount??null,actualCount:null,actualCountByDate:{}};
 }
 function plainNotesMap(value) {
@@ -129,6 +148,37 @@ function sanitizedActualByDate(value) {
   if(!value || typeof value!=='object' || Array.isArray(value)) return {};
   return Object.fromEntries(Object.entries(value)
     .filter(([date,minutes])=>parseDate(date)&&validMinutes(minutes)).slice(-520));
+}
+function sanitizeSubtasks(value) {
+  if(!Array.isArray(value))return [];
+  const ids=new Set();
+  return value.slice(0,100).map((s,i)=>{
+    const title=typeof s?.title==='string'?s.title.trim().slice(0,180):'';
+    if(!title)return null;
+    let id=typeof s?.id==='string'&&s.id.length<150?s.id:'';
+    if(!id||ids.has(id))id='sub-'+i+'-'+Math.random().toString(36).slice(2);
+    ids.add(id);return {id,title,done:s.done===true};
+  }).filter(Boolean);
+}
+function sanitizeSubtaskByDate(value) {
+  if(!value||typeof value!=='object'||Array.isArray(value))return {};
+  return Object.fromEntries(Object.entries(value).filter(([d,v])=>parseDate(d)&&v&&typeof v==='object'&&!Array.isArray(v))
+    .slice(-520).map(([d,v])=>[d,Object.fromEntries(Object.entries(v).slice(0,100)
+      .filter(([id,done])=>id.length<150&&typeof done==='boolean'))]));
+}
+function sanitizeTrash(value) {
+  if(!Array.isArray(value))return [];
+  const cutoff=Date.now()-30*86400000;
+  return value.filter(item=>item&&['task','inbox','template'].includes(item.kind)
+    &&Number.isFinite(item.deletedAt)&&item.deletedAt>=cutoff
+    &&item.value&&typeof item.value==='object').slice(-300)
+    .map(item=>({kind:item.kind,deletedAt:item.deletedAt,value:item.value}));
+}
+function sanitizeRolloverLog(value) {
+  if(!Array.isArray(value))return [];
+  return value.filter(x=>typeof x?.id==='string'&&parseDate(x.from)&&parseDate(x.to)
+    &&typeof x.title==='string').slice(-2000)
+    .map(x=>({id:x.id,from:x.from,to:x.to,title:x.title.slice(0,120)}));
 }
 function sanitizeTemplate(template,index,ids) {
   const t={id:typeof template?.id==='string'&&template.id.length<150&&template.id&&!ids.has(template.id)
@@ -192,7 +242,10 @@ export function sanitizeBackup(value) {
       measureMode:task?.measureMode??(start&&end?'interval':'duration'),
       targetCount:task?.targetCount??null,actualCount:task?.actualCount??null,
       actualCountByDate:sanitizeCountByDate(task?.actualCountByDate),
-      category:task?.category,priority:task?.priority,repeat:task?.repeat,
+      category:task?.category,priority:task?.priority,repeat:task?.repeat||'none',
+      repeatDays:Array.isArray(task?.repeatDays)?[...new Set(task.repeatDays.filter(n=>Number.isInteger(n)&&n>=0&&n<=6))]:[],
+      repeatInterval:task?.repeatInterval??2,
+      subtasks:sanitizeSubtasks(task?.subtasks),subtaskByDate:sanitizeSubtaskByDate(task?.subtaskByDate),
       notes:typeof task?.notes==='string'?task.notes:'',
       completed:task?.completed===true,status:task?.status??(task?.completed===true?'done':'todo'),
       statusByDate:sanitizeStatusByDate(task?.statusByDate),
@@ -210,8 +263,10 @@ export function sanitizeBackup(value) {
   const templates=rawTemplates.map((t,i)=>sanitizeTemplate(t,i,templateIDs));
   return {version:1,tasks,templates,inbox:sanitizeInbox(value.inbox),
     reviews:sanitizeReviews(value.reviews),dayNotes:plainNotesMap(value.dayNotes),
-    weekNotes:plainNotesMap(value.weekNotes),theme:'dark'};
+    weekNotes:plainNotesMap(value.weekNotes),theme:'dark',
+    trash:sanitizeTrash(value.trash),rolloverLog:sanitizeRolloverLog(value.rolloverLog),
+    settings:{autoCarry:value.settings?.autoCarry===true}};
 }
 export function blankData() {
-  return {version:1,tasks:[],templates:[],inbox:[],reviews:{},dayNotes:{},weekNotes:{},theme:'dark'};
+  return {version:1,tasks:[],templates:[],inbox:[],reviews:{},dayNotes:{},weekNotes:{},theme:'dark',trash:[],rolloverLog:[],settings:{autoCarry:false}};
 }
