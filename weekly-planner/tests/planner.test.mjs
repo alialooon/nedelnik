@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, startOfWeek, parseDate, occurrencesForWeek, weekStats, validateTask, sanitizeBackup, blankData } from '../logic.mjs';
+import { addDays, startOfWeek, parseDate, occurrencesForWeek, repeatsOn, weekStats, validateTask, sanitizeBackup, blankData } from '../logic.mjs';
 const make = (overrides = {}) => ({id:'a', title:'Встреча', date:'2026-10-12', start:'09:00',end:'10:00',category:'work',priority:'normal',repeat:'none',notes:'',completed:false,completedDates:[],...overrides});
 test('Понедельник считается началом недели, включая воскресенье',()=>{
   assert.equal(startOfWeek('2026-10-11'),'2026-10-05');
@@ -35,4 +35,42 @@ test('Импорт отклоняет опасные и испорченные �
   const value=sanitizeBackup({...blankData(),tasks:[make()],dayNotes:{'2026-10-13':'Не забыть','bad':'oops'}});
   assert.equal(value.tasks.length,1);
   assert.deepEqual(value.dayNotes,{'2026-10-13':'Не забыть'});
+});
+
+test('Flexible repeat days preserve per-day completion and subtask checks',()=>{
+  const t=make({repeat:'custom',repeatDays:[0,2,4],subtasks:[{id:'s1',title:'Проверить',done:false}],
+    subtaskByDate:{'2026-10-14':{s1:true}},statusByDate:{'2026-10-14':'done'}});
+  const week=occurrencesForWeek([t],'2026-10-12');
+  assert.deepEqual(week.map(x=>x.occurrenceDate),['2026-10-12','2026-10-14','2026-10-16']);
+  assert.equal(week[1].done,true);
+  assert.equal(week[1].subtasks[0].done,true);
+  assert.equal(week[0].subtasks[0].done,false);
+  assert.equal(validateTask(t),null);
+});
+test('Every-N-days and monthly recurrence behave at month boundaries',()=>{
+  const every3=make({date:'2026-10-12',repeat:'interval',repeatInterval:3});
+  assert.deepEqual(occurrencesForWeek([every3],'2026-10-12')
+    .map(t=>t.occurrenceDate),['2026-10-12','2026-10-15','2026-10-18']);
+  assert.equal(repeatsOn(every3,'2026-10-21'),true);
+  const monthly=make({date:'2026-01-31',repeat:'monthly'});
+  assert.equal(repeatsOn(monthly,'2026-02-28'),true);
+  assert.equal(repeatsOn(monthly,'2026-03-31'),true);
+  assert.equal(repeatsOn(monthly,'2026-03-30'),false);
+});
+test('Count targets and new metadata survive backups without breaking earlier records',()=>{
+  const item=make({measureMode:'count',targetCount:50,actualCount:20,plannedMinutes:0,
+    start:'',end:'',subtasks:[{id:'check',title:'Разминка',done:true}]});
+  assert.equal(validateTask(item),null);
+  const data=sanitizeBackup({...blankData(),tasks:[item],settings:{autoCarry:true},
+    trash:[{kind:'task',deletedAt:Date.now(),value:item}],
+    rolloverLog:[{id:'a',from:'2026-10-12',to:'2026-10-13',title:'Встреча'}]});
+  assert.equal(data.tasks[0].targetCount,50);
+  assert.equal(data.tasks[0].subtasks[0].done,true);
+  assert.equal(data.settings.autoCarry,true);
+  assert.equal(data.trash.length,1);
+  assert.equal(data.rolloverLog.length,1);
+  const legacy=sanitizeBackup({version:1,tasks:[make()]});
+  assert.deepEqual(legacy.tasks[0].subtasks,[]);
+  assert.equal(legacy.settings.autoCarry,false);
+  assert.deepEqual(legacy.trash,[]);
 });
