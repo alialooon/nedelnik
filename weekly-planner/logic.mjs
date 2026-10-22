@@ -27,6 +27,27 @@ export function startOfWeek(iso) {
   if (!d) throw new Error('Некорректная дата');
   return addDays(iso,-((d.getDay()+6)%7));
 }
+export function periodAnchor(date,scope='day') {
+  if(!parseDate(date))return null;
+  if(scope==='week')return startOfWeek(date);
+  if(scope==='month')return date.slice(0,7)+'-01';
+  return date;
+}
+export function periodTasksForWeek(tasks,monday) {
+  if(!parseDate(monday)||startOfWeek(monday)!==monday)return [];
+  const month=periodAnchor(monday,'month');
+  return tasks.filter(t=>(t.scope==='week'&&t.date===monday)
+    ||(t.scope==='month'&&t.date===month))
+    .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}))
+    .sort((a,b)=>(a.scope==='week'?0:1)-(b.scope==='week'?0:1)
+      ||a.title.localeCompare(b.title));
+}
+export function periodTasksForMonth(tasks,iso) {
+  const month=periodAnchor(iso,'month');if(!month)return [];
+  return tasks.filter(t=>(t.scope==='month'&&t.date===month)
+    ||(t.scope==='week'&&t.date.slice(0,7)===month))
+    .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}));
+}
 export function timeMinutes(time) {
   if (!TIME_PATTERN.test(time || '')) return NaN;
   const [h,m] = time.split(':').map(Number);
@@ -56,6 +77,12 @@ export function validateTask(task) {
   if (!task || typeof task.title !== 'string' || !task.title.trim()) return 'Укажите название дела.';
   if (task.title.trim().length>120) return 'Название слишком длинное.';
   if (!parseDate(task.date)) return 'Выберите правильную дату.';
+  if (task.scope && !['day','week','month'].includes(task.scope)) return 'Выберите срок выполнения.';
+  if (['week','month'].includes(task.scope)) {
+    if(task.date!==periodAnchor(task.date,task.scope))return 'Неверно указан период выполнения.';
+    if(task.repeat&&task.repeat!=='none')return 'Повторение доступно только для задач на день.';
+    if(task.start||task.end||task.measureMode==='interval')return 'Конкретный час доступен только для задач на день.';
+  }
   if (task.start && Number.isNaN(timeMinutes(task.start))) return 'Укажите правильное время начала.';
   if (task.end && (Number.isNaN(timeMinutes(task.end)) || !task.start)) return 'Неверное время окончания.';
   if (task.start && task.end && timeMinutes(task.end)<=timeMinutes(task.start)) return 'Время окончания должно быть позже начала.';
@@ -94,6 +121,7 @@ export function repeatsOn(task,date) {
 export function occurrencesForWeek(tasks,monday) {
   const sunday=addDays(monday,6),results=[];
   for(const task of tasks) {
+    if(task.scope==='week'||task.scope==='month')continue;
     if(task.repeat && task.repeat!=='none') {
       for(let i=0;i<7;i++){
         const date=addDays(monday,i);
@@ -131,7 +159,7 @@ export function timeStats(occurrences) {
     timeRatio:plan>0&&measured>0?Math.round(fact/plan*100):null};
 }
 export function createFromTemplate(template,date,id) {
-  return {id,title:template.title,date,start:'',end:'',plannedMinutes:template.plannedMinutes??0,
+  return {id,title:template.title,date,scope:'day',start:'',end:'',plannedMinutes:template.plannedMinutes??0,
     actualMinutes:null,actualByDate:{},category:template.category||'other',
     priority:template.priority||'normal',repeat:'none',notes:template.notes||'',completed:false,
     status:'todo',statusByDate:{},completedDates:[],repeatDays:[],repeatInterval:2,
@@ -237,7 +265,7 @@ export function sanitizeBackup(value) {
     const t={
       id:typeof task?.id==='string'&&task.id.length<150&&task.id&&!ids.has(task.id)?task.id:'imported-'+index+'-'+Date.now(),
       title:typeof task?.title==='string'?task.title.slice(0,121).trim():'',
-      date:task?.date,start,end,plannedMinutes:task?.plannedMinutes??legacyMinutes,
+      date:task?.date,scope:task?.scope??'day',start,end,plannedMinutes:task?.plannedMinutes??legacyMinutes,
       actualMinutes:task?.actualMinutes??null,actualByDate:sanitizedActualByDate(task?.actualByDate),
       measureMode:task?.measureMode??(start&&end?'interval':'duration'),
       targetCount:task?.targetCount??null,actualCount:task?.actualCount??null,
