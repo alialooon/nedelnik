@@ -1354,3 +1354,64 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
   .template-create-options{grid-template-columns:minmax(0,1fr) 95px}
   .template-create-button{grid-column:1/-1}
 }
+
+
+/* Mechanic enhancements in the existing Soft macOS appearance. */
+[hidden]{display:none!important}
+.task-start{
+  flex:0 0 23px;width:23px;height:26px;padding:0;
+  display:grid;place-items:center;background:transparent;border:1px solid transparent;
+  border-radius:8px;color:#94a7c3;cursor:pointer;align-self:flex-start;
+}
+.task-start .ui-icon{width:14px;height:14px}
+.task-start:hover{background:#e9f2ff;border-color:#d2e3fa;color:#397cd3}
+.editor-dialog .editor-body{overflow-y:auto;max-height:min(66vh,560px);scrollbar-width:thin}
+.editor-dialog .subtask-editor{gap:7px}
+.subtask-list{display:grid;gap:5px}
+.subtask-item{display:flex;align-items:center;gap:7px;border-radius:8px}
+.subtask-item .subtask-done{width:17px;height:17px;flex:none;accent-color:#5a9ddc}
+.subtask-item .subtask-title{min-width:0;flex:1}
+.subtask-remove{width:27px;height:27px;flex:none;display:grid;place-items:center;
+  border:0;border-radius:8px;background:#f2f6fc;color:#8698b2;font-size:18px}
+.subtask-remove:hover{background:#ffeded;color:#c36b75}
+.subtask-add-row{display:flex;gap:7px;align-items:center}
+.subtask-add-row input{min-width:0;flex:1}
+.subtask-add-row button{flex:none;border:1px solid #dae5f4;background:#fff;
+  color:#5d83b1;border-radius:9px;padding:8px 10px;font-size:11px;white-space:nowrap}
+.repeat-days{display:flex;flex-wrap:wrap;gap:7px;padding:8px 0;color:#7387a1}
+.repeat-days>span{width:100%;font-size:11px;font-weight:650}
+.repeat-days label{display:inline-flex;align-items:center;gap:3px;
+  padding:5px 7px;border:1px solid #dce6f3;border-radius:8px;
+  background:#fff;color:#56718e;font-size:11px}
+.repeat-days label input{width:14px;height:14px;accent-color:#578edf}
+.auto-carry-setting{display:flex;align-items:center;gap:8px;padding:9px 10px;
+  border-radius:8px;color:#596d84;font-size:11px;cursor:pointer;white-space:normal}
+.auto-carry-setting input{width:15px;height:15px;accent-color:#618fc8}
+.auto-carry-setting:hover{background:#f1f6fd}
+.stats-scope{display:flex;gap:3px;background:#edf3fb;padding:4px;border-radius:11px;
+  width:max-content;max-width:100%;margin-bottom:13px}
+.stats-scope button{padding:7px 17px;border:0;border-radius:8px;background:transparent;
+  color:#71859e;font-size:12px;cursor:pointer}
+.stats-scope button.active{background:#fff;color:#355d8c;box-shadow:0 2px 7px rgba(50,87,140,.1)}
+.panel-content h3{font-size:12px;font-weight:720;color:#526b8d;margin:18px 0 9px}
+.panel-content .muted-note{font-size:11px;color:#8695a9;line-height:1.6}
+#trashContent .template-row{margin-bottom:7px}
+#trashContent .template-row strong{font-weight:600}
+.template-row .template-edit{border:1px solid #e0e9f5;border-radius:8px;background:#fff;
+  color:#7088aa;font-size:10px;padding:7px 8px}
+.template-row .template-edit:hover{background:#eff6ff;color:#417dbd}
+#cancelTemplateEdit{border:1px solid #dce6f2;border-radius:9px;padding:8px 9px;
+  background:#fff;color:#7083a0;font-size:11px;white-space:nowrap}
+.focus-task-select{width:min(100%,280px);margin:7px auto 12px;text-align:left}
+.focus-task-select select{width:100%;border-radius:10px;border:1px solid #d8e3f1;
+  padding:9px 10px;background:#fff;color:#486587;font-size:11px}
+.focus-task-select select:is(:focus,:focus-visible){
+  border-color:#d8e3f1;box-shadow:none;outline:none
+}
+@media(max-width:650px){
+ .subtask-add-row{flex-wrap:wrap}
+ .subtask-add-row button{width:100%}
+ .template-row{flex-wrap:wrap}
+ .template-row strong{flex-basis:100%}
+ .template-create-options{grid-template-columns:minmax(0,1fr) 95px}
+}
