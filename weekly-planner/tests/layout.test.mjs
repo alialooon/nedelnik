@@ -117,10 +117,11 @@ test('Native launcher goes straight to planner and exposes trusted in-app update
   assert.match(native,/startupTimer\.Interval = 25000/);
   assert.doesNotMatch(native,/message\.Text = "Opening planner/);
   assert.match(app,/webview\.postMessage\('nedelnik:ready'\)/);
-  assert.match(css,/Align every hour to its grid line/);
-  assert.match(css,/\.calendar-viewport \.hour-label,\s*\.calendar-viewport \.hour-label:last-child\{\s*transform:translateY\(-50%\)/);
-  assert.match(css,/\.calendar-viewport \.hour-label:nth-last-child\(2\)/);
-  assert.match(css,/\.calendar-viewport \.hour-label:last-child\{\s*transform:translateY\(-50%\)/);
+  assert.match(css,/Center each of 24 hour captions inside its hour row/);
+  assert.match(app,/percent\(i\*60\+30\)/);
+  assert.match(css,/\.calendar-viewport \.hour-label\{[\s\S]*?text-align:right/);
+  assert.match(css,/font-variant-numeric:tabular-nums/);
+  assert.doesNotMatch(css,/\.calendar-viewport \.hour-label:nth-last-child\(2\)/);
   assert.match(native,/PostWebMessageAsString/);
   assert.match(native,/CoreWebView2\.Reload\(\)/);
   assert.match(native,/Path\.Combine\(Program\.Home, "webview-profile"\)/);
@@ -177,4 +178,26 @@ test('Soft macOS visual tokens apply consistently to task, calendar, focus and e
   assert.match(app,/function setupNativeUpdates\(\)/);
   assert.match(app,/function renderCalendar\(\)/);
   assert.match(app,/function renderFocus\(\)/);
+});
+
+
+test('Template deletion preserves scheduled tasks and uses an explicit confirmation',()=>{
+  assert.match(app,/function renderTemplates\(/);
+  assert.match(app,/function deleteTemplate\(id\)/);
+  assert.match(app,/data-template-delete/);
+  assert.match(app,/confirm\('Удалить шаблон/);
+  assert.match(app,/state\.templates=state\.templates\.filter\(t=>t\.id!==id\)/);
+  assert.match(app,/renderTemplates\(\)/);
+  assert.match(app,/save\(\)/);
+  assert.match(app,/icon\('trash'\)/);
+  assert.match(css,/\.template-row \.template-delete/);
+});
+test('Typing never adds a highlight to text, date, time or notes fields',()=>{
+  assert.match(css,/Text-entry focus is visually neutral everywhere/);
+  assert.match(css,/\.inbox-panel \.quick-add:focus-within/);
+  assert.match(css,/outline:none!important/);
+  assert.match(css,/box-shadow:none!important/);
+  assert.match(css,/dialog \.field input:is\(:focus,:focus-visible\)/);
+  assert.match(css,/#focusDate:is\(:focus,:focus-visible\)/);
+  assert.match(css,/#jumpDate:is\(:focus,:focus-visible\)/);
 });
