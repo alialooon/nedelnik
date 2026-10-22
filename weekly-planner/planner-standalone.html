@@ -613,6 +613,17 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   .calendar-viewport .hour-label:last-child{display:block;transform:translateY(-50%)}
 }
 
+
+/* Native WebView2 updater is available quietly inside the existing overflow menu. */
+.more-content .menu-separator{height:1px;background:#e7ebf1;margin:5px 6px}
+.more-content .menu-update{color:#405b7a;font-weight:620}
+.more-content .menu-update:disabled{opacity:.6;cursor:progress}
+.more-content .menu-update-status{
+  padding:5px 10px 8px;color:#81909e;line-height:1.5;
+  font-size:10px;white-space:normal;overflow-wrap:anywhere;
+}
+.more-content{width:216px}
+
   </style>
 </head>
 <body>
@@ -631,6 +642,9 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
           <button type="button" id="openTemplates">Шаблоны задач</button>
           <button type="button" id="exportButton">Экспорт JSON</button>
           <button type="button" id="importButton">Импорт JSON</button>
+          <div class="menu-separator"></div>
+          <button type="button" id="checkUpdates" class="menu-update" hidden>Проверить обновления</button>
+          <div id="updateStatus" class="menu-update-status" role="status" aria-live="polite" hidden></div>
         </div>
       </details>
       <input type="file" id="importFile" accept="application/json,.json" hidden />
@@ -1551,6 +1565,39 @@ function setupClick(){
     }
   });
 }
+function setupNativeUpdates(){
+  const bridge=window.chrome?.webview;
+  if(!bridge || typeof bridge.postMessage!=='function')return;
+  const button=$('checkUpdates'),label=$('updateStatus');
+  button.hidden=false;
+  label.hidden=false;
+  function showStatus(status,version){
+    const versionText=version&&version!=='?'?' · '+version:'';
+    const messages={
+      checking:'Проверяем обновления…',
+      current:'Установлена актуальная версия'+versionText,
+      updated:'Обновлено до версии'+versionText,
+      failed:'Не удалось проверить GitHub. Локальная версия работает.'
+    };
+    label.textContent=messages[status]||'';
+    label.hidden=!messages[status];
+    button.disabled=status==='checking';
+    button.textContent=status==='checking'?'Проверка…':'Проверить обновления';
+  }
+  bridge.addEventListener('message',event=>{
+    if(typeof event.data!=='string')return;
+    const result=/^nedelnik:update:(checking|current|updated|failed):([a-f0-9?]{1,16})$/.exec(event.data);
+    if(!result)return;
+    showStatus(result[1],result[2]);
+    if(result[1]==='updated')notify('Планировщик обновлён'+(result[2]!=='?'?' · '+result[2]:''));
+  });
+  button.addEventListener('click',()=>{
+    if(button.disabled)return;
+    showStatus('checking','');
+    bridge.postMessage('nedelnik:check-updates');
+  });
+  showStatus('checking','');
+}
 function setup(){
   $('inboxForm').addEventListener('submit',event=>{
     event.preventDefault();captureInbox($('inboxInput').value);$('inboxInput').value='';$('inboxInput').focus();
@@ -1598,6 +1645,7 @@ function setup(){
     if(event.key.toLowerCase()==='n'){event.preventDefault();$('inboxInput').focus();}
   });
   setupDrag();setupClick();
+  setupNativeUpdates();
   document.querySelector('.workspace').classList.toggle('inbox-hidden',savedUI.inboxHidden);
   $('inboxToggle').setAttribute('aria-expanded',String(!savedUI.inboxHidden));
   decorateIcons();
