@@ -11,7 +11,7 @@
 </head>
 <body>
 <div class="workspace">
-  <header class="app-header">
+  <header class="app-header app-header-macos">
     <div class="identity">
       <svg class="identity-calendar" aria-hidden="true" width="34" height="34" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -36,6 +36,11 @@
       </svg>
       <strong>Задачи на неделю</strong>
     </div>
+    <div class="mode-picker header-mode-picker" role="group" aria-label="Режим просмотра">
+      <button type="button" data-view="board" class="active">Задачи</button>
+      <button type="button" data-view="calendar">Календарь</button>
+      <button type="button" data-view="focus">Фокус</button>
+    </div>
     <div class="header-actions">
       <button type="button" id="inboxToggle" class="icon-action" title="Показать или скрыть список без даты" aria-label="Панель задач" aria-expanded="true" data-ui-icon="panel">☰</button>
       <button type="button" id="openReview" class="quiet-action" data-ui-icon="checklist">Итоги дня</button>
@@ -53,7 +58,7 @@
       <input type="file" id="importFile" accept="application/json,.json" hidden />
     </div>
   </header>
-  <div class="work-area">
+  <div class="work-area work-area-macos">
     <aside id="inboxPanel" class="inbox-panel">
       <div class="inbox-top"><div><span class="eyebrow">Планирование</span><h2>Мои задачи <span id="inboxCount">0</span></h2></div><button id="newInboxTask" type="button" class="icon-action" aria-label="Добавить задачу без даты" data-ui-icon="plus">+</button></div>
       <p class="inbox-caption">Сначала запиши — потом выбери день.</p>
@@ -72,7 +77,7 @@
         <span class="sidebar-bottom-note">Новые шаблоны создаются при сохранении задачи.</span>
       </div>
     </aside>
-    <main class="planner">
+    <main class="planner planner-macos">
       <div class="planner-toolbar">
         <div class="date-nav">
           <button type="button" class="icon-action" id="prevPeriod" aria-label="Предыдущая неделя" data-ui-icon="chevron-left">‹</button>
@@ -81,11 +86,7 @@
           <button type="button" class="today-button" id="goToday">Сегодня</button>
           <input type="date" id="jumpDate" aria-label="Выбрать дату для перехода" />
         </div>
-        <div class="mode-picker" role="group" aria-label="Режим просмотра">
-          <button type="button" data-view="board" class="active">Задачи</button>
-          <button type="button" data-view="calendar">Календарь</button>
-          <button type="button" data-view="focus">Фокус</button>
-        </div>
+
       </div>
       <div class="planner-caption"><span id="viewDescription">Распредели дела по дням недели</span>
         <span class="progress-inline"><span class="inline-progress-track"><i id="inlineProgressFill"></i></span><span id="weekProgress"></span></span>
