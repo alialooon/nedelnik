@@ -676,5 +676,16 @@ function setup(){
   decorateIcons();
   window.addEventListener('resize',()=>{if(view==='calendar')renderCalendar();});
   render();
+  // Let the native Windows host reveal the window only after its UI exists.
+  // Keep browser-only use working even when the WebView2 bridge is absent.
+  if(window.chrome?.webview?.postMessage){
+    setTimeout(()=>{
+      if(document.querySelector('#boardView .day-column')
+          ||document.querySelector('#calendarView .timeline-body')
+          ||document.querySelector('#focusView .focus-list')){
+        window.chrome.webview.postMessage('nedelnik:ready');
+      }
+    },60);
+  }
 }
 setup();
