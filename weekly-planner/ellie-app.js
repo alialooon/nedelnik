@@ -4,6 +4,7 @@ import { CATEGORIES, WEEKDAYS, toISO, addDays, startOfWeek, parseDate, occurrenc
 
 const KEY='nedelnik-planner-v1';
 const UI_KEY='nedelnik-ui-preferences-v1';
+const BACKUP_KEY='nedelnik-planner-backups-v1';
 const $=id=>document.getElementById(id);
 const today=()=>toISO(new Date());
 const shortDays=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
@@ -31,7 +32,9 @@ function saveUIPrefs() {
     }));
   }catch(error){console.warn('Не удалось сохранить настройки окна',error);}
 }
+let recoveredFromBackup=false;
 let state=load(),week=savedUI.week,focusedDay=savedUI.focusedDay,view=savedUI.view,editor=null;
+let focusTaskId=null,focusTrackedSeconds=0,focusRemainderSeconds=0,statsScope='week';
 let dragItem=null,toastTimeout=null,focusRemaining=25*60,focusRunning=false,focusEndsAt=0,timerHandle=null;
 
 function load() {
@@ -40,12 +43,56 @@ function load() {
     return str?sanitizeBackup(JSON.parse(str)):blankData();
   }catch(error){
     console.error('Saved data cannot be read',error);
+    try{
+      const history=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]');
+      for(const backup of history.slice().reverse()){
+        try{
+          const restored=sanitizeBackup(backup.data);
+          recoveredFromBackup=true;
+          return restored;
+        }catch{}
+      }
+    }catch{}
     return blankData();
   }
 }
+function getBackups(){
+  try{
+    const backups=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]');
+    return Array.isArray(backups)?backups:[];
+  }catch{return [];}
+}
 function save(){
-  try{localStorage.setItem(KEY,JSON.stringify(state));}
-  catch(error){notify('Не удалось сохранить: используйте экспорт JSON');console.error(error);}
+  try{
+    const stored=localStorage.getItem(KEY),backups=getBackups();
+    const day=today();
+    if(stored&&!backups.some(b=>b.day===day)){
+      backups.push({day,createdAt:Date.now(),data:JSON.parse(stored)});
+      try{localStorage.setItem(BACKUP_KEY,JSON.stringify(backups.slice(-7)));}
+      catch(error){console.warn('Недостаточно места для резервной копии',error);}
+    }
+    localStorage.setItem(KEY,JSON.stringify(state));
+  }catch(error){notify('Не удалось сохранить: используйте экспорт JSON');console.error(error);}
+}
+function moveToTrash(kind,value){
+  if(!value)return;
+  state.trash=state.trash||[];
+  state.trash.push({kind,value:JSON.parse(JSON.stringify(value)),deletedAt:Date.now()});
+  state.trash=state.trash.filter(v=>Date.now()-v.deletedAt<30*86400000).slice(-300);
+}
+function maybeCarryOverdue(){
+  if(!state.settings?.autoCarry)return;
+  const date=today();
+  const overdue=state.tasks.filter(t=>(!t.repeat||t.repeat==='none')&&t.date<date
+    &&(t.status||'todo')!=='done'&&t.completed!==true);
+  if(!overdue.length)return;
+  state.rolloverLog=state.rolloverLog||[];
+  for(const task of overdue){
+    state.rolloverLog.push({id:task.id,from:task.date,to:date,title:task.title});
+    task.date=date;
+  }
+  state.rolloverLog=state.rolloverLog.slice(-2000);
+  save();
 }
 function notify(text){
   clearTimeout(toastTimeout);
@@ -65,7 +112,7 @@ function dayLabel(iso){return parseDate(iso).toLocaleDateString('ru-RU',{day:'nu
 function allTasks(){return occurrencesForWeek(state.tasks,week);}
 function dayTasks(iso){return allTasks().filter(t=>t.occurrenceDate===iso);}
 function statusOf(task,date){
-  return task.repeat==='daily'||task.repeat==='weekly'
+  return task.repeat&&task.repeat!=='none'
     ?(task.statusByDate?.[date]??((task.completedDates||[]).includes(date)?'done':'todo'))
     :(task.status??(task.completed?'done':'todo'));
 }
@@ -259,7 +306,8 @@ function render(){
 function defaultTask(title,date){
   return {id:uid(),title,date,start:'',end:'',plannedMinutes:30,actualMinutes:null,actualByDate:{},
     category:'personal',priority:'normal',repeat:'none',notes:'',completed:false,completedDates:[],
-    status:'todo',statusByDate:{},measureMode:'duration',targetCount:null,actualCount:null,actualCountByDate:{}};
+    status:'todo',statusByDate:{},measureMode:'duration',targetCount:null,actualCount:null,actualCountByDate:{},
+    repeatDays:[],repeatInterval:2,subtasks:[],subtaskByDate:{}};
 }
 function inboxFromTask(task){
   return {id:uid(),title:task.title,category:task.category||'personal',priority:task.priority||'normal',
@@ -290,7 +338,7 @@ function applyTime(task,minutes){
 }
 function moveTask(id,fromDate,toDate,atMinutes=null){
   const task=state.tasks.find(t=>t.id===id);if(!task)return;
-  if(task.repeat!=='none') {
+  if(task.repeat&&task.repeat!=='none') {
     const original=occurrencesForWeek([task],startOfWeek(fromDate)).find(t=>t.occurrenceDate===fromDate);
     if(!original)return;
     const copy={...defaultTask(original.title,toDate),category:original.category,
