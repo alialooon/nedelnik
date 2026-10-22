@@ -624,6 +624,17 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 }
 .more-content{width:216px}
 
+
+/* 23:00 aligns with its grid line exactly like other hours, not half a line above. */
+.calendar-viewport .hour-label:last-child{
+  transform:translateY(2px);
+}
+@media(max-height:700px){
+  .calendar-viewport .hour-label:last-child{
+    transform:translateY(1px);
+  }
+}
+
   </style>
 </head>
 <body>
@@ -1651,6 +1662,17 @@ function setup(){
   decorateIcons();
   window.addEventListener('resize',()=>{if(view==='calendar')renderCalendar();});
   render();
+  // Let the native Windows host reveal the window only after its UI exists.
+  // Keep browser-only use working even when the WebView2 bridge is absent.
+  if(window.chrome?.webview?.postMessage){
+    setTimeout(()=>{
+      if(document.querySelector('#boardView .day-column')
+          ||document.querySelector('#calendarView .timeline-body')
+          ||document.querySelector('#focusView .focus-list')){
+        window.chrome.webview.postMessage('nedelnik:ready');
+      }
+    },60);
+  }
 }
 setup();
 
