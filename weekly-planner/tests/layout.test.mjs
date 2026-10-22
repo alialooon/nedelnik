@@ -133,3 +133,15 @@ test('Update command is only displayed with native WebView2 host support',()=>{
   assert.match(app,/nedelnik:check-updates/);
   assert.match(app,/nedelnik:update:\(checking\|current\|updated\|failed\)/);
 });
+
+
+test('iOS-inspired calendar icon replaces the old four-dot header without affecting controls',()=>{
+  assert.match(page,/<svg class="identity-calendar"/);
+  assert.match(page,/id="iosIconBlue"/);
+  assert.match(page,/id="iosCalendarPaper"/);
+  assert.doesNotMatch(page,/class="identity-icon"/);
+  assert.match(css,/\.identity-calendar\{/);
+  assert.match(standalone,/<svg class="identity-calendar"/);
+  for(const action of ['openReview','openStats','moreMenu','inboxToggle'])
+    assert.match(page,new RegExp('id="'+action+'"'));
+});
