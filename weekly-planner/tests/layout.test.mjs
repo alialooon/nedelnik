@@ -52,7 +52,9 @@ test('Drag and drop, local backup, focus timer and daily reviews are implemented
 test('Refined visual hierarchy keeps seven columns and compact add controls',()=>{
   assert.match(app,/day-heading-main/);
   assert.match(app,/day-number/);
-  assert.match(app,/add-symbol/);
+  assert.match(app,/icon\('plus'\)/);
+  assert.match(app,/day-progress/);
+  assert.match(app,/day-blank/);
   assert.match(css,/Calm editorial polish/);
   assert.match(css,/day-column\.today:before/);
   assert.match(css,/\.day-add\{order:3/);
@@ -63,4 +65,30 @@ test('Calendar adjusts hour scale and drop position together',()=>{
   assert.match(app,/\-\-hour-height/);
   assert.match(app,/getPropertyValue\('\-\-hour-height'\)/);
   assert.match(css,/background-size:100% var\(\-\-hour-height,60px\)/);
+});
+
+test('All three refinement stages are present with meaningful empty states',()=>{
+  for(const id of ['sidebarToday','sidebarTodayCount','sidebarTodayDate','templateCount','inlineProgressFill'])
+    assert.match(page,new RegExp('id="'+id+'"'));
+  assert.match(app,/data-suggestion="Разобрать почту"/);
+  assert.match(app,/function renderInbox\(/);
+  assert.match(app,/function renderCalendar\(/);
+  assert.match(app,/current-time-line/);
+  assert.match(app,/timebox-empty/);
+  assert.match(app,/function renderFocus\(/);
+  assert.match(app,/focus-summary/);
+  assert.match(app,/focus-section-title/);
+  assert.match(css,/\.focus-summary/);
+  assert.match(css,/\.focus-empty/);
+  assert.match(css,/\.day-progress/);
+});
+test('View, focused date, and sidebar preference settings survive reload without changing user tasks',()=>{
+  assert.match(app,/const UI_KEY='nedelnik-ui-preferences-v1'/);
+  assert.match(app,/function loadUIPrefs\(/);
+  assert.match(app,/function saveUIPrefs\(/);
+  assert.match(app,/savedUI\.inboxHidden/);
+  assert.match(app,/decorateIcons\(\)/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(css,/@keyframes mode-fade/);
+  assert.match(css,/\.ui-icon/);
 });
