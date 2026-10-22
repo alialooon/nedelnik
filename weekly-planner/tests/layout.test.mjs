@@ -22,7 +22,7 @@ test('Main view has Ellie-like Brain Dump, week board, Timebox and focus',()=>{
 });
 test('All referenced static IDs exist in the new shell',()=>{
   const used=[...app.matchAll(/\$\('([A-Za-z][A-Za-z0-9]*)'\)/g)].map(m=>m[1]);
-  const generated=new Set(['timerFace','timerToggle']);
+  const generated=new Set(['timerFace','timerToggle','focusTaskSelect']);
   for(const id of new Set(used))assert.ok(page.includes('id="'+id+'"')
     || generated.has(id)&&app.includes('id="'+id+'"'),'Missing '+id);
 });
