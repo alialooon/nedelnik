@@ -157,6 +157,26 @@
 </dialog>
 <dialog id="templateDialog" class="panel-dialog">
   <header class="dialog-header"><h2>Шаблоны дел</h2><button type="button" class="close-dialog" data-close="templateDialog" aria-label="Закрыть">×</button></header>
+  <form id="templateCreateForm" class="template-create-form" autocomplete="off">
+    <label class="template-create-title" for="templateNewTitle">Новая задача</label>
+    <input id="templateNewTitle" name="title" type="text" maxlength="120" required placeholder="Название задачи…" />
+    <div class="template-create-options">
+      <label for="templateNewCategory">Категория
+        <select id="templateNewCategory" name="category">
+          <option value="personal">Личное время</option>
+          <option value="work">Работа</option>
+          <option value="study">Учёба</option>
+          <option value="sport">Спорт</option>
+          <option value="health">Здоровье</option>
+          <option value="other">Другое</option>
+        </select>
+      </label>
+      <label for="templateNewMinutes">Время, мин
+        <input id="templateNewMinutes" name="minutes" type="number" min="0" max="1440" step="1" value="30" required />
+      </label>
+      <button type="submit" class="template-create-button">＋ Создать</button>
+    </div>
+  </form>
   <div class="panel-content" id="templateContent"></div>
 </dialog>
 
