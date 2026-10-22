@@ -79,7 +79,8 @@ const ICON_PATHS={
   'checklist':'<path d="m3 7 2 2 4-4M12 7h9M3 17l2 2 4-4m3 2h9"/>',
   'chart':'<path d="M4 20V12M10 20V4M16 20v-9M22 20v-6"/>',
   'chevron-left':'<path d="m15 18-6-6 6-6"/>',
-  'chevron-right':'<path d="m9 18 6-6-6-6"/>'
+  'chevron-right':'<path d="m9 18 6-6-6-6"/>',
+  'trash':'<path d="M4 6h16m-10 0V4h4v2m4 0-1 14H7L6 6m4 4v7m4-7v7"/>'
 };
 function icon(name){
   return '<svg class="ui-icon" width="17" height="17" viewBox="0 0 24 24" fill="none"'
@@ -173,8 +174,9 @@ function renderCalendar(){
     +Array.from({length:7},(_,i)=>'<div class="'+(addDays(week,i)===today()?'is-current':'')
     +'">'+shortDays[i]+' '+parseDate(addDays(week,i)).getDate()+'</div>').join('')
     +'</div>';
+  // Center each hour caption between its two horizontal grid lines, including 00:00 and 23:00.
   const labels='<div class="hour-labels">'+Array.from({length:24},(_,i)=>
-    '<span class="hour-label" style="top:'+percent(i*60)+'%">'+String(i).padStart(2,'0')+':00</span>').join('')+'</div>';
+    '<span class="hour-label" style="top:'+percent(i*60+30)+'%">'+String(i).padStart(2,'0')+':00</span>').join('')+'</div>';
   const now=new Date(),nowMins=now.getHours()*60+now.getMinutes();
   const columns=Array.from({length:7},(_,i)=>{
     const date=addDays(week,i),isToday=date===today();
@@ -468,12 +470,27 @@ function openAnalytics(){
     }).join('');
   openDialog('statsDialog');
 }
-function openTemplates(){
+function renderTemplates(){
   $('templateContent').innerHTML=state.templates.length?state.templates.map(t=>
     '<div class="template-row"><strong>'+escapeHTML(t.title)+'</strong><small>'+duration(planned(t))+'</small>'
-    +'<button type="button" data-template="'+escapeHTML(t.id)+'">В список</button></div>').join('')
-    :'<p class="inbox-empty">Сохраните задачу как шаблон в форме редактирования.</p>';
+    +'<button type="button" class="template-add" data-template="'+escapeHTML(t.id)+'">В список</button>'
+    +'<button type="button" class="template-delete" data-template-delete="'+escapeHTML(t.id)
+    +'" aria-label="Удалить шаблон '+escapeHTML(t.title)+'" title="Удалить шаблон">'+icon('trash')+'</button></div>').join('')
+    :'<p class="inbox-empty">Пока нет шаблонов. Сохраните задачу как шаблон при редактировании.</p>';
+}
+function openTemplates(){
+  renderTemplates();
   openDialog('templateDialog');
+}
+function deleteTemplate(id){
+  const template=state.templates.find(t=>t.id===id);
+  if(!template)return;
+  if(!confirm('Удалить шаблон «'+template.title+'»? Уже добавленные задачи останутся в расписании.'))return;
+  state.templates=state.templates.filter(t=>t.id!==id);
+  save();
+  render();
+  renderTemplates();
+  notify('Шаблон удалён');
 }
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json;charset=utf-8'});
@@ -566,6 +583,11 @@ function setupClick(){
       return;
     }
     if(event.target.closest('[data-close]'))closeDialog(event.target.closest('[data-close]').dataset.close);
+    const deleteButton=event.target.closest('[data-template-delete]');
+    if(deleteButton){
+      deleteTemplate(deleteButton.dataset.templateDelete);
+      return;
+    }
     if(event.target.closest('[data-template]')){
       const tpl=state.templates.find(t=>t.id===event.target.closest('[data-template]').dataset.template);
       if(tpl){state.inbox.push({id:uid(),title:tpl.title,plannedMinutes:tpl.plannedMinutes,
