@@ -99,3 +99,26 @@ test('View, focused date, and sidebar preference settings survive reload without
   assert.match(css,/@keyframes mode-fade/);
   assert.match(css,/\.ui-icon/);
 });
+
+
+test('Native launcher goes straight to planner and exposes trusted in-app update bridge',()=>{
+  const program=readFileSync(new URL('../../windows/launcher/Program.cs',import.meta.url),'utf8');
+  const native=readFileSync(new URL('../../windows/launcher/PlannerWindow.cs',import.meta.url),'utf8');
+  assert.match(program,/Application\.Run\(new PlannerWindow\(\)\);/);
+  assert.doesNotMatch(program,/Application\.Run\(new LauncherForm\(\)\);/);
+  assert.match(program,/"Arguments", "--planner"/);
+  assert.match(native,/WebMessageReceived \+= OnPlannerMessage/);
+  assert.match(native,/string\.Equals\(args\.Source, expected, StringComparison\.OrdinalIgnoreCase\)/);
+  assert.match(native,/args\.TryGetWebMessageAsString\(\) == "nedelnik:check-updates"/);
+  assert.match(native,/PostWebMessageAsString/);
+  assert.match(native,/CoreWebView2\.Reload\(\)/);
+  assert.match(native,/Path\.Combine\(Program\.Home, "webview-profile"\)/);
+});
+test('Update command is only displayed with native WebView2 host support',()=>{
+  assert.match(page,/id="checkUpdates"[^>]*hidden/);
+  assert.match(page,/id="updateStatus"/);
+  assert.match(app,/function setupNativeUpdates\(\)/);
+  assert.match(app,/window\.chrome\?\.webview/);
+  assert.match(app,/nedelnik:check-updates/);
+  assert.match(app,/nedelnik:update:\(checking\|current\|updated\|failed\)/);
+});
