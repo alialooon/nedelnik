@@ -79,8 +79,8 @@ test('Weekly and monthly goals remain outside any particular day and preserve th
   const week=periodAnchor('2026-10-23','week'),month=periodAnchor('2026-10-23','month');
   assert.equal(week,'2026-10-19');
   assert.equal(month,'2026-10-01');
-  const weekly=make({id:'w',date:week,scope:'week',repeat:'none',status:'todo'});
-  const monthly=make({id:'m',date:month,scope:'month',repeat:'none',status:'done'});
+  const weekly=make({id:'w',date:week,scope:'week',repeat:'none',start:'',end:'',status:'todo'});
+  const monthly=make({id:'m',date:month,scope:'month',repeat:'none',start:'',end:'',status:'done'});
   const dated=make({id:'d',date:'2026-10-23',scope:'day',repeat:'none',status:'todo'});
   assert.equal(validateTask(weekly),null);
   assert.equal(validateTask(monthly),null);
@@ -106,8 +106,8 @@ test('Period tasks normalize dates and reject fixed-hour or recurring schedules'
   assert.equal(periodAnchor('invalid','week'),null);
 });
 test('Week/month scope survives JSON backup and older tasks keep daily planning',()=>{
-  const week=make({id:'week-task',scope:'week',date:'2026-10-19'});
-  const month=make({id:'month-task',scope:'month',date:'2026-10-01'});
+  const week=make({id:'week-task',scope:'week',date:'2026-10-19',start:'',end:''});
+  const month=make({id:'month-task',scope:'month',date:'2026-10-01',start:'',end:''});
   const normalized=sanitizeBackup({...blankData(),tasks:[week,month]});
   assert.equal(normalized.tasks[0].scope,'week');
   assert.equal(normalized.tasks[1].scope,'month');
