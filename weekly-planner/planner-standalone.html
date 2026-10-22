@@ -604,6 +604,15 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   background:#fff;
 }
 
+
+/* Keep the first and last hour labels inside very short windows. */
+.calendar-viewport .hour-label:last-child{transform:translateY(-50%)}
+@media(max-height:700px){
+  .calendar-viewport .hour-label{font-size:9px;line-height:10px}
+  .calendar-viewport .hour-label:nth-child(2n):not(:last-child){display:none}
+  .calendar-viewport .hour-label:last-child{display:block;transform:translateY(-50%)}
+}
+
   </style>
 </head>
 <body>
