@@ -86,7 +86,8 @@ namespace NedelnikLauncher
             }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new LauncherForm());
+            // Open the actual planner, without the intermediary launcher form.
+            Application.Run(new PlannerWindow());
         }
 
         private static void CreateShortcuts()
@@ -120,7 +121,8 @@ namespace NedelnikLauncher
             {
                 Type shortcutType = shortcut.GetType();
                 SetShortcutProperty(shortcutType, shortcut, "TargetPath", Application.ExecutablePath);
-                SetShortcutProperty(shortcutType, shortcut, "Arguments", "");
+                // --planner also bypasses the splash window with older installed EXEs.
+                SetShortcutProperty(shortcutType, shortcut, "Arguments", "--planner");
                 SetShortcutProperty(shortcutType, shortcut, "WorkingDirectory", Home);
                 SetShortcutProperty(shortcutType, shortcut, "Description", "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u2014 \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e");
                 SetShortcutProperty(shortcutType, shortcut, "IconLocation", Application.ExecutablePath + ",0");
@@ -296,149 +298,4 @@ namespace NedelnikLauncher
         }
     }
 
-    internal sealed class LauncherForm : Form
-    {
-        private readonly Label status;
-        private readonly Button update;
-        private readonly Button open;
-        private bool updating;
-
-        internal LauncherForm()
-        {
-            Text = "\u0417\u0430\u0434\u0430\u0447\u0438 \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e";
-            ClientSize = new Size(540, 320);
-            BackColor = Color.FromArgb(16, 18, 20);
-            Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            StartPosition = FormStartPosition.CenterScreen;
-            FormBorderStyle = FormBorderStyle.FixedSingle;
-            MaximizeBox = false;
-            MinimizeBox = true;
-            ShowInTaskbar = true;
-            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
-            catch { }
-
-            Panel top = new Panel();
-            top.Dock = DockStyle.Top;
-            top.Height = 126;
-            top.BackColor = Color.FromArgb(25, 28, 31);
-            Controls.Add(top);
-
-            PictureBox image = new PictureBox();
-            image.Location = new Point(28, 25);
-            image.Size = new Size(75, 75);
-            image.SizeMode = PictureBoxSizeMode.Zoom;
-            try
-            {
-                using (Icon logo = new Icon(Icon, new Size(64, 64)))
-                    image.Image = logo.ToBitmap();
-            }
-            catch { }
-            top.Controls.Add(image);
-
-            Label title = MakeLabel("\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a", 122, 27, 380, 40, 23, FontStyle.Bold,
-                Color.FromArgb(235, 239, 240));
-            top.Controls.Add(title);
-            top.Controls.Add(MakeLabel("\u041f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a \u0434\u0435\u043b \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e", 124, 71, 360, 28, 11,
-                FontStyle.Regular, Color.FromArgb(157, 168, 176)));
-
-            open = MakeButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a", 31, 156, 478, 58,
-                Color.FromArgb(214, 222, 226), Color.FromArgb(19, 22, 24));
-            open.Font = new Font("Segoe UI", 13, FontStyle.Bold);
-            open.Click += OpenClicked;
-            open.Enabled = false;
-            Controls.Add(open);
-            AcceptButton = open;
-
-            status = MakeLabel("\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f...", 32, 238, 485, 24, 10,
-                FontStyle.Regular, Color.FromArgb(172, 182, 188));
-            Controls.Add(status);
-
-            update = MakeButton("\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f", 31, 274, 219, 33,
-                Color.FromArgb(42, 48, 53), Color.FromArgb(222, 229, 232));
-            update.Font = new Font("Segoe UI", 9);
-            update.Click += async (sender, args) => await CheckUpdatesAsync();
-            Controls.Add(update);
-
-            Button folder = MakeButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043f\u043a\u0443", 267, 274, 242, 33,
-                Color.FromArgb(42, 48, 53), Color.FromArgb(222, 229, 232));
-            folder.Font = new Font("Segoe UI", 9);
-            folder.Click += (sender, args) =>
-            {
-                try { Process.Start("explorer.exe", "\"" + Program.Home + "\""); }
-                catch (Exception e) { MessageBox.Show(e.Message, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a"); }
-            };
-            Controls.Add(folder);
-
-            ClientSize = new Size(540, 366);
-            Button legacy = MakeButton("\u0421\u0442\u0430\u0440\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438: \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435", 31, 316, 478, 34,
-                Color.FromArgb(36, 41, 45), Color.FromArgb(184, 194, 201));
-            legacy.Font = new Font("Segoe UI", 9);
-            legacy.Click += (sender, args) =>
-            {
-                try { Program.OpenPlannerLegacy(); Close(); }
-                catch (Exception e) { MessageBox.Show(e.Message, "Nedelnik"); }
-            };
-            Controls.Add(legacy);
-
-            Shown += async (sender, args) => { Program.ApplyDarkTitleBar(this); await CheckUpdatesAsync(); };
-        }
-
-        private static Label MakeLabel(string value, int x, int y, int w, int h,
-            float size, FontStyle style, Color foreground)
-        {
-            Label label = new Label();
-            label.Text = value;
-            label.Location = new Point(x, y);
-            label.Size = new Size(w, h);
-            label.Font = new Font("Segoe UI", size, style);
-            label.ForeColor = foreground;
-            label.TextAlign = ContentAlignment.MiddleLeft;
-            return label;
-        }
-
-        private static Button MakeButton(string text, int x, int y, int w, int h,
-            Color background, Color foreground)
-        {
-            Button b = new Button();
-            b.Text = text;
-            b.Location = new Point(x, y);
-            b.Size = new Size(w, h);
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderSize = 0;
-            b.BackColor = background;
-            b.ForeColor = foreground;
-            b.Cursor = Cursors.Hand;
-            return b;
-        }
-
-        private async Task CheckUpdatesAsync()
-        {
-            if (updating) return;
-            updating = true;
-            update.Enabled = false;
-            open.Enabled = false;
-            status.Text = "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043d\u0430 GitHub...";
-            bool succeeded = await Task.Run(() => Program.PullUpdates());
-            status.Text = succeeded
-                ? "\u0413\u043e\u0442\u043e\u0432\u043e. \u0412\u0435\u0440\u0441\u0438\u044f " + Program.InstalledVersion() + "."
-                : "\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c. \u041c\u043e\u0436\u043d\u043e \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0443\u044e \u0432\u0435\u0440\u0441\u0438\u044e.";
-            open.Enabled = true;
-            update.Enabled = true;
-            updating = false;
-        }
-
-        private void OpenClicked(object sender, EventArgs args)
-        {
-            try
-            {
-                Program.OpenPlanner();
-                Close();
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message, "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a", MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-        }
-    }
 }
