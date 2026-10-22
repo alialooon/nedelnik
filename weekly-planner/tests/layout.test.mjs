@@ -60,13 +60,20 @@ test('Refined visual hierarchy keeps seven columns and compact add controls',()=
   assert.match(css,/\.day-add\{order:3/);
   assert.match(css,/\.task-tile \.item-title\{display:block;font-size:12px/);
 });
-test('Calendar adjusts hour scale and drop position together',()=>{
-  assert.match(app,/const hourHeight=Math\.max/);
-  assert.match(app,/\-\-hour-height/);
-  assert.match(app,/getPropertyValue\('\-\-hour-height'\)/);
-  assert.match(css,/background-size:100% var\(\-\-hour-height,60px\)/);
+test('Entire 24-hour calendar fits in the viewport and uses proportional placement',()=>{
+  assert.match(app,/Array\.from\(\{length:24\}/);
+  assert.match(app,/dayMinutes=1440/);
+  assert.match(app,/function calendarMinutesAt\(/);
+  assert.match(app,/calendarMinutesAt\(target,event\.clientY\)/);
+  assert.doesNotMatch(app,/const hourHeight=Math\.max/);
+  assert.match(css,/Full-day calendar/);
+  assert.match(css,/flex:1 1 0%/);
+  assert.match(css,/background-size:100% calc\(100% \/ 24\)/);
+  assert.match(css,/\.calendar-viewport \.timeline-body/);
+  assert.match(css,/overflow:hidden/);
+  assert.match(css,/\.editor-dialog \.field input:focus-visible/);
+  assert.match(css,/box-shadow:none/);
 });
-
 test('All three refinement stages are present with meaningful empty states',()=>{
   for(const id of ['sidebarToday','sidebarTodayCount','sidebarTodayDate','templateCount','inlineProgressFill'])
     assert.match(page,new RegExp('id="'+id+'"'));
