@@ -85,7 +85,7 @@ function moveToTrash(kind,value){
 function maybeCarryOverdue(){
   if(!state.settings?.autoCarry)return 0;
   const date=today();
-  const overdue=state.tasks.filter(t=>(!t.repeat||t.repeat==='none')&&t.date<date
+  const overdue=state.tasks.filter(t=>(!t.scope||t.scope==='day')&&(!t.repeat||t.repeat==='none')&&t.date<date
     &&(t.status||'todo')!=='done'&&t.completed!==true);
   if(!overdue.length)return 0;
   state.rolloverLog=state.rolloverLog||[];
@@ -216,6 +216,39 @@ function renderBoard(){
       +'</section>';
   }).join('');
 }
+function renderPeriodPlans(){
+  const entries=periodTasksForWeek(state.tasks,week);
+  const w=entries.filter(t=>t.scope==='week'),m=entries.filter(t=>t.scope==='month');
+  const unfinished=entries.filter(t=>!t.done).length;
+  $('periodStripLabel').textContent='Планы периода · '+w.length+' на неделю · '+m.length
+    +' на месяц'+(unfinished?' · '+unfinished+' осталось':'');
+  if($('periodDialog').open)renderPeriodDialog();
+}
+function renderPeriodDialog(){
+  const entries=periodTasksForWeek(state.tasks,week);
+  const groups=[
+    {scope:'week',label:'На неделю · '+weekLabel(week)},
+    {scope:'month',label:'На месяц · '+parseDate(week).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}
+  ];
+  $('periodTaskList').innerHTML=groups.map(group=>{
+    const tasks=entries.filter(t=>t.scope===group.scope);
+    return '<section class="period-group"><h3>'+escapeHTML(group.label)+'</h3>'
+      +(tasks.length?tasks.map(t=>
+        '<div class="period-item '+(t.done?'period-done':'')+'">'
+        +'<button type="button" class="period-check" data-action="period-status" data-id="'+escapeHTML(t.id)
+        +'" aria-label="Изменить статус: '+escapeHTML(t.title)+'">'+(t.done?'✓':'')+'</button>'
+        +'<div class="period-main"><strong>'+escapeHTML(t.title)+'</strong><small>'
+        +dot(t.category)+escapeHTML(CATEGORIES[t.category]||'Другое')
+        +(t.measureMode==='count'?' · '+(t.actualCount||0)+'/'+(t.targetCount||0)+' повт.'
+          :planned(t)?' · '+formatMinutes(planned(t)):'')+'</small></div>'
+        +'<button type="button" class="period-inline-action" data-action="period-schedule" data-id="'+escapeHTML(t.id)
+        +'">На день</button>'
+        +'<button type="button" class="period-inline-action" data-action="period-edit" data-id="'+escapeHTML(t.id)
+        +'">Изменить</button></div>').join('')
+      :'<p class="period-empty">Пока нет задач на этот период.</p>')
+      +'</section>';
+  }).join('');
+}
 function calendarMinutesAt(target,clientY){
   const rect=target.getBoundingClientRect();
   if(rect.height<=0)return 0;
@@ -323,13 +356,14 @@ function render(){
   $('weekProgress').textContent=stats.total+' дел · '+stats.done+' выполнено · '+formatMinutes(stats.plan)+' в плане';
   $('inlineProgressFill').style.width=stats.completion+'%';
   renderInbox();
+  renderPeriodPlans();
   if(view==='board')renderBoard();
   else if(view==='calendar')renderCalendar();
   else renderFocus();
   saveUIPrefs();
 }
 function defaultTask(title,date){
-  return {id:uid(),title,date,start:'',end:'',plannedMinutes:30,actualMinutes:null,actualByDate:{},
+  return {id:uid(),title,date,scope:'day',start:'',end:'',plannedMinutes:30,actualMinutes:null,actualByDate:{},
     category:'personal',priority:'normal',repeat:'none',notes:'',completed:false,completedDates:[],
     status:'todo',statusByDate:{},measureMode:'duration',targetCount:null,actualCount:null,actualCountByDate:{},
     repeatDays:[],repeatInterval:2,subtasks:[],subtaskByDate:{}};
@@ -373,6 +407,7 @@ function moveTask(id,fromDate,toDate,atMinutes=null){
     notify('Повторяющаяся задача скопирована на выбранный день');
   }else{
     task.date=toDate;
+    task.scope='day';
     if(Number.isFinite(atMinutes))applyTime(task,atMinutes);
   }
   save();render();
@@ -912,6 +947,18 @@ function setupClick(){
       else if(verb==='edit-inbox')openEditor('inbox',id);
       else if(verb==='inbox-today')addInboxToDay(id,today());
       else if(verb==='toggle-subtask')toggleSubtask(id,date,action.dataset.subId,action.checked);
+      else if(verb==='period-status')changeStatus(id,state.tasks.find(t=>t.id===id)?.date||focusedDay);
+      else if(verb==='period-edit'||verb==='period-schedule'){
+        const task=state.tasks.find(t=>t.id===id);
+        if(!task)return;
+        closeDialog('periodDialog');
+        openEditor('task',id);
+        if(verb==='period-schedule'){
+          $('editScope').value='day';
+          $('editDate').value=focusedDay;
+          toggleEditorExtras();
+        }
+      }
       else if(verb==='start-focus'){
         if(focusRunning&&focusTaskId!==id){notify('Сначала остановите текущий таймер');return;}
         if(!focusRunning)resetTimer();
@@ -1025,6 +1072,15 @@ function setup(){
   $('saveReview').addEventListener('click',saveReview);
   $('rollTomorrow').addEventListener('click',rollTomorrow);
   $('openStats').addEventListener('click',openAnalytics);
+  $('openPeriodPlans').addEventListener('click',()=>{renderPeriodDialog();openDialog('periodDialog');});
+  $('newWeekPlan').addEventListener('click',()=>{
+    closeDialog('periodDialog');openEditor('new',null,null,week);
+    $('editScope').value='week';toggleEditorExtras();
+  });
+  $('newMonthPlan').addEventListener('click',()=>{
+    closeDialog('periodDialog');openEditor('new',null,null,week);
+    $('editScope').value='month';toggleEditorExtras();
+  });
   $('openTemplates').addEventListener('click',openTemplates);
   $('openTrash').addEventListener('click',()=>{renderTrash();openDialog('trashDialog');});
   $('autoCarry').checked=state.settings?.autoCarry===true;
@@ -1079,7 +1135,7 @@ function setup(){
       focusTaskId=next;
     }
   });
-  for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog','trashDialog']){
+  for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog','trashDialog','periodDialog']){
     $(id).addEventListener('click',event=>{if(event.target===$(id))closeDialog(id);});
   }
   document.addEventListener('keydown',event=>{
