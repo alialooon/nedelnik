@@ -145,3 +145,36 @@ test('iOS-inspired calendar icon replaces the old four-dot header without affect
   for(const action of ['openReview','openStats','moreMenu','inboxToggle'])
     assert.match(page,new RegExp('id="'+action+'"'));
 });
+
+
+test('Soft macOS design keeps the original controls and all three views without fake Mac window buttons',()=>{
+  assert.match(page,/class="app-header app-header-macos"/);
+  assert.match(page,/class="mode-picker header-mode-picker"/);
+  assert.match(page,/class="work-area work-area-macos"/);
+  assert.match(page,/class="planner planner-macos"/);
+  assert.equal((page.match(/data-view="board"/g)||[]).length,1);
+  assert.equal((page.match(/data-view="calendar"/g)||[]).length,1);
+  assert.equal((page.match(/data-view="focus"/g)||[]).length,1);
+  assert.ok(page.indexOf('class="mode-picker header-mode-picker"')<page.indexOf('class="header-actions"'));
+  for(const action of ['openReview','openStats','moreMenu','checkUpdates','openTemplates',
+      'exportButton','importButton','taskDialog','reviewDialog','statsDialog']){
+    assert.match(page,new RegExp('id="'+action+'"'));
+  }
+  assert.doesNotMatch(page,/<button[^>]*id="search"/i);
+  assert.doesNotMatch(page,/traffic-light|window-dot|mac-control-dot/);
+  assert.match(page,/<svg class="identity-calendar"/);
+});
+test('Soft macOS visual tokens apply consistently to task, calendar, focus and editor',()=>{
+  for(const selector of ['.app-header.app-header-macos','.app-header .header-mode-picker button.active',
+     '.planner .day-column.today','.planner .day-column.weekend','.planner .task-tile.category-work',
+     '.planner .calendar-viewport','.planner .focus-list','.planner .focus-timer','dialog .dialog-header',
+     'dialog .field input:focus']){
+    assert.ok(css.includes(selector),'Missing style '+selector);
+  }
+  assert.match(css,/Soft macOS \| iOS calendar palette/);
+  assert.match(app,/category-'\+escapeHTML\(t\.category\|\|'other'\)/);
+  assert.match(app,/function saveUIPrefs\(\)/);
+  assert.match(app,/function setupNativeUpdates\(\)/);
+  assert.match(app,/function renderCalendar\(\)/);
+  assert.match(app,/function renderFocus\(\)/);
+});
