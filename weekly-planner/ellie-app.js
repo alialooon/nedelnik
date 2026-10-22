@@ -374,6 +374,37 @@ function chooseDate(date){
   if(!parseDate(date))return;
   week=startOfWeek(date);focusedDay=date;render();
 }
+
+function toggleEditorExtras(){
+  const measure=$('editMeasure').value,repeat=$('editRepeat').value;
+  $('durationFields').hidden=measure==='count';
+  $('countFields').hidden=measure!=='count';
+  $('intervalFields').hidden=measure!=='interval';
+  $('repeatDayFields').hidden=repeat!=='custom';
+  $('repeatIntervalField').hidden=repeat!=='interval';
+}
+function collectEditorSubtasks(){
+  return [...$('editSubtasks').querySelectorAll('.subtask-item')].map(row=>({
+    id:row.dataset.id,title:row.querySelector('.subtask-title').value.trim().slice(0,180),
+    done:row.querySelector('.subtask-done').checked
+  })).filter(s=>s.title).slice(0,100);
+}
+function renderEditorSubtasks(){
+  $('editSubtasks').innerHTML=(editor?.subtasks||[]).map(s=>
+    '<div class="subtask-item" data-id="'+escapeHTML(s.id)+'">'
+    +'<input class="subtask-done" type="checkbox" '+(s.done?'checked':'')+' aria-label="Подзадача выполнена"/>'
+    +'<input class="subtask-title" type="text" maxlength="180" value="'+escapeHTML(s.title)+'" aria-label="Подзадача"/>'
+    +'<button type="button" class="subtask-remove" data-subtask-remove="'+escapeHTML(s.id)+'" aria-label="Удалить подзадачу">×</button></div>'
+  ).join('');
+}
+function addEditorSubtask(){
+  const title=$('newSubtask').value.trim();
+  if(!title)return;
+  const existing=collectEditorSubtasks();
+  if(existing.length>=100){notify('Не более 100 подзадач');return;}
+  editor.subtasks=[...existing,{id:uid(),title:title.slice(0,180),done:false}];
+  renderEditorSubtasks();$('newSubtask').value='';$('newSubtask').focus();
+}
 function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=null){
   editor={source,id,occurrence,date};$('taskForm').reset();$('editError').hidden=true;
   const task=source==='task'?state.tasks.find(t=>t.id===id):
@@ -386,20 +417,36 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
   const mins=task?planned(task):30;
   $('editHours').value=Math.floor(mins/60);
   $('editMinutes').value=mins%60;
+  $('editMeasure').value=task?.measureMode||(task?.start?'interval':'duration');
+  $('editTargetCount').value=task?.targetCount??30;
+  const selectedDay=occurrence||task?.date||date||focusedDay;
+  $('editActualCount').value=task?.repeat&&task.repeat!=='none'
+    ?task.actualCountByDate?.[selectedDay]??''
+    :task?.actualCount??'';
   $('editStart').value=task?.start||'';
   $('editEnd').value=task?.end||'';
   if(Number.isFinite(atMinutes)){
     const tmp=defaultTask('x',date||focusedDay);
     applyTime(tmp,atMinutes);
     $('editStart').value=tmp.start;$('editEnd').value=tmp.end;
+    $('editMeasure').value='interval';
   }
   $('editRepeat').value=task?.repeat||'none';
-  $('editStatus').value=task&&source==='task'?statusOf(task,occurrence||task.date):'todo';
+  $('editRepeatInterval').value=task?.repeatInterval||2;
+  const days=task?.repeatDays||[];
+  $('repeatDayFields').querySelectorAll('input[type=checkbox]').forEach(input=>{
+    input.checked=days.includes(Number(input.value));
+  });
+  $('editStatus').value=task&&source==='task'?statusOf(task,selectedDay):'todo';
   const actualValue=source==='task'&&task
-    ?(task.repeat!=='none'?task.actualByDate?.[occurrence||task.date]:task.actualMinutes)
+    ?(task.repeat&&task.repeat!=='none'?task.actualByDate?.[selectedDay]:task.actualMinutes)
     :null;
   $('editActual').value=actualValue??'';
   $('editNotes').value=task?.notes||'';
+  editor.subtasks=(task?.subtasks||[]).map(s=>({...s,done:task?.repeat&&task.repeat!=='none'
+    ?task.subtaskByDate?.[selectedDay]?.[s.id]===true:s.done===true}));
+  renderEditorSubtasks();
+  toggleEditorExtras();
   $('deleteTask').hidden=source==='new';
   $('saveTemplate').checked=false;
   openDialog('taskDialog');$('editTitle').focus();
@@ -407,25 +454,41 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
 function submitEditor(event){
   event.preventDefault();
   const title=$('editTitle').value.trim(),date=$('editDate').value;
+  const measureMode=$('editMeasure').value;
   const minutes=minutesFromParts($('editHours').value,$('editMinutes').value);
   const actual=$('editActual').value===''?null:Number($('editActual').value);
+  const targetCount=measureMode==='count'?Number($('editTargetCount').value):null;
+  const actualCount=measureMode==='count'&&$('editActualCount').value!==''?Number($('editActualCount').value):null;
+  const repeat=$('editRepeat').value;
+  const repeatDays=[...$('repeatDayFields').querySelectorAll('input:checked')].map(x=>Number(x.value));
+  const repeatInterval=Number($('editRepeatInterval').value||2);
+  const subtasks=collectEditorSubtasks();
   if(!title||Number.isNaN(minutes)){showEditError('Введите название и правильное время.');return;}
-  const fields={title:title.slice(0,120),date,start:$('editStart').value,end:$('editEnd').value,
-    plannedMinutes:minutes,actualMinutes:actual,category:$('editCategory').value,
-    priority:$('editPriority').value,repeat:$('editRepeat').value,
-    status:$('editStatus').value,notes:$('editNotes').value.trim()};
-  if(fields.start && !fields.end){
-    const start=timeMinutes(fields.start);
-    const end=Math.min(1439,start+Math.max(15,minutes));
+  if(measureMode==='count'&&(!Number.isInteger(targetCount)||targetCount<1||targetCount>100000
+    ||(actualCount!==null&&(!Number.isInteger(actualCount)||actualCount<0||actualCount>100000)))){
+    showEditError('Укажите количество повторений и фактическое число.');return;
+  }
+  if(repeat==='custom'&&!repeatDays.length){showEditError('Выберите дни повторения.');return;}
+  if(repeat==='interval'&&(!Number.isInteger(repeatInterval)||repeatInterval<2||repeatInterval>365)){
+    showEditError('Укажите период от 2 до 365 дней.');return;
+  }
+  const fields={title:title.slice(0,120),date,start:measureMode==='interval'?$('editStart').value:'',
+    end:measureMode==='interval'?$('editEnd').value:'',
+    plannedMinutes:measureMode==='count'?0:minutes,actualMinutes:actual,
+    category:$('editCategory').value,priority:$('editPriority').value,repeat,
+    repeatDays,repeatInterval,measureMode,targetCount,actualCount,
+    status:$('editStatus').value,notes:$('editNotes').value.trim(),subtasks};
+  if(fields.start&&!fields.end){
+    const start=timeMinutes(fields.start),end=Math.min(1439,start+Math.max(15,minutes));
     fields.end=String(Math.floor(end/60)).padStart(2,'0')+':'+String(end%60).padStart(2,'0');
   }
-  if(!fields.start)fields.end='';
   if(fields.start&&fields.end)fields.plannedMinutes=timeMinutes(fields.end)-timeMinutes(fields.start);
+  if(measureMode==='interval'&&!fields.start){showEditError('Для интервала укажите начало.');return;}
   if(!date) {
-    if(fields.repeat!=='none'){showEditError('Для повторения укажите дату начала.');return;}
+    if(repeat!=='none'||measureMode==='count'){showEditError('Для повторений и количества укажите дату.');return;}
     if(editor.source==='task'){
       const index=state.tasks.findIndex(t=>t.id===editor.id);
-      if(index>=0)state.tasks.splice(index,1);
+      if(index>=0){moveToTrash('task',state.tasks[index]);state.tasks.splice(index,1);}
     }
     const existing=editor.source==='inbox'?state.inbox.find(t=>t.id===editor.id):null;
     const newInbox={id:existing?.id||uid(),title:fields.title,plannedMinutes:minutes,
@@ -433,35 +496,40 @@ function submitEditor(event){
     if(existing)Object.assign(existing,newInbox);else state.inbox.push(newInbox);
   }else{
     const old=editor.source==='task'?state.tasks.find(t=>t.id===editor.id):null;
-    const candidate={...(old||defaultTask(fields.title,date)),...fields,
-      measureMode:fields.start?'interval':'duration'};
-    if(old?.repeat!=='none' && fields.repeat!=='none' && date===(editor.occurrence||old.date)){
-      // Editing an occurrence preserves the series' original anchor date.
+    const candidate={...(old||defaultTask(fields.title,date)),...fields};
+    if(old?.repeat&&old.repeat!=='none' && fields.repeat!=='none' && date===(editor.occurrence||old.date)){
       candidate.date=old.date;
     }
-    const err=validateTask(candidate);
-    if(err){showEditError(err);return;}
     const day=editor.occurrence||date;
     if(candidate.repeat!=='none'){
       candidate.statusByDate={...(old?.statusByDate||{}),[day]:fields.status};
       candidate.actualByDate={...(old?.actualByDate||{})};
       if(actual!==null)candidate.actualByDate[day]=actual;
       else delete candidate.actualByDate[day];
+      candidate.actualCountByDate={...(old?.actualCountByDate||{})};
+      if(actualCount!==null)candidate.actualCountByDate[day]=actualCount;
+      else delete candidate.actualCountByDate[day];
+      candidate.subtasks=subtasks.map(s=>({...s,done:false}));
+      candidate.subtaskByDate={...(old?.subtaskByDate||{}),
+        [day]:Object.fromEntries(subtasks.map(s=>[s.id,s.done]))};
       const done=new Set(old?.completedDates||[]);
       if(fields.status==='done')done.add(day);else done.delete(day);
       candidate.completedDates=[...done].sort();
-      candidate.actualMinutes=null;candidate.completed=false;
+      candidate.actualMinutes=null;candidate.actualCount=null;candidate.completed=false;
     }else{
       candidate.statusByDate={};candidate.completedDates=[];candidate.actualByDate={};
+      candidate.actualCountByDate={};candidate.subtaskByDate={};
       candidate.completed=fields.status==='done';
     }
+    const err=validateTask(candidate);
+    if(err){showEditError(err);return;}
     if(old)Object.assign(old,candidate);
-    else {
+    else{
       state.tasks.push(candidate);
       if(editor.source==='inbox')state.inbox=state.inbox.filter(x=>x.id!==editor.id);
     }
   }
-  if($('saveTemplate').checked && !state.templates.some(t=>t.title===fields.title)){
+  if($('saveTemplate').checked&&!state.templates.some(t=>t.title===fields.title)){
     state.templates.push({id:uid(),title:fields.title,plannedMinutes:minutes,
       category:fields.category,priority:fields.priority,notes:fields.notes});
   }
@@ -471,10 +539,16 @@ function showEditError(error){$('editError').textContent=error;$('editError').hi
 function deleteEditor(){
   if(!editor)return;
   const task=editor.source==='task'?state.tasks.find(t=>t.id===editor.id):null;
-  if(task?.repeat!=='none' && task?.repeat && !confirm('Удалить всю повторяющуюся серию задач?'))return;
-  if(editor.source==='inbox')state.inbox=state.inbox.filter(t=>t.id!==editor.id);
-  else if(editor.source==='task')state.tasks=state.tasks.filter(t=>t.id!==editor.id);
-  closeDialog('taskDialog');save();render();notify('Задача удалена');
+  if(task?.repeat&&task.repeat!=='none' && !confirm('Удалить всю повторяющуюся серию задач?'))return;
+  if(editor.source==='inbox'){
+    const item=state.inbox.find(t=>t.id===editor.id);
+    moveToTrash('inbox',item);
+    state.inbox=state.inbox.filter(t=>t.id!==editor.id);
+  }else if(editor.source==='task'){
+    moveToTrash('task',task);
+    state.tasks=state.tasks.filter(t=>t.id!==editor.id);
+  }
+  closeDialog('taskDialog');save();render();notify('Задача помещена в корзину');
 }
 function reviewSummary(){
   const date=$('reviewDate').value;if(!parseDate(date))return;
