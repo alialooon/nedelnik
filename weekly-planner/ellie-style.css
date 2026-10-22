@@ -495,3 +495,102 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   .inbox-today,.task-check,.mode-picker button,.inline-progress-track i,.day-progress>span,
   .focus-completion span,.primary-action,.quiet-action,.icon-action,.day-add,.focus-add{transition:none}
 }
+
+
+/* Full-day calendar: all 24 hours use the available viewport height, no time scrolling. */
+.calendar-viewport{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  overscroll-behavior:none;
+  min-height:0;
+}
+.calendar-viewport .timeline-head{
+  display:grid;
+  flex:0 0 38px;
+  height:38px;
+  min-width:0;
+  grid-template-columns:44px repeat(7,minmax(0,1fr));
+  position:relative;
+  top:auto;
+}
+.calendar-viewport .timeline-head div{
+  padding:11px 2px;
+  white-space:nowrap;
+}
+.calendar-viewport .timeline-body{
+  flex:1 1 0%;
+  display:grid;
+  grid-template-columns:44px repeat(7,minmax(0,1fr));
+  width:100%;
+  min-width:0;
+  height:auto;
+  min-height:0;
+  position:relative;
+  overflow:hidden;
+}
+.calendar-viewport .calendar-day{
+  min-height:0;
+  overflow:hidden;
+  background-image:linear-gradient(to bottom,#e9edf2 1px,transparent 1px);
+  background-size:100% calc(100% / 24);
+}
+.calendar-viewport .hour-labels{
+  min-height:0;
+  overflow:hidden;
+}
+.calendar-viewport .hour-label{
+  transform:translateY(2px);
+  font-size:10px;
+  line-height:12px;
+}
+.calendar-viewport .calendar-unscheduled{
+  flex:0 0 auto;
+  padding:5px 10px;
+  min-height:23px;
+  max-height:27px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10px;
+}
+.calendar-viewport .time-block{
+  box-sizing:border-box;
+  min-height:0;
+  padding:2px 5px;
+  font-size:10px;
+  line-height:1.2;
+}
+.calendar-viewport .time-block strong{
+  display:block;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:10px;
+  line-height:13px;
+}
+.calendar-viewport .time-block small{
+  display:block;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+@media(max-height:650px){
+  .calendar-viewport .timeline-head{height:31px;flex-basis:31px}
+  .calendar-viewport .timeline-head div{padding:7px 2px}
+  .calendar-viewport .hour-label{font-size:9px;line-height:10px;transform:translateY(1px)}
+  .calendar-viewport .calendar-unscheduled{font-size:9px;min-height:20px;max-height:22px}
+}
+/* A single thin active field border replaces the thick multi-layer focus ring. */
+.editor-dialog .field input:focus,
+.editor-dialog .field input:focus-visible,
+.editor-dialog .field select:focus,
+.editor-dialog .field select:focus-visible,
+.editor-dialog .field textarea:focus,
+.editor-dialog .field textarea:focus-visible{
+  outline:none;
+  outline-offset:0;
+  border:1px solid #7d9bbd;
+  box-shadow:none;
+  background:#fff;
+}
