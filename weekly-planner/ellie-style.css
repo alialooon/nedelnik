@@ -625,3 +625,24 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
     transform:translateY(1px);
   }
 }
+
+
+/* Align hour captions at the same baseline. 23:00 does not jump upward. */
+.calendar-viewport .hour-label{
+  transform:translateY(-50%);
+}
+.calendar-viewport .hour-label:first-child{
+  transform:translateY(1px);
+}
+@media(max-height:700px){
+  .calendar-viewport .hour-label{
+    transform:translateY(-50%);
+  }
+  .calendar-viewport .hour-label:first-child{
+    transform:translateY(1px);
+  }
+  /* The final label is essential; omit nearby 22:00 on very short grids. */
+  .calendar-viewport .hour-label:nth-last-child(2){
+    display:none;
+  }
+}
