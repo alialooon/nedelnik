@@ -589,65 +589,142 @@ function rollTomorrow(){
   save();reviewSummary();render();notify('Незавершённые дела перенесены');
 }
 function openAnalytics(){
-  const days=Array.from({length:7},(_,i)=>addDays(week,i));
-  const stats=timeStats(allTasks());
-  const cards=[['Задач',stats.total],['Завершено',stats.done],['План',formatMinutes(stats.plan)],['Факт',formatMinutes(stats.fact)]];
-  $('statsContent').innerHTML='<div class="stats-metrics">'+cards.map(([label,n])=>
-    '<div class="metric-box"><small>'+label+'</small><strong>'+n+'</strong></div>').join('')+'</div>'
-    +'<p>Выполнение недели: '+stats.completion+'%. План и факт считаются отдельно; незаписанное время не считается фактом.</p>'
+  statsScope='week';
+  renderAnalytics();openDialog('statsDialog');
+}
+
+function renderAnalytics(){
+  const month=parseDate(week);
+  const monthKey=week.slice(0,7);
+  const first=monthKey+'-01',next= new Date(month.getFullYear(),month.getMonth()+1,1);
+  const last=toISO(new Date(next.getFullYear(),next.getMonth(),0,12));
+  const firstWeek=startOfWeek(first);
+  const weeks=Math.ceil((Math.round((parseDate(last)-parseDate(firstWeek))/86400000)+1)/7);
+  const all=statsScope==='month'
+    ?Array.from({length:weeks},(_,i)=>occurrencesForWeek(state.tasks,addDays(firstWeek,i*7)))
+      .flat().filter(t=>t.occurrenceDate.startsWith(monthKey))
+    :allTasks();
+  const days=statsScope==='month'
+    ?Array.from({length:parseDate(last).getDate()},(_,i)=>addDays(first,i))
+    :Array.from({length:7},(_,i)=>addDays(week,i));
+  const stats=timeStats(all),scope=statsScope==='month'?'месяца':'недели';
+  const cards=[['Задач',stats.total],['Завершено',stats.done],['План',formatMinutes(stats.plan)],
+    ['Факт',formatMinutes(stats.fact)]];
+  const cats=Object.keys(CATEGORIES).map(category=>{
+    const entries=all.filter(t=>t.category===category),s=timeStats(entries);
+    return {category,name:CATEGORIES[category],...s};
+  }).filter(x=>x.total>0).sort((a,b)=>b.plan-a.plan);
+  $('statsContent').innerHTML='<div class="stats-scope"><button type="button" data-stats-scope="week" '
+    +(statsScope==='week'?'class="active"':'')+'>Неделя</button><button type="button" data-stats-scope="month" '
+    +(statsScope==='month'?'class="active"':'')+'>Месяц</button></div>'
+    +'<div class="stats-metrics">'+cards.map(([label,n])=>
+      '<div class="metric-box"><small>'+label+'</small><strong>'+n+'</strong></div>').join('')+'</div>'
+    +'<p>Выполнение '+scope+': '+stats.completion+'%. '
+    +(stats.plan>0&&stats.measured?'Факт / план: '+Math.round(stats.fact/stats.plan*100)+'%.':'Незаписанное время не считается фактом.')+'</p>'
+    +'<h3>По категориям</h3>'
+    +(cats.length?cats.map(cat=>'<div class="stat-day"><div style="flex:1"><strong>'
+       +escapeHTML(cat.name)+'</strong><div class="stat-bar"><i style="width:'+cat.completion+'%"></i></div></div>'
+       +'<span>'+cat.done+'/'+cat.total+' · '+formatMinutes(cat.plan)+' / '+formatMinutes(cat.fact)+'</span></div>').join('')
+      :'<p>Пока нет задач за выбранный период.</p>')
+    +'<h3>По дням</h3>'
     +days.map(d=>{
-      const tasks=allTasks().filter(t=>t.occurrenceDate===d),s=timeStats(tasks);
-      return '<div class="stat-day"><div style="flex:1"><strong>'+shortDays[(parseDate(d).getDay()+6)%7]+' '+parseDate(d).getDate()
-        +'</strong><div class="stat-bar"><i style="width:'+s.completion+'%"></i></div></div>'
+      const s=timeStats(all.filter(t=>t.occurrenceDate===d));
+      return '<div class="stat-day"><div style="flex:1"><strong>'+shortDays[(parseDate(d).getDay()+6)%7]
+        +' '+parseDate(d).getDate()+'</strong><div class="stat-bar"><i style="width:'+s.completion+'%"></i></div></div>'
         +'<span>'+s.done+'/'+s.total+' · '+formatMinutes(s.plan)+' / '+formatMinutes(s.fact)+'</span></div>';
     }).join('');
-  openDialog('statsDialog');
+}
+function renderTrash(){
+  const items=(state.trash||[]).slice().reverse(),backups=getBackups();
+  $('trashContent').innerHTML='<p class="muted-note">Удалённые задачи хранятся 30 дней в этом браузерном профиле.</p>'
+    +(items.length?items.map((item,i)=>
+      '<div class="template-row"><strong>'+escapeHTML(item.value.title||'Без названия')+'</strong><small>'
+      +(item.kind==='task'?'Задача':item.kind==='template'?'Шаблон':'Без даты')+'</small>'
+      +'<button type="button" class="template-add" data-restore-trash="'+(items.length-1-i)+'">Восстановить</button></div>').join('')
+    :'<p class="inbox-empty">Корзина пуста</p>')
+    +'<h3>Локальные копии</h3>'
+    +'<p class="muted-note">Сохраняются в профиле приложения, до 7 ежедневных копий. Для защиты от потери профиля экспортируй JSON.</p>'
+    +(backups.length?backups.slice().reverse().map((b,i)=>
+      '<div class="template-row"><strong>'+escapeHTML(b.day||'Копия')+'</strong>'
+      +'<button type="button" class="template-add" data-restore-backup="'+(backups.length-1-i)+'">Восстановить копию</button></div>').join('')
+      :'<p class="inbox-empty">Копии появятся при редактировании задач.</p>');
+}
+function restoreTrash(index){
+  const item=state.trash?.[index];
+  if(!item)return;
+  const target=item.kind==='task'?state.tasks:item.kind==='template'?state.templates:state.inbox;
+  if(target.length>10000){notify('Достигнут лимит данных');return;}
+  const copy=JSON.parse(JSON.stringify(item.value));
+  if(target.some(t=>t.id===copy.id))copy.id=uid();
+  target.push(copy);state.trash.splice(index,1);
+  save();render();renderTrash();notify('Восстановлено');
+}
+function restoreBackup(index){
+  const backup=getBackups()[index];if(!backup)return;
+  if(!confirm('Заменить текущие задачи состоянием на '+backup.day+'? Текущая версия останется в резервной копии при следующем изменении дня. Перед восстановлением рекомендуется экспорт JSON.'))return;
+  try{
+    const current=localStorage.getItem(KEY);
+    const snapshots=getBackups();
+    if(current)snapshots.push({day:today(),createdAt:Date.now(),data:JSON.parse(current)});
+    localStorage.setItem(BACKUP_KEY,JSON.stringify(snapshots.slice(-7)));
+    state=sanitizeBackup(backup.data);save();render();renderTrash();notify('Копия восстановлена');
+  }catch{notify('Не удалось восстановить резервную копию');}
 }
 function renderTemplates(){
   $('templateContent').innerHTML=state.templates.length?state.templates.map(t=>
     '<div class="template-row"><strong>'+escapeHTML(t.title)+'</strong><small>'+duration(planned(t))+'</small>'
     +'<button type="button" class="template-add" data-template="'+escapeHTML(t.id)+'">В список</button>'
+    +'<button type="button" class="template-edit" data-template-edit="'+escapeHTML(t.id)+'" aria-label="Изменить шаблон">Изменить</button>'
     +'<button type="button" class="template-delete" data-template-delete="'+escapeHTML(t.id)
     +'" aria-label="Удалить шаблон '+escapeHTML(t.title)+'" title="Удалить шаблон">'+icon('trash')+'</button></div>').join('')
-    :'<p class="inbox-empty">Пока нет шаблонов. Сохраните задачу как шаблон при редактировании.</p>';
+    :'<p class="inbox-empty">Пока нет шаблонов. Создайте первый в форме выше.</p>';
 }
 function openTemplates(){
-  renderTemplates();
-  $('templateCreateForm').reset();
-  openDialog('templateDialog');
+  renderTemplates();resetTemplateEditor();openDialog('templateDialog');
+}
+
+function resetTemplateEditor(){
+  $('templateCreateForm').reset();$('templateEditId').value='';
+  $('templateSaveButton').textContent='＋ Создать';
+  $('cancelTemplateEdit').hidden=true;
+}
+function editTemplate(id){
+  const tpl=state.templates.find(t=>t.id===id);if(!tpl)return;
+  $('templateEditId').value=id;
+  $('templateNewTitle').value=tpl.title;
+  $('templateNewCategory').value=tpl.category;
+  $('templateNewMinutes').value=tpl.plannedMinutes;
+  $('templateSaveButton').textContent='Сохранить';
+  $('cancelTemplateEdit').hidden=false;$('templateNewTitle').focus();
 }
 function createTemplate(event){
   event.preventDefault();
-  const title=$('templateNewTitle').value.trim();
-  const minsText=$('templateNewMinutes').value.trim();
-  const plannedMinutes=Number(minsText);
-  const category=$('templateNewCategory').value;
+  const title=$('templateNewTitle').value.trim(),minsText=$('templateNewMinutes').value.trim();
+  const plannedMinutes=Number(minsText),category=$('templateNewCategory').value,editing=$('templateEditId').value;
   if(!title||title.length>120){notify('Введите название задачи до 120 символов');return;}
   if(!minsText||!Number.isInteger(plannedMinutes)||plannedMinutes<0||plannedMinutes>1440){
     notify('Укажите время от 0 до 1440 минут');return;
   }
   if(!CATEGORIES[category]){notify('Выберите категорию');return;}
-  if(state.templates.length>=2000){notify('Достигнут лимит шаблонов');return;}
-  if(state.templates.some(t=>t.title.toLocaleLowerCase('ru-RU')===title.toLocaleLowerCase('ru-RU'))){
+  if(!editing&&state.templates.length>=2000){notify('Достигнут лимит шаблонов');return;}
+  if(state.templates.some(t=>t.id!==editing&&t.title.toLocaleLowerCase('ru-RU')===title.toLocaleLowerCase('ru-RU'))){
     notify('Шаблон с таким названием уже существует');return;
   }
-  state.templates.push({id:uid(),title,plannedMinutes,category,priority:'normal',notes:''});
-  save();
-  render();
-  renderTemplates();
-  $('templateCreateForm').reset();
-  $('templateNewTitle').focus();
-  notify('Шаблон создан');
+  const tpl=editing?state.templates.find(t=>t.id===editing):null;
+  if(editing&&!tpl){notify('Шаблон не найден');return;}
+  if(tpl)Object.assign(tpl,{title,plannedMinutes,category});
+  else state.templates.push({id:uid(),title,plannedMinutes,category,priority:'normal',notes:''});
+  save();render();renderTemplates();resetTemplateEditor();
+  $('templateNewTitle').focus();notify(editing?'Шаблон обновлён':'Шаблон создан');
 }
 function deleteTemplate(id){
   const template=state.templates.find(t=>t.id===id);
   if(!template)return;
   if(!confirm('Удалить шаблон «'+template.title+'»? Уже добавленные задачи останутся в расписании.'))return;
+  moveToTrash('template',template);
   state.templates=state.templates.filter(t=>t.id!==id);
-  save();
-  render();
-  renderTemplates();
-  notify('Шаблон удалён');
+  if($('templateEditId').value===id)resetTemplateEditor();
+  save();render();renderTemplates();notify('Шаблон помещён в корзину');
 }
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json;charset=utf-8'});
