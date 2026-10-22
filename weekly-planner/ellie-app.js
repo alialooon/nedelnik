@@ -124,7 +124,7 @@ function card(t,day){
   if(t.start)sub.push(' · '+escapeHTML(t.start));
   if(estimate>0)sub.push(' · '+formatMinutes(estimate));
   const meta=sub.join('');
-  return '<article class="task-tile '+(done?'done ':'')+'priority-'+escapeHTML(t.priority||'normal')
+  return '<article class="task-tile '+(done?'done ':'')+'category-'+escapeHTML(t.category||'other')+' priority-'+escapeHTML(t.priority||'normal')
     +'" data-source="task" draggable="true" data-id="'+escapeHTML(t.id)+'" data-date="'+day+'">'
     +'<button type="button" class="task-check '+(done?'done':status==='partial'?'partial':'')
     +'" data-action="status" data-id="'+escapeHTML(t.id)+'" data-date="'+day
