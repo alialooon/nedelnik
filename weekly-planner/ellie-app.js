@@ -824,7 +824,8 @@ function toggleTimer(){
     focusRunning=false;clearInterval(timerHandle);
   }else{
     if(focusRemaining<=0)focusRemaining=25*60;
-    focusTaskId=$('focusTaskSelect')?.value||focusTaskId||null;
+    const selector=$('focusTaskSelect');
+    if(selector)focusTaskId=selector.value||null;
     focusTaskDate=focusedDay;
     focusStartedAt=Date.now();focusCheckpointSeconds=0;
     focusEndsAt=Date.now()+focusRemaining*1000;
