@@ -13,7 +13,27 @@
 <div class="workspace">
   <header class="app-header">
     <div class="identity">
-      <span class="identity-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <svg class="identity-calendar" aria-hidden="true" width="34" height="34" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="iosIconBlue" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7dbaff"/><stop offset="58%" stop-color="#4b91ed"/><stop offset="100%" stop-color="#2868d5"/>
+          </linearGradient>
+          <linearGradient id="iosCalendarPaper" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#e9f3ff"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="15" fill="url(#iosIconBlue)"/>
+        <path d="M12 10C22 3 45 3 54 11" fill="none" stroke="#d7ebff" stroke-width="2" opacity=".32"/>
+        <rect x="11" y="14" width="42" height="39" rx="9" fill="url(#iosCalendarPaper)"/>
+        <path d="M20 14h24a9 9 0 0 1 9 9v4H11v-4a9 9 0 0 1 9-9Z" fill="#367fdc"/>
+        <rect x="20" y="9" width="5" height="12" rx="2.5" fill="#225db4"/>
+        <rect x="39" y="9" width="5" height="12" rx="2.5" fill="#225db4"/>
+        <rect x="18" y="33" width="10" height="8" rx="2.5" fill="#c8dcf7"/>
+        <rect x="35" y="33" width="10" height="8" rx="2.5" fill="#c8dcf7"/>
+        <rect x="18" y="43" width="10" height="6" rx="2.5" fill="#c8dcf7"/>
+        <rect x="35" y="43" width="10" height="6" rx="2.5" fill="#f2b478"/>
+        <path d="m37.5 45.4 1.8 1.7 3.1-3.3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <strong>Задачи на неделю</strong>
     </div>
     <div class="header-actions">
