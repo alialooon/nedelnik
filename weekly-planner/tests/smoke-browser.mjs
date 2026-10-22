@@ -23,7 +23,7 @@ try{
     throw new Error('Chrome exit code '+result.status+'\n'+result.stderr?.slice(-2000));
   }
   const dom=result.stdout;
-  const columns=(dom.match(/<section class="day-column\b/g)||[]).length;
+  const columns=(dom.match(/<section class="day-column [^"]*" data-drop-date="\d{4}-\d{2}-\d{2}"/g)||[]).length;
   assert.equal(columns,7,'The weekly Kanban failed to render seven days');
   assert.match(dom,/id="inboxList"/);
   assert.match(dom,/id="periodTitle">[^<]*\d{4}/);
