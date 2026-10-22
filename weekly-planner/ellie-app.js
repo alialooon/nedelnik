@@ -182,6 +182,10 @@ function card(t,day){
     +'" aria-label="Изменить статус: '+escapeHTML(t.title)+'">'+(done?'✓':status==='partial'?'−':'')+'</button>'
     +'<button type="button" class="task-edit" data-action="edit-task" data-id="'+escapeHTML(t.id)+'" data-date="'+day+'">'
     +'<span class="item-title">'+escapeHTML(t.title)+'</span><span class="item-subline">'+meta+'</span></button>'
+    +(t.subtasks?.length?'<div class="task-subtasks">'
+      +t.subtasks.map(s=>'<label class="task-subtask"><input type="checkbox" data-action="toggle-subtask" data-id="'
+        +escapeHTML(t.id)+'" data-date="'+day+'" data-sub-id="'+escapeHTML(s.id)+'" '
+        +(s.done?'checked':'')+' /><span>'+escapeHTML(s.title)+'</span></label>').join('')+'</div>':'')
     +'<button type="button" class="task-start" data-action="start-focus" data-id="'+escapeHTML(t.id)+'" data-date="'+day
     +'" title="Запустить таймер задачи" aria-label="Начать работу над задачей">'+icon('play')+'</button>'
     +'</article>';
@@ -416,6 +420,19 @@ function addEditorSubtask(){
   editor.subtasks=[...existing,{id:uid(),title:title.slice(0,180),done:false}];
   renderEditorSubtasks();$('newSubtask').value='';$('newSubtask').focus();
 }
+
+function toggleSubtask(id,date,subId,checked){
+  const task=state.tasks.find(t=>t.id===id);
+  if(!task||!task.subtasks?.some(s=>s.id===subId))return;
+  if(task.repeat&&task.repeat!=='none'){
+    task.subtaskByDate=task.subtaskByDate||{};
+    task.subtaskByDate[date]={...(task.subtaskByDate[date]||{}),[subId]:checked};
+  }else{
+    const s=task.subtasks.find(s=>s.id===subId);
+    s.done=checked;
+  }
+  save();render();
+}
 function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=null){
   editor={source,id,occurrence,date};$('taskForm').reset();$('editError').hidden=true;
   const task=source==='task'?state.tasks.find(t=>t.id===id):
@@ -627,6 +644,7 @@ function renderAnalytics(){
     +'<p>Выполнение '+scope+': '+stats.completion+'%. '
     +(stats.plan>0&&stats.measured?'Факт / план: '+Math.round(stats.fact/stats.plan*100)+'%.':'Незаписанное время не считается фактом.')+'</p>'
     +'<h3>По категориям</h3>'
+    +(stats.countPlan?'<p>Повторения: '+stats.countFact+' из '+stats.countPlan+'</p>':'')
     +(cats.length?cats.map(cat=>'<div class="stat-day"><div style="flex:1"><strong>'
        +escapeHTML(cat.name)+'</strong><div class="stat-bar"><i style="width:'+cat.completion+'%"></i></div></div>'
        +'<span>'+cat.done+'/'+cat.total+' · '+formatMinutes(cat.plan)+' / '+formatMinutes(cat.fact)+'</span></div>').join('')
@@ -652,7 +670,12 @@ function renderTrash(){
     +(backups.length?backups.slice().reverse().map((b,i)=>
       '<div class="template-row"><strong>'+escapeHTML(b.day||'Копия')+'</strong>'
       +'<button type="button" class="template-add" data-restore-backup="'+(backups.length-1-i)+'">Восстановить копию</button></div>').join('')
-      :'<p class="inbox-empty">Копии появятся при редактировании задач.</p>');
+      :'<p class="inbox-empty">Копии появятся при редактировании задач.</p>')
+    +'<h3>История переносов</h3>'
+    +(state.rolloverLog?.length?state.rolloverLog.slice(-20).reverse().map(item=>
+      '<div class="history-row"><strong>'+escapeHTML(item.title)+'</strong> '
+      +escapeHTML(item.from)+' → '+escapeHTML(item.to)+'</div>').join('')
+      :'<p class="inbox-empty">Переносов пока не было.</p>');
 }
 function restoreTrash(index){
   const item=state.trash?.[index];
@@ -866,6 +889,7 @@ function setupClick(){
       else if(verb==='edit-task')openEditor('task',id,date);
       else if(verb==='edit-inbox')openEditor('inbox',id);
       else if(verb==='inbox-today')addInboxToDay(id,today());
+      else if(verb==='toggle-subtask')toggleSubtask(id,date,action.dataset.subId,action.checked);
       else if(verb==='start-focus'){
         if(focusRunning&&focusTaskId!==id){notify('Сначала остановите текущий таймер');return;}
         if(!focusRunning)resetTimer();
@@ -1010,7 +1034,11 @@ function setup(){
       if(focusRunning){notify('Сначала остановите таймер');event.target.value=focusedDay;return;}
       chooseDate(event.target.value);view='focus';render();
     }
-    if(event.target.id==='focusTaskSelect'&&!focusRunning)focusTaskId=event.target.value||null;
+    if(event.target.id==='focusTaskSelect'&&!focusRunning){
+      const next=event.target.value||null;
+      if(next!==focusTaskId)focusRemainderSeconds=0;
+      focusTaskId=next;
+    }
   });
   for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog','trashDialog']){
     $(id).addEventListener('click',event=>{if(event.target===$(id))closeDialog(id);});
