@@ -698,11 +698,17 @@ function renderAnalytics(){
   const days=statsScope==='month'
     ?Array.from({length:parseDate(last).getDate()},(_,i)=>addDays(first,i))
     :Array.from({length:7},(_,i)=>addDays(week,i));
-  const stats=timeStats(all),scope=statsScope==='month'?'месяца':'недели';
+  // Period plans are counted once in their own period, never as daily tasks.
+  const periodPlans=statsScope==='month'
+    ?periodTasksForMonth(state.tasks,week)
+    :periodTasksForWeek(state.tasks,week).filter(t=>t.scope==='week');
+  const combined=[...all,...periodPlans];
+  const stats=timeStats(combined),periodStats=timeStats(periodPlans);
+  const scope=statsScope==='month'?'месяца':'недели';
   const cards=[['Задач',stats.total],['Завершено',stats.done],['План',formatMinutes(stats.plan)],
     ['Факт',formatMinutes(stats.fact)]];
   const cats=Object.keys(CATEGORIES).map(category=>{
-    const entries=all.filter(t=>t.category===category),s=timeStats(entries);
+    const entries=combined.filter(t=>t.category===category),s=timeStats(entries);
     return {category,name:CATEGORIES[category],...s};
   }).filter(x=>x.total>0).sort((a,b)=>b.plan-a.plan);
   $('statsContent').innerHTML='<div class="stats-scope"><button type="button" data-stats-scope="week" '
@@ -712,6 +718,8 @@ function renderAnalytics(){
       '<div class="metric-box"><small>'+label+'</small><strong>'+n+'</strong></div>').join('')+'</div>'
     +'<p>Выполнение '+scope+': '+stats.completion+'%. '
     +(stats.plan>0&&stats.measured?'Факт / план: '+Math.round(stats.fact/stats.plan*100)+'%.':'Незаписанное время не считается фактом.')+'</p>'
+    +'<p>Планы без конкретной даты: '+periodStats.done+' из '+periodStats.total
+    +' выполнено. В строках по дням они не дублируются.</p>'
     +'<h3>По категориям</h3>'
     +(stats.countPlan?'<p>Повторения: '+stats.countFact+' из '+stats.countPlan+'</p>':'')
     +(cats.length?cats.map(cat=>'<div class="stat-day"><div style="flex:1"><strong>'
