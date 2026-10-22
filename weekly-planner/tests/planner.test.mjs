@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, startOfWeek, parseDate, occurrencesForWeek, repeatsOn, weekStats, validateTask, sanitizeBackup, blankData } from '../logic.mjs';
+import { addDays, startOfWeek, parseDate, occurrencesForWeek, repeatsOn, weekStats, validateTask, sanitizeBackup, blankData, periodAnchor, periodTasksForWeek, periodTasksForMonth, timeStats } from '../logic.mjs';
 const make = (overrides = {}) => ({id:'a', title:'Встреча', date:'2026-10-12', start:'09:00',end:'10:00',category:'work',priority:'normal',repeat:'none',notes:'',completed:false,completedDates:[],...overrides});
 test('Понедельник считается началом недели, включая воскресенье',()=>{
   assert.equal(startOfWeek('2026-10-11'),'2026-10-05');
@@ -73,4 +73,44 @@ test('Count targets and new metadata survive backups without breaking earlier re
   assert.deepEqual(legacy.tasks[0].subtasks,[]);
   assert.equal(legacy.settings.autoCarry,false);
   assert.deepEqual(legacy.trash,[]);
+});
+
+test('Weekly and monthly goals remain outside any particular day and preserve their status',()=>{
+  const week=periodAnchor('2026-10-23','week'),month=periodAnchor('2026-10-23','month');
+  assert.equal(week,'2026-10-19');
+  assert.equal(month,'2026-10-01');
+  const weekly=make({id:'w',date:week,scope:'week',repeat:'none',status:'todo'});
+  const monthly=make({id:'m',date:month,scope:'month',repeat:'none',status:'done'});
+  const dated=make({id:'d',date:'2026-10-23',scope:'day',repeat:'none',status:'todo'});
+  assert.equal(validateTask(weekly),null);
+  assert.equal(validateTask(monthly),null);
+  assert.deepEqual(occurrencesForWeek([weekly,monthly,dated],week).map(t=>t.id),['d']);
+  assert.deepEqual(periodTasksForWeek([weekly,monthly,dated],week).map(t=>t.id),['w','m']);
+  assert.equal(periodTasksForWeek([weekly,monthly,dated],week)[1].done,true);
+  assert.deepEqual(periodTasksForWeek([weekly,monthly,dated],'2026-10-26').map(t=>t.id),['m']);
+  assert.deepEqual(periodTasksForMonth([weekly,monthly,dated],'2026-10-24').map(t=>t.id),['w','m']);
+  const summary=timeStats(periodTasksForMonth([weekly,monthly,dated],'2026-10-24'));
+  assert.equal(summary.total,2);
+  assert.equal(summary.done,1);
+});
+test('Period tasks normalize dates and reject fixed-hour or recurring schedules',()=>{
+  assert.equal(validateTask(make({date:'2026-10-23',scope:'week'})), 'Неверно указан период выполнения.');
+  assert.equal(validateTask(make({date:'2026-10-23',scope:'month'})), 'Неверно указан период выполнения.');
+  assert.equal(validateTask(make({date:'2026-10-19',scope:'week',repeat:'daily'})),
+    'Повторение доступно только для задач на день.');
+  assert.equal(validateTask(make({date:'2026-10-01',scope:'month',start:'09:00',end:'10:00'})),
+    'Конкретный час доступен только для задач на день.');
+  assert.equal(validateTask(make({date:'2026-10-23',scope:'banana'})),
+    'Выберите срок выполнения.');
+  assert.equal(periodAnchor('2026-02-28','month'),'2026-02-01');
+  assert.equal(periodAnchor('invalid','week'),null);
+});
+test('Week/month scope survives JSON backup and older tasks keep daily planning',()=>{
+  const week=make({id:'week-task',scope:'week',date:'2026-10-19'});
+  const month=make({id:'month-task',scope:'month',date:'2026-10-01'});
+  const normalized=sanitizeBackup({...blankData(),tasks:[week,month]});
+  assert.equal(normalized.tasks[0].scope,'week');
+  assert.equal(normalized.tasks[1].scope,'month');
+  const legacy={...make({id:'older-task'})};delete legacy.scope;
+  assert.equal(sanitizeBackup({...blankData(),tasks:[legacy]}).tasks[0].scope,'day');
 });
