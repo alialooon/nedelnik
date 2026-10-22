@@ -308,6 +308,8 @@ function submitEditor(event){
 function showEditError(error){$('editError').textContent=error;$('editError').hidden=false;}
 function deleteEditor(){
   if(!editor)return;
+  const task=editor.source==='task'?state.tasks.find(t=>t.id===editor.id):null;
+  if(task?.repeat!=='none' && task?.repeat && !confirm('Удалить всю повторяющуюся серию задач?'))return;
   if(editor.source==='inbox')state.inbox=state.inbox.filter(t=>t.id!==editor.id);
   else if(editor.source==='task')state.tasks=state.tasks.filter(t=>t.id!==editor.id);
   closeDialog('taskDialog');save();render();notify('Задача удалена');
@@ -461,6 +463,11 @@ function setupClick(){
     }
     if(event.target.id==='timerToggle')toggleTimer();
     if(event.target.id==='timerReset')resetTimer();
+    const blankDay=event.target.closest('.day-column');
+    if(blankDay && !event.target.closest('.task-tile,.day-add,.day-heading,button,input')){
+      openEditor('new',null,null,blankDay.dataset.dropDate);
+      return;
+    }
     if(event.target.closest('.calendar-day')&&event.target===event.target.closest('.calendar-day')){
       const target=event.target;
       const mins=Math.round((360+event.clientY-target.getBoundingClientRect().top)/15)*15;
