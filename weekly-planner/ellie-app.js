@@ -127,7 +127,8 @@ const ICON_PATHS={
   'chart':'<path d="M4 20V12M10 20V4M16 20v-9M22 20v-6"/>',
   'chevron-left':'<path d="m15 18-6-6 6-6"/>',
   'chevron-right':'<path d="m9 18 6-6-6-6"/>',
-  'trash':'<path d="M4 6h16m-10 0V4h4v2m4 0-1 14H7L6 6m4 4v7m4-7v7"/>'
+  'trash':'<path d="M4 6h16m-10 0V4h4v2m4 0-1 14H7L6 6m4 4v7m4-7v7"/>',
+  'play':'<path d="m9 6 10 6-10 6z"/>'
 };
 function icon(name){
   return '<svg class="ui-icon" width="17" height="17" viewBox="0 0 24 24" fill="none"'
@@ -170,7 +171,9 @@ function card(t,day){
   const status=statusOf(t,day),done=status==='done';
   const estimate=planned(t),sub=[dot(t.category),escapeHTML(CATEGORIES[t.category]||'Другое')];
   if(t.start)sub.push(' · '+escapeHTML(t.start));
-  if(estimate>0)sub.push(' · '+formatMinutes(estimate));
+  if(t.measureMode==='count')sub.push(' · '+(t.actualCount??0)+'/'+(t.targetCount||0)+' повт.');
+  else if(estimate>0)sub.push(' · '+formatMinutes(estimate));
+  if(t.subtasks?.length)sub.push(' · '+t.subtasks.filter(s=>s.done).length+'/'+t.subtasks.length+' шагов');
   const meta=sub.join('');
   return '<article class="task-tile '+(done?'done ':'')+'category-'+escapeHTML(t.category||'other')+' priority-'+escapeHTML(t.priority||'normal')
     +'" data-source="task" draggable="true" data-id="'+escapeHTML(t.id)+'" data-date="'+day+'">'
@@ -179,6 +182,8 @@ function card(t,day){
     +'" aria-label="Изменить статус: '+escapeHTML(t.title)+'">'+(done?'✓':status==='partial'?'−':'')+'</button>'
     +'<button type="button" class="task-edit" data-action="edit-task" data-id="'+escapeHTML(t.id)+'" data-date="'+day+'">'
     +'<span class="item-title">'+escapeHTML(t.title)+'</span><span class="item-subline">'+meta+'</span></button>'
+    +'<button type="button" class="task-start" data-action="start-focus" data-id="'+escapeHTML(t.id)+'" data-date="'+day
+    +'" title="Запустить таймер задачи" aria-label="Начать работу над задачей">'+icon('play')+'</button>'
     +'</article>';
 }
 function renderBoard(){
@@ -259,8 +264,10 @@ function renderFocus(){
   const rank=t=>t.priority==='high'?0:t.priority==='normal'?1:2;
   const ordered=[...tasks].sort((a,b)=>Number(a.done)-Number(b.done)||rank(a)-rank(b)
     ||(a.start||'').localeCompare(b.start||''));
+  if(!focusRunning&&!ordered.some(t=>t.id===focusTaskId))focusTaskId=ordered.find(t=>!t.done)?.id||ordered[0]?.id||null;
   const priorities=ordered.slice(0,3),later=ordered.slice(3);
   const percent=summary.completion,hasFact=summary.measured>0;
+  const selectOptions=ordered.map(t=>'<option value="'+escapeHTML(t.id)+'" '+(t.id===focusTaskId?'selected':'')+'>'+escapeHTML(t.title)+'</option>').join('');
   $('focusView').innerHTML='<div class="focus-list">'
     +'<div class="focus-header"><div><span class="eyebrow">Главное на день</span><h2>План на '+dayLabel(focusedDay)+'</h2></div>'
     +'<input type="date" id="focusDate" value="'+focusedDay+'" aria-label="Дата для режима фокуса" /></div>'
@@ -277,11 +284,15 @@ function renderFocus(){
       +later.map(t=>card(t,focusedDay)).join(''):'')
     +'<button class="focus-add" type="button" data-action="add-day" data-date="'+focusedDay+'">'+icon('plus')+' Добавить задачу</button></div>'
     +'<div class="focus-timer"><span class="eyebrow">Сосредоточенная работа</span>'
-    +'<h2>Фокус-таймер</h2><div class="timer-ring"><div class="timer-face" id="timerFace">25:00</div></div>'
-    +'<p>Одна задача за раз. 25 минут работы — короткий перерыв.</p>'
+    +'<h2>Фокус-таймер</h2>'
+    +'<label class="field focus-task-select"><span>Учитывать время для задачи</span>'
+    +'<select id="focusTaskSelect" '+(focusRunning?'disabled':'')+'><option value="">Без привязки</option>'
+    +selectOptions+'</select></label>'
+    +'<div class="timer-ring"><div class="timer-face" id="timerFace">25:00</div></div>'
+    +'<p>25 минут работы. Каждая полная минута записывается в фактическое время выбранной задачи.</p>'
     +'<div class="timer-actions"><button type="button" class="primary-action" id="timerToggle">'
     +(focusRunning?'Пауза':'Начать')+'</button><button type="button" class="quiet-action" id="timerReset">Сброс</button></div>'
-    +'<p class="focus-timer-note">Реальное время укажи в задаче — оно появится в статистике.</p></div>';
+    +'<p class="focus-timer-note">Останови таймер, чтобы сменить задачу. Незавершённые минуты не округляются вверх.</p></div>';
   refreshTimer();
 }
 function render(){
@@ -654,6 +665,31 @@ async function importData(file){
   }catch(err){notify('Ошибка импорта: '+err.message);}
   finally{$('importFile').value='';}
 }
+
+let focusStartedAt=0,focusCheckpointSeconds=0;
+let focusTaskDate=null;
+function creditFocusTime(){
+  if(!focusRunning||!focusTaskId)return;
+  const elapsed=Math.max(0,Math.floor((Date.now()-focusStartedAt)/1000));
+  const seconds=focusRemainderSeconds+Math.max(0,elapsed-focusCheckpointSeconds);
+  const minutes=Math.floor(seconds/60);
+  focusRemainderSeconds=seconds%60;
+  focusCheckpointSeconds=elapsed;
+  if(!minutes)return;
+  const task=state.tasks.find(t=>t.id===focusTaskId);
+  if(!task)return;
+  if(task.repeat&&task.repeat!=='none'){
+    task.actualByDate=task.actualByDate||{};
+    task.actualByDate[focusTaskDate]=(task.actualByDate[focusTaskDate]||0)+minutes;
+  }else task.actualMinutes=(task.actualMinutes||0)+minutes;
+  save();
+  const summary=$('focusView')?.querySelector('.focus-summary');
+  if(summary&&view==='focus'){
+    const actual=timeStats(dayTasks(focusedDay));
+    const fact=summary.children[2]?.querySelector('strong');
+    if(fact)fact.textContent=actual.measured?formatMinutes(actual.fact):'—';
+  }
+}
 function refreshTimer(){
   if(!$('timerFace'))return;
   const s=focusRemaining;
@@ -663,21 +699,43 @@ function refreshTimer(){
 }
 function timerTick(){
   if(!focusRunning)return;
+  creditFocusTime();
   focusRemaining=Math.max(0,Math.ceil((focusEndsAt-Date.now())/1000));
   refreshTimer();
-  if(focusRemaining===0){focusRunning=false;clearInterval(timerHandle);
+  if(focusRemaining===0){
+    focusRunning=false;clearInterval(timerHandle);focusCarryReset();
     if($('timerToggle'))$('timerToggle').textContent='Начать';
-    notify('Сессия фокуса завершена');}
+    if($('focusTaskSelect'))$('focusTaskSelect').disabled=false;
+    notify('Сессия фокуса завершена; факт сохранён');
+  }
+}
+function focusCarryReset(){
+  focusCheckpointSeconds=0;focusStartedAt=0;focusRemainderSeconds=0;
 }
 function toggleTimer(){
-  if(focusRunning){focusRemaining=Math.max(0,Math.ceil((focusEndsAt-Date.now())/1000));focusRunning=false;clearInterval(timerHandle);}
-  else{if(focusRemaining<=0)focusRemaining=25*60;focusEndsAt=Date.now()+focusRemaining*1000;
-    focusRunning=true;timerHandle=setInterval(timerTick,500);}
+  if(focusRunning){
+    creditFocusTime();
+    focusRemaining=Math.max(0,Math.ceil((focusEndsAt-Date.now())/1000));
+    focusRunning=false;clearInterval(timerHandle);
+  }else{
+    if(focusRemaining<=0)focusRemaining=25*60;
+    focusTaskId=$('focusTaskSelect')?.value||focusTaskId||null;
+    focusTaskDate=focusedDay;
+    focusStartedAt=Date.now();focusCheckpointSeconds=0;
+    focusEndsAt=Date.now()+focusRemaining*1000;
+    focusRunning=true;timerHandle=setInterval(timerTick,500);
+  }
+  if($('focusTaskSelect'))$('focusTaskSelect').disabled=focusRunning;
   if($('timerToggle'))$('timerToggle').textContent=focusRunning?'Пауза':'Начать';
   refreshTimer();
 }
-function resetTimer(){focusRunning=false;clearInterval(timerHandle);focusRemaining=25*60;
-  if($('timerToggle'))$('timerToggle').textContent='Начать';refreshTimer();}
+function resetTimer(){
+  if(focusRunning)creditFocusTime();
+  focusRunning=false;clearInterval(timerHandle);focusRemaining=25*60;focusCarryReset();
+  if($('timerToggle'))$('timerToggle').textContent='Начать';
+  if($('focusTaskSelect'))$('focusTaskSelect').disabled=false;
+  refreshTimer();
+}
 function setupDrag(){
   document.addEventListener('dragstart',event=>{
     const item=event.target.closest('[draggable=true][data-id]');if(!item)return;
