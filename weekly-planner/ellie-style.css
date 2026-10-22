@@ -603,3 +603,14 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   .calendar-viewport .hour-label:nth-child(2n):not(:last-child){display:none}
   .calendar-viewport .hour-label:last-child{display:block;transform:translateY(-50%)}
 }
+
+
+/* Native WebView2 updater is available quietly inside the existing overflow menu. */
+.more-content .menu-separator{height:1px;background:#e7ebf1;margin:5px 6px}
+.more-content .menu-update{color:#405b7a;font-weight:620}
+.more-content .menu-update:disabled{opacity:.6;cursor:progress}
+.more-content .menu-update-status{
+  padding:5px 10px 8px;color:#81909e;line-height:1.5;
+  font-size:10px;white-space:normal;overflow-wrap:anywhere;
+}
+.more-content{width:216px}
