@@ -16,6 +16,11 @@ namespace NedelnikLauncher
         private readonly WebView2 browser;
         private readonly Label message;
         private readonly Button openOldTasks;
+        private readonly Panel notice;
+        private readonly System.Windows.Forms.Timer startupTimer;
+        private bool pageReady;
+        private bool navigationReady;
+        private bool plannerShown;
         private bool checkingUpdates;
         private bool startupUpdateStarted;
         private string updateState = "checking";
@@ -30,6 +35,8 @@ namespace NedelnikLauncher
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(16, 18, 20);
             ShowInTaskbar = true;
+            // Keep the entire native window transparent until the actual UI is ready.
+            Opacity = 0;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
 
@@ -38,13 +45,13 @@ namespace NedelnikLauncher
             browser.Visible = false;
             Controls.Add(browser);
 
-            Panel notice = new Panel();
+            notice = new Panel();
             notice.Dock = DockStyle.Fill;
             notice.BackColor = Color.FromArgb(25, 28, 31);
             Controls.Add(notice);
 
             message = new Label();
-            message.Text = "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0449\u0438\u043a...";
+            message.Text = "";
             message.Dock = DockStyle.Top;
             message.Height = 112;
             message.Padding = new Padding(30, 38, 30, 0);
@@ -69,7 +76,56 @@ namespace NedelnikLauncher
             };
             notice.Controls.Add(openOldTasks);
 
-            Shown += async (sender, args) => { Program.ApplyDarkTitleBar(this); await LoadPlannerAsync(); };
+            startupTimer = new System.Windows.Forms.Timer();
+            startupTimer.Interval = 25000;
+            startupTimer.Tick += (sender, args) =>
+            {
+                startupTimer.Stop();
+                if (!plannerShown)
+                    ShowStartupError("The planner did not finish loading. Please restart the app.");
+            };
+
+            Shown += async (sender, args) =>
+            {
+                Program.ApplyDarkTitleBar(this);
+                startupTimer.Start();
+                await LoadPlannerAsync();
+            };
+        }
+
+        private void RevealPlannerWindow()
+        {
+            if (plannerShown || IsDisposed) return;
+            plannerShown = true;
+            startupTimer.Stop();
+            Opacity = 1;
+            Activate();
+        }
+
+        private void ShowStartupError(string detail)
+        {
+            if (IsDisposed) return;
+            browser.Visible = false;
+            notice.BringToFront();
+            message.Text = "Could not open the planner.\n\n" + detail;
+            message.Height = 220;
+            openOldTasks.Top = 235;
+            openOldTasks.Visible = true;
+            RevealPlannerWindow();
+        }
+
+        private void TryRevealPlanner()
+        {
+            if (plannerShown || !pageReady || !navigationReady || IsDisposed) return;
+            browser.Visible = true;
+            browser.BringToFront();
+            RevealPlannerWindow();
+            if (!startupUpdateStarted)
+            {
+                startupUpdateStarted = true;
+                // Start Git update only after showing a fully rendered planner.
+                CheckUpdatesAsync();
+            }
         }
 
         private void SendUpdateState()
@@ -91,7 +147,13 @@ namespace NedelnikLauncher
                 string expected = new Uri(Program.Page).AbsoluteUri;
                 if (!string.Equals(args.Source, expected, StringComparison.OrdinalIgnoreCase))
                     return;
-                if (args.TryGetWebMessageAsString() == "nedelnik:check-updates")
+                string request = args.TryGetWebMessageAsString();
+                if (request == "nedelnik:ready")
+                {
+                    pageReady = true;
+                    TryRevealPlanner();
+                }
+                else if (request == "nedelnik:check-updates")
                     CheckUpdatesAsync();
             }
             catch { /* Ignore malformed or unrelated messages. */ }
@@ -146,7 +208,6 @@ namespace NedelnikLauncher
             {
                 if (!File.Exists(Program.Page))
                     throw new FileNotFoundException("Planner files are missing. Please run the installer again.", Program.Page);
-                message.Text = "Opening planner...";
 
                 // Reuse the exact same WebView2 profile and localStorage as before.
                 string profile = Path.Combine(Program.Home, "webview-profile");
@@ -161,14 +222,16 @@ namespace NedelnikLauncher
                 browser.CoreWebView2.WebMessageReceived += OnPlannerMessage;
                 browser.CoreWebView2.NavigationCompleted += (sender, args) =>
                 {
-                    if (!args.IsSuccess || IsDisposed) return;
-                    SendUpdateState();
-                    if (!startupUpdateStarted)
+                    if (IsDisposed) return;
+                    if (!args.IsSuccess)
                     {
-                        startupUpdateStarted = true;
-                        // Show the locally installed planner immediately, then update it.
-                        CheckUpdatesAsync();
+                        if (!plannerShown)
+                            ShowStartupError("The offline planner page could not be loaded.");
+                        return;
                     }
+                    navigationReady = true;
+                    SendUpdateState();
+                    TryRevealPlanner();
                 };
 
                 try
@@ -185,11 +248,7 @@ namespace NedelnikLauncher
             }
             catch (Exception error)
             {
-                message.Text = "Could not open the planner. Microsoft Edge WebView2 Runtime may be missing.\n\n"
-                    + error.Message;
-                message.Height = 220;
-                openOldTasks.Top = 235;
-                openOldTasks.Visible = true;
+                ShowStartupError("Microsoft Edge WebView2 Runtime may be missing.\n" + error.Message);
             }
         }
     }
