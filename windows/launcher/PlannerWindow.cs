@@ -92,7 +92,7 @@ namespace NedelnikLauncher
                 if (!string.Equals(args.Source, expected, StringComparison.OrdinalIgnoreCase))
                     return;
                 if (args.TryGetWebMessageAsString() == "nedelnik:check-updates")
-                    _ = CheckUpdatesAsync();
+                    CheckUpdatesAsync();
             }
             catch { /* Ignore malformed or unrelated messages. */ }
         }
@@ -167,7 +167,7 @@ namespace NedelnikLauncher
                     {
                         startupUpdateStarted = true;
                         // Show the locally installed planner immediately, then update it.
-                        _ = CheckUpdatesAsync();
+                        CheckUpdatesAsync();
                     }
                 };
 
