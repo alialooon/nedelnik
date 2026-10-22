@@ -16,9 +16,6 @@ button{cursor:pointer;color:inherit}button:disabled{cursor:not-allowed;opacity:.
 .app-header{height:62px;flex:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--stroke);padding:0 24px 0 19px;background:#fff;gap:20px}
 .identity{display:flex;align-items:center;gap:11px;font-size:17px;letter-spacing:-.4px;white-space:nowrap}
 .identity strong{font-weight:700}
-.identity-icon{display:grid;grid-template-columns:repeat(2,5px);grid-template-rows:repeat(2,5px);place-content:center;gap:3px;width:30px;height:30px;border-radius:9px;background:#22252b}
-.identity-icon i{display:block;width:5px;height:5px;background:#fff;border-radius:2px}
-.identity-icon i:nth-child(2){opacity:.55}.identity-icon i:nth-child(3){opacity:.72}
 .header-actions{display:flex;align-items:center;gap:9px}
 .icon-action{height:34px;min-width:34px;display:inline-grid;place-items:center;border:1px solid var(--stroke);border-radius:9px;background:#fff;font-size:17px}
 .icon-action:hover,.quiet-action:hover,.today-button:hover{background:#f2f4f7}
@@ -175,7 +172,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .app-header{height:64px;padding-inline:22px;background:#fdfefe;border-bottom-color:#e5e9ef}
 .identity{gap:12px;font-size:16px;letter-spacing:-.55px}
 .identity strong{font-weight:720}
-.identity-icon{border-radius:10px;background:#303b4c;width:32px;height:32px}
 .header-actions{gap:8px}
 .header-actions .icon-action,.header-actions .quiet-action,.header-actions .more-menu>summary{
   border-color:#e0e5ec;color:#485568;border-radius:9px;background:#fff;
@@ -637,4 +633,19 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   .calendar-viewport .hour-label:nth-last-child(2){
     display:none;
   }
+}
+
+
+/* iOS-inspired calendar identity — crisp at Windows display scaling. */
+.identity-calendar{
+  display:block;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  flex:0 0 34px;
+  border-radius:9px;
+  filter:drop-shadow(0 2px 5px rgba(41,100,178,.16));
+}
+@media(max-width:650px){
+  .identity-calendar{width:30px;height:30px;min-width:30px;flex-basis:30px}
 }
