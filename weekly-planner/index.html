@@ -93,6 +93,10 @@
       <div class="planner-caption"><span id="viewDescription">Распредели дела по дням недели</span>
         <span class="progress-inline"><span class="inline-progress-track"><i id="inlineProgressFill"></i></span><span id="weekProgress"></span></span>
       </div>
+      <div class="period-strip" id="periodStrip">
+        <span class="period-strip-label" id="periodStripLabel">Планы на неделю и месяц</span>
+        <button type="button" id="openPeriodPlans" class="period-strip-open">Посмотреть <span aria-hidden="true">›</span></button>
+      </div>
       <div class="board-viewport" id="boardView" aria-label="Задачи недели"></div>
       <div class="calendar-viewport" id="calendarView" hidden></div>
       <div class="focus-viewport" id="focusView" hidden></div>
@@ -105,8 +109,17 @@
     <header class="dialog-header"><h2 id="taskDialogTitle">Новая задача</h2><button type="button" class="close-dialog" data-close="taskDialog" aria-label="Закрыть">×</button></header>
     <div class="editor-body">
       <label class="field"><span>Задача</span><input id="editTitle" type="text" maxlength="120" required placeholder="Что нужно сделать?" /></label>
+      <label class="field"><span>Когда выполнить</span>
+        <select id="editScope">
+          <option value="day">В конкретный день</option>
+          <option value="week">В течение недели</option>
+          <option value="month">В течение месяца</option>
+          <option value="inbox">Без даты — в список</option>
+        </select>
+      </label>
+      <p id="scopeHint" class="scope-hint" hidden></p>
       <div class="field-pair">
-        <label class="field"><span>Дата</span><input id="editDate" type="date" /></label>
+        <label class="field" id="editDateField"><span>Дата или период</span><input id="editDate" type="date" /></label>
         <label class="field"><span>Список</span><select id="editCategory">
           <option value="work">Работа</option><option value="study">Учёба</option>
           <option value="personal">Личное</option><option value="sport">Спорт</option>
@@ -178,6 +191,16 @@
 <dialog id="statsDialog" class="panel-dialog">
   <header class="dialog-header"><h2>Аналитика недели</h2><button type="button" class="close-dialog" data-close="statsDialog" aria-label="Закрыть">×</button></header>
   <div class="panel-content" id="statsContent"></div>
+</dialog>
+<dialog id="periodDialog" class="panel-dialog">
+  <header class="dialog-header"><h2>Планы на период</h2><button type="button" class="close-dialog" data-close="periodDialog" aria-label="Закрыть">×</button></header>
+  <div id="periodContent" class="panel-content">
+    <div class="period-actions">
+      <button type="button" id="newWeekPlan">＋ На неделю</button>
+      <button type="button" id="newMonthPlan">＋ На месяц</button>
+    </div>
+    <div id="periodTaskList"></div>
+  </div>
 </dialog>
 <dialog id="trashDialog" class="panel-dialog">
   <header class="dialog-header"><h2>Корзина и резервные копии</h2><button type="button" class="close-dialog" data-close="trashDialog" aria-label="Закрыть">×</button></header>
