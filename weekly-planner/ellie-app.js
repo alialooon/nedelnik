@@ -436,6 +436,21 @@ function chooseDate(date){
 }
 
 function toggleEditorExtras(){
+  const scope=$('editScope').value,period=scope==='week'||scope==='month',inbox=scope==='inbox';
+  if((period||inbox)&&$('editMeasure').value==='interval')$('editMeasure').value='duration';
+  if((period||inbox)&&$('editRepeat').value!=='none')$('editRepeat').value='none';
+  $('editDateField').hidden=inbox;
+  $('editDate').required=period;
+  $('editMeasure').querySelector('option[value="interval"]').disabled=period||inbox;
+  $('editRepeat').disabled=period||inbox;
+  const hint=$('scopeHint'),date=$('editDate').value||focusedDay;
+  hint.hidden=!period;
+  if(period){
+    hint.textContent=scope==='week'
+      ?'Задача на всю неделю: '+weekLabel(periodAnchor(date,'week'))+'. Без назначения конкретного дня.'
+      :'Задача на месяц: '+parseDate(date).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})
+        +'. Без назначения конкретного дня.';
+  }
   const measure=$('editMeasure').value,repeat=$('editRepeat').value;
   $('durationFields').hidden=measure==='count';
   $('countFields').hidden=measure!=='count';
@@ -484,6 +499,7 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
     source==='inbox'?state.inbox.find(t=>t.id===id):null;
   $('taskDialogTitle').textContent=source==='new'?'Новая задача':'Редактирование задачи';
   $('editTitle').value=task?.title||'';
+  $('editScope').value=source==='inbox'?'inbox':task?.scope||'day';
   $('editDate').value=source==='inbox'?'':(task?.repeat!=='none'&&occurrence?occurrence:task?.date||date||focusedDay);
   $('editCategory').value=task?.category||'personal';
   $('editPriority').value=task?.priority||'normal';
@@ -526,7 +542,10 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
 }
 function submitEditor(event){
   event.preventDefault();
-  const title=$('editTitle').value.trim(),date=$('editDate').value;
+  const title=$('editTitle').value.trim(),scopeChoice=$('editScope').value;
+  const scope=scopeChoice==='week'||scopeChoice==='month'?scopeChoice:'day';
+  const rawDate=$('editDate').value;
+  const date=scopeChoice==='inbox'?'':rawDate?periodAnchor(rawDate,scope):'';
   const measureMode=$('editMeasure').value;
   const minutes=minutesFromParts($('editHours').value,$('editMinutes').value);
   const actual=$('editActual').value===''?null:Number($('editActual').value);
@@ -537,6 +556,11 @@ function submitEditor(event){
   const repeatInterval=Number($('editRepeatInterval').value||2);
   const subtasks=collectEditorSubtasks();
   if(!title||Number.isNaN(minutes)){showEditError('Введите название и правильное время.');return;}
+  if((scope==='week'||scope==='month')&&!date){
+    showEditError('Выберите дату нужной недели или месяца.');return;
+  }
+  if(scope!=='day'&&repeat!=='none'){showEditError('Повторение доступно для задач на день.');return;}
+  if(scope!=='day'&&measureMode==='interval'){showEditError('Конкретный час доступен для задач на день.');return;}
   if(measureMode==='count'&&(!Number.isInteger(targetCount)||targetCount<1||targetCount>100000
     ||(actualCount!==null&&(!Number.isInteger(actualCount)||actualCount<0||actualCount>100000)))){
     showEditError('Укажите количество повторений и фактическое число.');return;
@@ -545,7 +569,7 @@ function submitEditor(event){
   if(repeat==='interval'&&(!Number.isInteger(repeatInterval)||repeatInterval<2||repeatInterval>365)){
     showEditError('Укажите период от 2 до 365 дней.');return;
   }
-  const fields={title:title.slice(0,120),date,start:measureMode==='interval'?$('editStart').value:'',
+  const fields={title:title.slice(0,120),date,scope,start:measureMode==='interval'?$('editStart').value:'',
     end:measureMode==='interval'?$('editEnd').value:'',
     plannedMinutes:measureMode==='count'?0:minutes,actualMinutes:actual,
     category:$('editCategory').value,priority:$('editPriority').value,repeat,
@@ -1097,6 +1121,8 @@ function setup(){
   $('templateCreateForm').addEventListener('submit',createTemplate);
   $('cancelTemplateEdit').addEventListener('click',resetTemplateEditor);
   $('editMeasure').addEventListener('change',toggleEditorExtras);
+  $('editScope').addEventListener('change',toggleEditorExtras);
+  $('editDate').addEventListener('change',toggleEditorExtras);
   $('editRepeat').addEventListener('change',toggleEditorExtras);
   $('addSubtask').addEventListener('click',addEditorSubtask);
   $('newSubtask').addEventListener('keydown',event=>{
