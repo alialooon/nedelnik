@@ -474,7 +474,6 @@ function setup(){
   });
   $('newInboxTask').addEventListener('click',()=>$('inboxInput').focus());
   $('inboxToggle').addEventListener('click',()=>{
-    $('workspacePlaceholder')?.remove();
     document.querySelector('.workspace').classList.toggle('inbox-hidden');
   });
   $('prevPeriod').addEventListener('click',()=>{week=addDays(week,-7);focusedDay=week;render();});
