@@ -17,9 +17,9 @@
       <strong>Задачи на неделю</strong>
     </div>
     <div class="header-actions">
-      <button type="button" id="inboxToggle" class="icon-action" title="Показать или скрыть список без даты" aria-label="Панель задач">☰</button>
-      <button type="button" id="openReview" class="quiet-action">Итоги дня</button>
-      <button type="button" id="openStats" class="quiet-action">Аналитика</button>
+      <button type="button" id="inboxToggle" class="icon-action" title="Показать или скрыть список без даты" aria-label="Панель задач" aria-expanded="true" data-ui-icon="panel">☰</button>
+      <button type="button" id="openReview" class="quiet-action" data-ui-icon="checklist">Итоги дня</button>
+      <button type="button" id="openStats" class="quiet-action" data-ui-icon="chart">Аналитика</button>
       <details id="moreMenu" class="more-menu"><summary aria-label="Ещё действия">•••</summary>
         <div class="more-content">
           <button type="button" id="openTemplates">Шаблоны задач</button>
@@ -32,24 +32,29 @@
   </header>
   <div class="work-area">
     <aside id="inboxPanel" class="inbox-panel">
-      <div class="inbox-top"><div><span class="eyebrow">Собери мысли</span><h2>Список без даты <span id="inboxCount">0</span></h2></div><button id="newInboxTask" type="button" class="icon-action" aria-label="Добавить задачу без даты">+</button></div>
-      <p class="inbox-caption">Записывай сейчас, планируй позже.</p>
+      <div class="inbox-top"><div><span class="eyebrow">Планирование</span><h2>Мои задачи <span id="inboxCount">0</span></h2></div><button id="newInboxTask" type="button" class="icon-action" aria-label="Добавить задачу без даты" data-ui-icon="plus">+</button></div>
+      <p class="inbox-caption">Сначала запиши — потом выбери день.</p>
+      <button type="button" class="inbox-today" id="sidebarToday" title="Перейти к задачам на сегодня">
+        <span class="inbox-today-leading"><span class="sidebar-today-glyph" data-ui-icon="calendar">▣</span><span><strong>Сегодня</strong><small id="sidebarTodayDate"></small></span></span>
+        <span class="inbox-today-count" id="sidebarTodayCount">0</span>
+      </button>
+      <div class="inbox-section-heading"><span>БЕЗ ДАТЫ</span><span>Перетащи в календарь</span></div>
       <form id="inboxForm" class="quick-add">
         <input id="inboxInput" maxlength="120" type="text" placeholder="Записать задачу..." aria-label="Новая задача без даты" required />
-        <button type="submit" aria-label="Добавить">+</button>
+        <button type="submit" aria-label="Добавить" data-ui-icon="plus">+</button>
       </form>
       <div id="inboxList" class="inbox-list" aria-live="polite"></div>
       <div class="inbox-bottom">
-        <button type="button" id="openQuickTemplate" class="small-link">Шаблоны для повторения <span>↗</span></button>
-        <span>Перетащи задачу на нужный день →</span>
+        <button type="button" id="openQuickTemplate" class="small-link"><span class="sidebar-template-label"><span data-ui-icon="layers">▤</span> Шаблоны</span><span id="templateCount" class="template-count">0</span></button>
+        <span class="sidebar-bottom-note">Новые шаблоны создаются при сохранении задачи.</span>
       </div>
     </aside>
     <main class="planner">
       <div class="planner-toolbar">
         <div class="date-nav">
-          <button type="button" class="icon-action" id="prevPeriod" aria-label="Предыдущая неделя">‹</button>
+          <button type="button" class="icon-action" id="prevPeriod" aria-label="Предыдущая неделя" data-ui-icon="chevron-left">‹</button>
           <button type="button" class="date-heading" id="periodButton" title="Выбрать дату"><span id="periodTitle">Неделя</span><span class="chevron">⌄</span></button>
-          <button type="button" class="icon-action" id="nextPeriod" aria-label="Следующая неделя">›</button>
+          <button type="button" class="icon-action" id="nextPeriod" aria-label="Следующая неделя" data-ui-icon="chevron-right">›</button>
           <button type="button" class="today-button" id="goToday">Сегодня</button>
           <input type="date" id="jumpDate" aria-label="Выбрать дату для перехода" />
         </div>
@@ -59,7 +64,9 @@
           <button type="button" data-view="focus">Фокус</button>
         </div>
       </div>
-      <div class="planner-caption"><span id="viewDescription">Распредели дела по дням недели</span><span id="weekProgress"></span></div>
+      <div class="planner-caption"><span id="viewDescription">Распредели дела по дням недели</span>
+        <span class="progress-inline"><span class="inline-progress-track"><i id="inlineProgressFill"></i></span><span id="weekProgress"></span></span>
+      </div>
       <div class="board-viewport" id="boardView" aria-label="Задачи недели"></div>
       <div class="calendar-viewport" id="calendarView" hidden></div>
       <div class="focus-viewport" id="focusView" hidden></div>
