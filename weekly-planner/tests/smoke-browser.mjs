@@ -78,23 +78,31 @@ try{
       const normalQuickBorder=getComputedStyle(quickWrapper).borderColor;
       const normalQuickShadow=getComputedStyle(quickWrapper).boxShadow;
       quick.focus();
-      const quickUnchanged=getComputedStyle(quick).outlineStyle==='none'
-        &&getComputedStyle(quick).boxShadow==='none'
-        &&getComputedStyle(quickWrapper).borderColor===normalQuickBorder
-        &&getComputedStyle(quickWrapper).boxShadow===normalQuickShadow;
+      const quickAfter=getComputedStyle(quick),wrapAfter=getComputedStyle(quickWrapper);
+      const quickUnchanged=quickAfter.outlineStyle==='none'
+        &&quickAfter.boxShadow==='none'
+        &&wrapAfter.borderColor===normalQuickBorder
+        &&wrapAfter.boxShadow===normalQuickShadow;
       document.querySelector('[data-action="add-day"]').click();
       const controls=['editTitle','editDate','editHours','editMinutes','editStart',
         'editEnd','editActual','editCategory','editNotes'];
-      const neutral=controls.every(id=>{
+      const focusProblems=[];
+      const neutral=controls.map(id=>{
         const element=document.getElementById(id);
         element.blur();
-        const normal=getComputedStyle(element),baseBorder=normal.borderColor;
-        const baseBackground=normal.backgroundColor;
+        const normal=getComputedStyle(element),baseBorder=normal.borderColor,baseBg=normal.backgroundColor;
         element.focus();
         const active=getComputedStyle(element);
-        return active.outlineStyle==='none'&&active.boxShadow==='none'
-          &&active.borderColor===baseBorder&&active.backgroundColor===baseBackground;
-      });
+        const good=active.outlineStyle==='none'&&active.boxShadow==='none'
+          &&active.borderColor===baseBorder&&active.backgroundColor===baseBg;
+        if(!good)focusProblems.push(id+': outline='+active.outlineStyle+',shadow='+active.boxShadow
+          +',border='+baseBorder+'->'+active.borderColor+',bg='+baseBg+'->'+active.backgroundColor);
+        return good;
+      }).every(Boolean);
+      if(!quickUnchanged)focusProblems.push('quick: outline='+quickAfter.outlineStyle
+        +',shadow='+quickAfter.boxShadow+',border='+normalQuickBorder+'->'+wrapAfter.borderColor
+        +',wrapperShadow='+normalQuickShadow+'->'+wrapAfter.boxShadow);
+      document.body.dataset.probeFocusDetails=JSON.stringify(focusProblems);
       document.body.dataset.probeNeutralFocus=neutral&&quickUnchanged?'pass':'fail';
       document.querySelector('#editTitle').value='Тест шаблона';
       document.querySelector('#saveTemplate').checked=true;
