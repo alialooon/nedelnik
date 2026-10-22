@@ -81,18 +81,18 @@ function moveToTrash(kind,value){
   state.trash=state.trash.filter(v=>Date.now()-v.deletedAt<30*86400000).slice(-300);
 }
 function maybeCarryOverdue(){
-  if(!state.settings?.autoCarry)return;
+  if(!state.settings?.autoCarry)return 0;
   const date=today();
   const overdue=state.tasks.filter(t=>(!t.repeat||t.repeat==='none')&&t.date<date
     &&(t.status||'todo')!=='done'&&t.completed!==true);
-  if(!overdue.length)return;
+  if(!overdue.length)return 0;
   state.rolloverLog=state.rolloverLog||[];
   for(const task of overdue){
     state.rolloverLog.push({id:task.id,from:task.date,to:date,title:task.title});
     task.date=date;
   }
   state.rolloverLog=state.rolloverLog.slice(-2000);
-  save();
+  save();return overdue.length;
 }
 function notify(text){
   clearTimeout(toastTimeout);
@@ -1053,7 +1053,7 @@ function setup(){
   $('inboxToggle').setAttribute('aria-expanded',String(!savedUI.inboxHidden));
   decorateIcons();
   window.addEventListener('resize',()=>{if(view==='calendar')renderCalendar();});
-  window.addEventListener('focus',()=>{maybeCarryOverdue();});
+  window.addEventListener('focus',()=>{if(maybeCarryOverdue())render();});
   maybeCarryOverdue();
   render();
   if(recoveredFromBackup)notify('Данные восстановлены из последней локальной копии. Рекомендуется экспорт JSON.');
