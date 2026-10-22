@@ -545,7 +545,6 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   overflow:hidden;
 }
 .calendar-viewport .hour-label{
-  transform:translateY(2px);
   font-size:10px;
   line-height:12px;
 }
@@ -583,7 +582,7 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 @media(max-height:650px){
   .calendar-viewport .timeline-head{height:31px;flex-basis:31px}
   .calendar-viewport .timeline-head div{padding:7px 2px}
-  .calendar-viewport .hour-label{font-size:9px;line-height:10px;transform:translateY(1px)}
+  .calendar-viewport .hour-label{font-size:9px;line-height:10px}
   .calendar-viewport .calendar-unscheduled{font-size:9px;min-height:20px;max-height:22px}
 }
 /* A single thin active field border replaces the thick multi-layer focus ring. */
@@ -601,13 +600,7 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 }
 
 
-/* Keep the first and last hour labels inside very short windows. */
-.calendar-viewport .hour-label:last-child{transform:translateY(-50%)}
-@media(max-height:700px){
-  .calendar-viewport .hour-label{font-size:9px;line-height:10px}
-  .calendar-viewport .hour-label:nth-child(2n):not(:last-child){display:none}
-  .calendar-viewport .hour-label:last-child{display:block;transform:translateY(-50%)}
-}
+
 
 
 /* Native WebView2 updater is available quietly inside the existing overflow menu. */
@@ -623,24 +616,28 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 
 
 
-/* Align every hour to its grid line; keep 00:00 and 23:00 in bounds. */
-.calendar-viewport .hour-label,
-.calendar-viewport .hour-label:last-child{
-  transform:translateY(-50%);
+/* Center each of 24 hour captions inside its hour row, including 00:00 and 23:00. */
+.calendar-viewport .hour-labels{
+  width:100%;
 }
-.calendar-viewport .hour-label:first-child{
-  transform:translateY(1px);
+.calendar-viewport .hour-label{
+  display:block;
+  top:auto;
+  transform:translateY(-50%);
+  box-sizing:border-box;
+  width:100%;
+  padding:0 8px 0 0;
+  text-align:right;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";
+  font-size:10px;
+  line-height:1;
 }
 @media(max-height:700px){
-  .calendar-viewport .hour-label,
-  .calendar-viewport .hour-label:last-child{
-    transform:translateY(-50%);
-  }
-  .calendar-viewport .hour-label:first-child{
-    transform:translateY(1px);
-  }
-  .calendar-viewport .hour-label:nth-last-child(2){
-    display:none;
+  .calendar-viewport .hour-label{
+    font-size:9px;
+    line-height:1;
   }
 }
 
@@ -1237,6 +1234,53 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
 .planner .task-tile.priority-high{border-left:3px solid #df788f}
 .planner .task-tile.priority-low{border-left:3px solid #83c4a8}
 
+
+/* Text-entry focus is visually neutral everywhere, including the quick-add wrapper.
+   The visible caret still signals typing; buttons retain their keyboard focus ring. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+       textarea,select):is(:focus,:focus-visible){
+  outline:none!important;
+  outline-offset:0!important;
+  box-shadow:none!important;
+  transition:none;
+}
+.inbox-panel .quick-add:focus-within{
+  border-color:#d5e1f1;
+  box-shadow:0 2px 10px rgba(75,121,192,.052);
+}
+.quick-add input:is(:focus,:focus-visible){
+  border:0;
+  outline:none!important;
+  box-shadow:none!important;
+}
+dialog .field input:is(:focus,:focus-visible),
+dialog .field textarea:is(:focus,:focus-visible),
+dialog .field select:is(:focus,:focus-visible){
+  border-color:#d8e3f1!important;
+  background:#fcfdff;
+}
+#focusDate:is(:focus,:focus-visible){border-color:#dbe3ec!important}
+#jumpDate:is(:focus,:focus-visible){border-color:#d9e5f4!important}
+
+/* Templates: a discreet trash action that never affects scheduled tasks. */
+.template-row{gap:10px;border-color:#e1eaf5;border-radius:11px;background:#fbfdff}
+.template-row strong{min-width:0;overflow-wrap:anywhere;color:#374b66}
+.template-row .template-add{
+  flex:none;border:1px solid #dce7f4;border-radius:9px;
+  background:#fff;color:#4f79b1;padding:7px 9px;white-space:nowrap;
+}
+.template-row .template-add:hover{border-color:#b6cef0;background:#eef6ff}
+.template-row .template-delete{
+  display:inline-grid;place-items:center;flex:none;
+  width:32px;height:32px;padding:0;
+  border:1px solid transparent;border-radius:9px;
+  background:transparent;color:#a2acb9;
+}
+.template-row .template-delete .ui-icon{width:16px;height:16px}
+.template-row .template-delete:hover{
+  color:#bd5765;background:#fff0f1;border-color:#f1d6d9;
+}
+
   </style>
 </head>
 <body>
@@ -1688,7 +1732,8 @@ const ICON_PATHS={
   'checklist':'<path d="m3 7 2 2 4-4M12 7h9M3 17l2 2 4-4m3 2h9"/>',
   'chart':'<path d="M4 20V12M10 20V4M16 20v-9M22 20v-6"/>',
   'chevron-left':'<path d="m15 18-6-6 6-6"/>',
-  'chevron-right':'<path d="m9 18 6-6-6-6"/>'
+  'chevron-right':'<path d="m9 18 6-6-6-6"/>',
+  'trash':'<path d="M4 6h16m-10 0V4h4v2m4 0-1 14H7L6 6m4 4v7m4-7v7"/>'
 };
 function icon(name){
   return '<svg class="ui-icon" width="17" height="17" viewBox="0 0 24 24" fill="none"'
@@ -1782,8 +1827,9 @@ function renderCalendar(){
     +Array.from({length:7},(_,i)=>'<div class="'+(addDays(week,i)===today()?'is-current':'')
     +'">'+shortDays[i]+' '+parseDate(addDays(week,i)).getDate()+'</div>').join('')
     +'</div>';
+  // Center each hour caption between its two horizontal grid lines, including 00:00 and 23:00.
   const labels='<div class="hour-labels">'+Array.from({length:24},(_,i)=>
-    '<span class="hour-label" style="top:'+percent(i*60)+'%">'+String(i).padStart(2,'0')+':00</span>').join('')+'</div>';
+    '<span class="hour-label" style="top:'+percent(i*60+30)+'%">'+String(i).padStart(2,'0')+':00</span>').join('')+'</div>';
   const now=new Date(),nowMins=now.getHours()*60+now.getMinutes();
   const columns=Array.from({length:7},(_,i)=>{
     const date=addDays(week,i),isToday=date===today();
@@ -2077,12 +2123,27 @@ function openAnalytics(){
     }).join('');
   openDialog('statsDialog');
 }
-function openTemplates(){
+function renderTemplates(){
   $('templateContent').innerHTML=state.templates.length?state.templates.map(t=>
     '<div class="template-row"><strong>'+escapeHTML(t.title)+'</strong><small>'+duration(planned(t))+'</small>'
-    +'<button type="button" data-template="'+escapeHTML(t.id)+'">В список</button></div>').join('')
-    :'<p class="inbox-empty">Сохраните задачу как шаблон в форме редактирования.</p>';
+    +'<button type="button" class="template-add" data-template="'+escapeHTML(t.id)+'">В список</button>'
+    +'<button type="button" class="template-delete" data-template-delete="'+escapeHTML(t.id)
+    +'" aria-label="Удалить шаблон '+escapeHTML(t.title)+'" title="Удалить шаблон">'+icon('trash')+'</button></div>').join('')
+    :'<p class="inbox-empty">Пока нет шаблонов. Сохраните задачу как шаблон при редактировании.</p>';
+}
+function openTemplates(){
+  renderTemplates();
   openDialog('templateDialog');
+}
+function deleteTemplate(id){
+  const template=state.templates.find(t=>t.id===id);
+  if(!template)return;
+  if(!confirm('Удалить шаблон «'+template.title+'»? Уже добавленные задачи останутся в расписании.'))return;
+  state.templates=state.templates.filter(t=>t.id!==id);
+  save();
+  render();
+  renderTemplates();
+  notify('Шаблон удалён');
 }
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json;charset=utf-8'});
@@ -2175,6 +2236,11 @@ function setupClick(){
       return;
     }
     if(event.target.closest('[data-close]'))closeDialog(event.target.closest('[data-close]').dataset.close);
+    const deleteButton=event.target.closest('[data-template-delete]');
+    if(deleteButton){
+      deleteTemplate(deleteButton.dataset.templateDelete);
+      return;
+    }
     if(event.target.closest('[data-template]')){
       const tpl=state.templates.find(t=>t.id===event.target.closest('[data-template]').dataset.template);
       if(tpl){state.inbox.push({id:uid(),title:tpl.title,plannedMinutes:tpl.plannedMinutes,
