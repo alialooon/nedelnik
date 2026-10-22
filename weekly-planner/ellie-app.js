@@ -480,7 +480,31 @@ function renderTemplates(){
 }
 function openTemplates(){
   renderTemplates();
+  $('templateCreateForm').reset();
   openDialog('templateDialog');
+}
+function createTemplate(event){
+  event.preventDefault();
+  const title=$('templateNewTitle').value.trim();
+  const minsText=$('templateNewMinutes').value.trim();
+  const plannedMinutes=Number(minsText);
+  const category=$('templateNewCategory').value;
+  if(!title||title.length>120){notify('Введите название задачи до 120 символов');return;}
+  if(!minsText||!Number.isInteger(plannedMinutes)||plannedMinutes<0||plannedMinutes>1440){
+    notify('Укажите время от 0 до 1440 минут');return;
+  }
+  if(!CATEGORIES[category]){notify('Выберите категорию');return;}
+  if(state.templates.length>=2000){notify('Достигнут лимит шаблонов');return;}
+  if(state.templates.some(t=>t.title.toLocaleLowerCase('ru-RU')===title.toLocaleLowerCase('ru-RU'))){
+    notify('Шаблон с таким названием уже существует');return;
+  }
+  state.templates.push({id:uid(),title,plannedMinutes,category,priority:'normal',notes:''});
+  save();
+  render();
+  renderTemplates();
+  $('templateCreateForm').reset();
+  $('templateNewTitle').focus();
+  notify('Шаблон создан');
 }
 function deleteTemplate(id){
   const template=state.templates.find(t=>t.id===id);
@@ -676,6 +700,7 @@ function setup(){
   $('openStats').addEventListener('click',openAnalytics);
   $('openTemplates').addEventListener('click',openTemplates);
   $('openQuickTemplate').addEventListener('click',openTemplates);
+  $('templateCreateForm').addEventListener('submit',createTemplate);
   $('exportButton').addEventListener('click',()=>{$('moreMenu').open=false;exportData();});
   $('importButton').addEventListener('click',()=>{$('moreMenu').open=false;$('importFile').click();});
   $('importFile').addEventListener('change',e=>importData(e.target.files?.[0]));
