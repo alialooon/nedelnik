@@ -22,7 +22,7 @@ test('Main view has Ellie-like Brain Dump, week board, Timebox and focus',()=>{
 });
 test('All referenced static IDs exist in the new shell',()=>{
   const used=[...app.matchAll(/\$\('([A-Za-z][A-Za-z0-9]*)'\)/g)].map(m=>m[1]);
-  const generated=new Set(['timerFace','timerToggle','focusTaskSelect']);
+  const generated=new Set(['timerFace','timerToggle','focusTaskSelect','focusDurationPreset','focusCustomMinutes','focusCustomLabel']);
   for(const id of new Set(used))assert.ok(page.includes('id="'+id+'"')
     || generated.has(id)&&app.includes('id="'+id+'"'),'Missing '+id);
 });
@@ -218,4 +218,30 @@ test('Templates can be created directly inside the templates dialog',()=>{
   assert.match(css,/\.template-create-form\{/);
   assert.match(css,/\.template-create-options\{/);
   assert.match(css,/\.template-create-form input:is\(:focus,:focus-visible\)/);
+});
+
+test('Focus timer offers persistent presets and safely bounded custom minutes',()=>{
+  assert.match(app,/focusMinutes:Number\.isInteger\(raw\.focusMinutes\)/);
+  assert.match(app,/focusMinutes:focusDurationMinutes/);
+  assert.match(app,/function setFocusDuration\(minutes\)/);
+  assert.match(app,/focusRemaining=focusDurationMinutes\*60/);
+  assert.match(app,/s\/\(focusDurationMinutes\*60\)\*100/);
+  assert.match(app,/id="focusDurationPreset"/);
+  assert.match(app,/id="focusCustomMinutes"/);
+  assert.match(css,/\.focus-duration-controls/);
+});
+test('Week/month goals have dedicated drawer, editor scope and no daily-grid duplication',()=>{
+  for(const id of ['periodStrip','periodStripLabel','openPeriodPlans','periodDialog',
+    'periodContent','periodTaskList','newWeekPlan','newMonthPlan','editScope','scopeHint']){
+    assert.match(page,new RegExp('id="'+id+'"'));
+  }
+  assert.match(app,/function renderPeriodPlans\(/);
+  assert.match(app,/function renderPeriodDialog\(/);
+  assert.match(app,/periodTasksForWeek\(state\.tasks,week\)/);
+  assert.match(app,/periodTasksForMonth\(state\.tasks,week\)/);
+  assert.match(app,/data-action="period-status"/);
+  assert.match(app,/data-action="period-schedule"/);
+  assert.match(app,/const date=scopeChoice==='inbox'\?''/);
+  assert.match(css,/\.period-strip/);
+  assert.match(css,/\.period-item/);
 });
