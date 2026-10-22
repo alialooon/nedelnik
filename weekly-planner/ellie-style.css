@@ -1415,3 +1415,15 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
  .template-row strong{flex-basis:100%}
  .template-create-options{grid-template-columns:minmax(0,1fr) 95px}
 }
+
+/* Subtasks stay visually secondary inside the compact day columns. */
+.planner .task-tile:has(.task-subtasks){flex-wrap:wrap}
+.task-subtasks{display:grid;flex:1 1 100%;gap:5px;margin:6px 0 3px 23px;min-width:0}
+.task-subtask{display:flex;align-items:center;gap:5px;font-size:10px;color:#7487a2;
+  min-width:0;cursor:pointer;line-height:1.35}
+.task-subtask input{width:14px;height:14px;flex:none;accent-color:#599acf;cursor:pointer}
+.task-subtask span{overflow-wrap:anywhere;min-width:0}
+.task-subtask:has(input:checked) span{text-decoration:line-through;color:#a5afbc}
+.history-row{display:flex;gap:8px;align-items:baseline;justify-content:space-between;
+  padding:8px 5px;border-bottom:1px solid #e9eef5;color:#8497ae;font-size:10px}
+.history-row strong{color:#4b6280;font-size:11px;font-weight:625}
