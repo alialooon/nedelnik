@@ -202,3 +202,20 @@ test('Typing never adds a highlight to text, date, time or notes fields',()=>{
   assert.match(css,/#focusDate:is\(:focus,:focus-visible\)/);
   assert.match(css,/#jumpDate:is\(:focus,:focus-visible\)/);
 });
+
+
+test('Templates can be created directly inside the templates dialog',()=>{
+  for(const id of ['templateDialog','templateCreateForm','templateNewTitle','templateNewCategory',
+    'templateNewMinutes','templateContent'])
+    assert.match(page,new RegExp('id="'+id+'"'));
+  assert.match(page,/<form id="templateCreateForm"/);
+  assert.match(page,/<button type="submit" class="template-create-button"/);
+  assert.match(app,/function createTemplate\(event\)/);
+  assert.match(app,/templateCreateForm'\)\.addEventListener\('submit',createTemplate\)/);
+  assert.match(app,/state\.templates\.push\(\{id:uid\(\),title,plannedMinutes,category,priority:'normal',notes:''\}\)/);
+  assert.match(app,/renderTemplates\(\)/);
+  assert.match(app,/templateCreateForm'\)\.reset\(\)/);
+  assert.match(css,/\.template-create-form\{/);
+  assert.match(css,/\.template-create-options\{/);
+  assert.match(css,/\.template-create-form input:is\(:focus,:focus-visible\)/);
+});
