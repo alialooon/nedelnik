@@ -1437,6 +1437,77 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
   padding:8px 5px;border-bottom:1px solid #e9eef5;color:#8497ae;font-size:10px}
 .history-row strong{color:#4b6280;font-size:11px;font-weight:625}
 
+
+/* Week/month goals: one compact entry point, never part of a day's hourly grid. */
+.period-strip{
+  display:flex;align-items:center;gap:9px;flex:none;min-height:35px;
+  margin:-3px 0 9px;padding:6px 11px;
+  background:rgba(255,255,255,.72);border:1px solid #e0e9f5;
+  border-radius:11px;box-shadow:0 2px 7px rgba(53,98,161,.03);
+  color:#8193aa;font-size:11px;min-width:0;
+}
+.period-strip-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.period-strip-open{
+  flex:none;border:0;background:transparent;color:#517fb5;
+  font-weight:650;font-size:11px;padding:4px 5px;border-radius:7px;
+}
+.period-strip-open:hover{background:#eaf3ff;color:#2b6fc1}
+.period-strip-open span{font-size:16px;margin-left:4px;vertical-align:-1px}
+.scope-hint{margin:-2px 0 2px;color:#7891b3;font-size:11px;line-height:1.4}
+#periodDialog .panel-content{max-height:min(66vh,620px);overflow-y:auto;overscroll-behavior:contain}
+.period-actions{display:flex;gap:8px;margin-bottom:15px}
+.period-actions button{
+  border:1px solid #cbdcf2;border-radius:10px;padding:8px 13px;
+  background:linear-gradient(155deg,#fff,#f1f7ff);color:#4c7eaf;
+  font-weight:650;font-size:11px;
+}
+.period-actions button:hover{background:#e8f2ff;border-color:#aac7ed}
+.period-group{margin:0 0 18px}
+.period-group h3{font-size:12px;color:#617c9e;margin:7px 0 9px}
+.period-empty{font-size:11px;color:#9cabc0;padding:12px 8px;margin:0}
+.period-item{display:flex;align-items:center;gap:9px;padding:10px 8px;
+  border:1px solid #e0e9f6;border-radius:12px;background:#fafcff;margin-bottom:7px}
+.period-item.period-done{opacity:.64}
+.period-main{min-width:0;flex:1;display:grid;gap:4px}
+.period-main strong{font-size:12px;font-weight:645;color:#344f72;overflow-wrap:anywhere}
+.period-main small{font-size:10px;color:#8499af}
+.period-check{height:20px;width:20px;flex:none;border:1.5px solid #afc4e1;
+  color:#fff;background:#fff;border-radius:7px;display:grid;place-items:center}
+.period-done .period-check{background:#5db390;border-color:#5db390}
+.period-inline-action{font-size:10px;flex:none;border:1px solid transparent;
+  color:#688ab4;background:transparent;border-radius:8px;padding:7px 6px}
+.period-inline-action:hover{border-color:#d5e4f7;background:#eff6ff;color:#3977c4}
+.focus-duration-controls{display:flex;justify-content:center;align-items:end;gap:7px;
+  flex-wrap:wrap;margin:3px 0 8px;width:min(100%,310px)}
+.focus-duration-controls .field{flex:1 1 115px;max-width:170px;text-align:left;
+  color:#6c84a2;font-size:11px}
+.focus-duration-controls select,
+.focus-duration-controls input{
+  box-sizing:border-box;width:100%;min-height:33px;border:1px solid #d8e3f1;
+  border-radius:10px;padding:7px 9px;color:#486587;background:#fff;
+  box-shadow:none;font-size:12px
+}
+.focus-duration-controls :is(select,input):is(:focus,:focus-visible){
+  border-color:#d8e3f1!important;box-shadow:none!important;outline:none!important;
+}
+.focus-timer .timer-ring{height:clamp(125px,22vh,192px);
+  width:clamp(125px,22vh,192px);margin:3px auto 8px}
+.focus-timer{gap:5px}
+.focus-timer .timer-face{font-size:clamp(32px,4vw,53px)}
+.focus-timer>p{font-size:11px;line-height:1.45;margin:4px 0 7px}
+@media(max-width:600px){
+ .period-item{flex-wrap:wrap}
+ .period-main{min-width:110px}
+ .period-inline-action{flex-grow:1}
+ .period-strip{font-size:10px;padding-inline:8px}
+}
+@media(max-height:650px){
+ .focus-timer .timer-ring{width:110px;height:110px}
+ .focus-duration-controls{margin:0}
+ .focus-timer>p{font-size:10px;margin:2px 0}
+ .period-strip{min-height:29px;margin-bottom:6px;padding-block:4px}
+}
+
   </style>
 </head>
 <body>
@@ -1523,6 +1594,10 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
       <div class="planner-caption"><span id="viewDescription">Распредели дела по дням недели</span>
         <span class="progress-inline"><span class="inline-progress-track"><i id="inlineProgressFill"></i></span><span id="weekProgress"></span></span>
       </div>
+      <div class="period-strip" id="periodStrip">
+        <span class="period-strip-label" id="periodStripLabel">Планы на неделю и месяц</span>
+        <button type="button" id="openPeriodPlans" class="period-strip-open">Посмотреть <span aria-hidden="true">›</span></button>
+      </div>
       <div class="board-viewport" id="boardView" aria-label="Задачи недели"></div>
       <div class="calendar-viewport" id="calendarView" hidden></div>
       <div class="focus-viewport" id="focusView" hidden></div>
@@ -1535,8 +1610,17 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
     <header class="dialog-header"><h2 id="taskDialogTitle">Новая задача</h2><button type="button" class="close-dialog" data-close="taskDialog" aria-label="Закрыть">×</button></header>
     <div class="editor-body">
       <label class="field"><span>Задача</span><input id="editTitle" type="text" maxlength="120" required placeholder="Что нужно сделать?" /></label>
+      <label class="field"><span>Когда выполнить</span>
+        <select id="editScope">
+          <option value="day">В конкретный день</option>
+          <option value="week">В течение недели</option>
+          <option value="month">В течение месяца</option>
+          <option value="inbox">Без даты — в список</option>
+        </select>
+      </label>
+      <p id="scopeHint" class="scope-hint" hidden></p>
       <div class="field-pair">
-        <label class="field"><span>Дата</span><input id="editDate" type="date" /></label>
+        <label class="field" id="editDateField"><span>Дата или период</span><input id="editDate" type="date" /></label>
         <label class="field"><span>Список</span><select id="editCategory">
           <option value="work">Работа</option><option value="study">Учёба</option>
           <option value="personal">Личное</option><option value="sport">Спорт</option>
@@ -1609,6 +1693,16 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
   <header class="dialog-header"><h2>Аналитика недели</h2><button type="button" class="close-dialog" data-close="statsDialog" aria-label="Закрыть">×</button></header>
   <div class="panel-content" id="statsContent"></div>
 </dialog>
+<dialog id="periodDialog" class="panel-dialog">
+  <header class="dialog-header"><h2>Планы на период</h2><button type="button" class="close-dialog" data-close="periodDialog" aria-label="Закрыть">×</button></header>
+  <div id="periodContent" class="panel-content">
+    <div class="period-actions">
+      <button type="button" id="newWeekPlan">＋ На неделю</button>
+      <button type="button" id="newMonthPlan">＋ На месяц</button>
+    </div>
+    <div id="periodTaskList"></div>
+  </div>
+</dialog>
 <dialog id="trashDialog" class="panel-dialog">
   <header class="dialog-header"><h2>Корзина и резервные копии</h2><button type="button" class="close-dialog" data-close="trashDialog" aria-label="Закрыть">×</button></header>
   <div id="trashContent" class="panel-content"></div>
@@ -1671,6 +1765,27 @@ function startOfWeek(iso) {
   if (!d) throw new Error('Некорректная дата');
   return addDays(iso,-((d.getDay()+6)%7));
 }
+function periodAnchor(date,scope='day') {
+  if(!parseDate(date))return null;
+  if(scope==='week')return startOfWeek(date);
+  if(scope==='month')return date.slice(0,7)+'-01';
+  return date;
+}
+function periodTasksForWeek(tasks,monday) {
+  if(!parseDate(monday)||startOfWeek(monday)!==monday)return [];
+  const month=periodAnchor(monday,'month');
+  return tasks.filter(t=>(t.scope==='week'&&t.date===monday)
+    ||(t.scope==='month'&&t.date===month))
+    .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}))
+    .sort((a,b)=>(a.scope==='week'?0:1)-(b.scope==='week'?0:1)
+      ||a.title.localeCompare(b.title));
+}
+function periodTasksForMonth(tasks,iso) {
+  const month=periodAnchor(iso,'month');if(!month)return [];
+  return tasks.filter(t=>(t.scope==='month'&&t.date===month)
+    ||(t.scope==='week'&&t.date.slice(0,7)===month))
+    .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}));
+}
 function timeMinutes(time) {
   if (!TIME_PATTERN.test(time || '')) return NaN;
   const [h,m] = time.split(':').map(Number);
@@ -1700,6 +1815,12 @@ function validateTask(task) {
   if (!task || typeof task.title !== 'string' || !task.title.trim()) return 'Укажите название дела.';
   if (task.title.trim().length>120) return 'Название слишком длинное.';
   if (!parseDate(task.date)) return 'Выберите правильную дату.';
+  if (task.scope && !['day','week','month'].includes(task.scope)) return 'Выберите срок выполнения.';
+  if (['week','month'].includes(task.scope)) {
+    if(task.date!==periodAnchor(task.date,task.scope))return 'Неверно указан период выполнения.';
+    if(task.repeat&&task.repeat!=='none')return 'Повторение доступно только для задач на день.';
+    if(task.start||task.end||task.measureMode==='interval')return 'Конкретный час доступен только для задач на день.';
+  }
   if (task.start && Number.isNaN(timeMinutes(task.start))) return 'Укажите правильное время начала.';
   if (task.end && (Number.isNaN(timeMinutes(task.end)) || !task.start)) return 'Неверное время окончания.';
   if (task.start && task.end && timeMinutes(task.end)<=timeMinutes(task.start)) return 'Время окончания должно быть позже начала.';
@@ -1738,6 +1859,7 @@ function repeatsOn(task,date) {
 function occurrencesForWeek(tasks,monday) {
   const sunday=addDays(monday,6),results=[];
   for(const task of tasks) {
+    if(task.scope==='week'||task.scope==='month')continue;
     if(task.repeat && task.repeat!=='none') {
       for(let i=0;i<7;i++){
         const date=addDays(monday,i);
@@ -1775,7 +1897,7 @@ function timeStats(occurrences) {
     timeRatio:plan>0&&measured>0?Math.round(fact/plan*100):null};
 }
 function createFromTemplate(template,date,id) {
-  return {id,title:template.title,date,start:'',end:'',plannedMinutes:template.plannedMinutes??0,
+  return {id,title:template.title,date,scope:'day',start:'',end:'',plannedMinutes:template.plannedMinutes??0,
     actualMinutes:null,actualByDate:{},category:template.category||'other',
     priority:template.priority||'normal',repeat:'none',notes:template.notes||'',completed:false,
     status:'todo',statusByDate:{},completedDates:[],repeatDays:[],repeatInterval:2,
@@ -1881,7 +2003,7 @@ function sanitizeBackup(value) {
     const t={
       id:typeof task?.id==='string'&&task.id.length<150&&task.id&&!ids.has(task.id)?task.id:'imported-'+index+'-'+Date.now(),
       title:typeof task?.title==='string'?task.title.slice(0,121).trim():'',
-      date:task?.date,start,end,plannedMinutes:task?.plannedMinutes??legacyMinutes,
+      date:task?.date,scope:task?.scope??'day',start,end,plannedMinutes:task?.plannedMinutes??legacyMinutes,
       actualMinutes:task?.actualMinutes??null,actualByDate:sanitizedActualByDate(task?.actualByDate),
       measureMode:task?.measureMode??(start&&end?'interval':'duration'),
       targetCount:task?.targetCount??null,actualCount:task?.actualCount??null,
@@ -1925,7 +2047,7 @@ const shortDays=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const escapeHTML=text=>String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||'task-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 function loadUIPrefs() {
-  const fallback={week:startOfWeek(today()),focusedDay:today(),view:'board',inboxHidden:false};
+  const fallback={week:startOfWeek(today()),focusedDay:today(),view:'board',inboxHidden:false,focusMinutes:25};
   try {
     const raw=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
     if(!raw || typeof raw!=='object')return fallback;
@@ -1933,7 +2055,8 @@ function loadUIPrefs() {
       week:parseDate(raw.week)?startOfWeek(raw.week):fallback.week,
       focusedDay:parseDate(raw.focusedDay)?raw.focusedDay:fallback.focusedDay,
       view:['board','calendar','focus'].includes(raw.view)?raw.view:'board',
-      inboxHidden:raw.inboxHidden===true
+      inboxHidden:raw.inboxHidden===true,
+      focusMinutes:Number.isInteger(raw.focusMinutes)&&raw.focusMinutes>=1&&raw.focusMinutes<=240?raw.focusMinutes:25
     };
   } catch{return fallback;}
 }
@@ -1941,7 +2064,7 @@ const savedUI=loadUIPrefs();
 function saveUIPrefs() {
   try {
     localStorage.setItem(UI_KEY,JSON.stringify({
-      week,focusedDay,view,
+      week,focusedDay,view,focusMinutes:focusDurationMinutes,
       inboxHidden:document.querySelector('.workspace')?.classList.contains('inbox-hidden')===true
     }));
   }catch(error){console.warn('Не удалось сохранить настройки окна',error);}
@@ -1949,7 +2072,8 @@ function saveUIPrefs() {
 let recoveredFromBackup=false;
 let state=load(),week=savedUI.week,focusedDay=savedUI.focusedDay,view=savedUI.view,editor=null;
 let focusTaskId=null,focusTrackedSeconds=0,focusRemainderSeconds=0,statsScope='week';
-let dragItem=null,toastTimeout=null,focusRemaining=25*60,focusRunning=false,focusEndsAt=0,timerHandle=null;
+let focusDurationMinutes=savedUI.focusMinutes;
+let dragItem=null,toastTimeout=null,focusRemaining=focusDurationMinutes*60,focusRunning=false,focusEndsAt=0,timerHandle=null;
 
 function load() {
   try {
@@ -1997,7 +2121,7 @@ function moveToTrash(kind,value){
 function maybeCarryOverdue(){
   if(!state.settings?.autoCarry)return 0;
   const date=today();
-  const overdue=state.tasks.filter(t=>(!t.repeat||t.repeat==='none')&&t.date<date
+  const overdue=state.tasks.filter(t=>(!t.scope||t.scope==='day')&&(!t.repeat||t.repeat==='none')&&t.date<date
     &&(t.status||'todo')!=='done'&&t.completed!==true);
   if(!overdue.length)return 0;
   state.rolloverLog=state.rolloverLog||[];
@@ -2128,6 +2252,39 @@ function renderBoard(){
       +'</section>';
   }).join('');
 }
+function renderPeriodPlans(){
+  const entries=periodTasksForWeek(state.tasks,week);
+  const w=entries.filter(t=>t.scope==='week'),m=entries.filter(t=>t.scope==='month');
+  const unfinished=entries.filter(t=>!t.done).length;
+  $('periodStripLabel').textContent='Планы периода · '+w.length+' на неделю · '+m.length
+    +' на месяц'+(unfinished?' · '+unfinished+' осталось':'');
+  if($('periodDialog').open)renderPeriodDialog();
+}
+function renderPeriodDialog(){
+  const entries=periodTasksForWeek(state.tasks,week);
+  const groups=[
+    {scope:'week',label:'На неделю · '+weekLabel(week)},
+    {scope:'month',label:'На месяц · '+parseDate(week).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}
+  ];
+  $('periodTaskList').innerHTML=groups.map(group=>{
+    const tasks=entries.filter(t=>t.scope===group.scope);
+    return '<section class="period-group"><h3>'+escapeHTML(group.label)+'</h3>'
+      +(tasks.length?tasks.map(t=>
+        '<div class="period-item '+(t.done?'period-done':'')+'">'
+        +'<button type="button" class="period-check" data-action="period-status" data-id="'+escapeHTML(t.id)
+        +'" aria-label="Изменить статус: '+escapeHTML(t.title)+'">'+(t.done?'✓':'')+'</button>'
+        +'<div class="period-main"><strong>'+escapeHTML(t.title)+'</strong><small>'
+        +dot(t.category)+escapeHTML(CATEGORIES[t.category]||'Другое')
+        +(t.measureMode==='count'?' · '+(t.actualCount||0)+'/'+(t.targetCount||0)+' повт.'
+          :planned(t)?' · '+formatMinutes(planned(t)):'')+'</small></div>'
+        +'<button type="button" class="period-inline-action" data-action="period-schedule" data-id="'+escapeHTML(t.id)
+        +'">На день</button>'
+        +'<button type="button" class="period-inline-action" data-action="period-edit" data-id="'+escapeHTML(t.id)
+        +'">Изменить</button></div>').join('')
+      :'<p class="period-empty">Пока нет задач на этот период.</p>')
+      +'</section>';
+  }).join('');
+}
 function calendarMinutesAt(target,clientY){
   const rect=target.getBoundingClientRect();
   if(rect.height<=0)return 0;
@@ -2185,6 +2342,7 @@ function renderFocus(){
   if(!focusRunning&&!ordered.some(t=>t.id===focusTaskId))focusTaskId=ordered.find(t=>!t.done)?.id||ordered[0]?.id||null;
   const priorities=ordered.slice(0,3),later=ordered.slice(3);
   const percent=summary.completion,hasFact=summary.measured>0;
+  const focusPreset=[15,25,45,60].includes(focusDurationMinutes)?String(focusDurationMinutes):'custom';
   const selectOptions=ordered.map(t=>'<option value="'+escapeHTML(t.id)+'" '+(t.id===focusTaskId?'selected':'')+'>'+escapeHTML(t.title)+'</option>').join('');
   $('focusView').innerHTML='<div class="focus-list">'
     +'<div class="focus-header"><div><span class="eyebrow">Главное на день</span><h2>План на '+dayLabel(focusedDay)+'</h2></div>'
@@ -2206,8 +2364,15 @@ function renderFocus(){
     +'<label class="field focus-task-select"><span>Учитывать время для задачи</span>'
     +'<select id="focusTaskSelect" '+(focusRunning?'disabled':'')+'><option value="">Без привязки</option>'
     +selectOptions+'</select></label>'
+    +'<div class="focus-duration-controls"><label class="field"><span>Продолжительность</span>'
+    +'<select id="focusDurationPreset" '+(focusRunning?'disabled':'')+'>'
+    +[15,25,45,60].map(n=>'<option value="'+n+'" '+(focusPreset===String(n)?'selected':'')+'>'+n+' мин</option>').join('')
+    +'<option value="custom" '+(focusPreset==='custom'?'selected':'')+'>Своё время</option></select></label>'
+    +'<label id="focusCustomLabel" class="field" '+(focusPreset==='custom'?'':'hidden')+'><span>Минуты (1–240)</span>'
+    +'<input id="focusCustomMinutes" type="number" min="1" max="240" step="1" value="'+focusDurationMinutes+'" '
+    +(focusRunning?'disabled':'')+' aria-label="Своя длительность таймера в минутах" /></label></div>'
     +'<div class="timer-ring"><div class="timer-face" id="timerFace">25:00</div></div>'
-    +'<p>25 минут работы. Каждая полная минута записывается в фактическое время выбранной задачи.</p>'
+    +'<p>Каждая полная минута записывается в фактическое время выбранной задачи.</p>'
     +'<div class="timer-actions"><button type="button" class="primary-action" id="timerToggle">'
     +(focusRunning?'Пауза':'Начать')+'</button><button type="button" class="quiet-action" id="timerReset">Сброс</button></div>'
     +'<p class="focus-timer-note">Останови таймер, чтобы сменить задачу. Незавершённые минуты не округляются вверх.</p></div>';
@@ -2227,13 +2392,14 @@ function render(){
   $('weekProgress').textContent=stats.total+' дел · '+stats.done+' выполнено · '+formatMinutes(stats.plan)+' в плане';
   $('inlineProgressFill').style.width=stats.completion+'%';
   renderInbox();
+  renderPeriodPlans();
   if(view==='board')renderBoard();
   else if(view==='calendar')renderCalendar();
   else renderFocus();
   saveUIPrefs();
 }
 function defaultTask(title,date){
-  return {id:uid(),title,date,start:'',end:'',plannedMinutes:30,actualMinutes:null,actualByDate:{},
+  return {id:uid(),title,date,scope:'day',start:'',end:'',plannedMinutes:30,actualMinutes:null,actualByDate:{},
     category:'personal',priority:'normal',repeat:'none',notes:'',completed:false,completedDates:[],
     status:'todo',statusByDate:{},measureMode:'duration',targetCount:null,actualCount:null,actualCountByDate:{},
     repeatDays:[],repeatInterval:2,subtasks:[],subtaskByDate:{}};
@@ -2277,6 +2443,7 @@ function moveTask(id,fromDate,toDate,atMinutes=null){
     notify('Повторяющаяся задача скопирована на выбранный день');
   }else{
     task.date=toDate;
+    task.scope='day';
     if(Number.isFinite(atMinutes))applyTime(task,atMinutes);
   }
   save();render();
@@ -2305,6 +2472,21 @@ function chooseDate(date){
 }
 
 function toggleEditorExtras(){
+  const scope=$('editScope').value,period=scope==='week'||scope==='month',inbox=scope==='inbox';
+  if((period||inbox)&&$('editMeasure').value==='interval')$('editMeasure').value='duration';
+  if((period||inbox)&&$('editRepeat').value!=='none')$('editRepeat').value='none';
+  $('editDateField').hidden=inbox;
+  $('editDate').required=period;
+  $('editMeasure').querySelector('option[value="interval"]').disabled=period||inbox;
+  $('editRepeat').disabled=period||inbox;
+  const hint=$('scopeHint'),date=$('editDate').value||focusedDay;
+  hint.hidden=!period;
+  if(period){
+    hint.textContent=scope==='week'
+      ?'Задача на всю неделю: '+weekLabel(periodAnchor(date,'week'))+'. Без назначения конкретного дня.'
+      :'Задача на месяц: '+parseDate(date).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})
+        +'. Без назначения конкретного дня.';
+  }
   const measure=$('editMeasure').value,repeat=$('editRepeat').value;
   $('durationFields').hidden=measure==='count';
   $('countFields').hidden=measure!=='count';
@@ -2353,6 +2535,7 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
     source==='inbox'?state.inbox.find(t=>t.id===id):null;
   $('taskDialogTitle').textContent=source==='new'?'Новая задача':'Редактирование задачи';
   $('editTitle').value=task?.title||'';
+  $('editScope').value=source==='inbox'?'inbox':task?.scope||'day';
   $('editDate').value=source==='inbox'?'':(task?.repeat!=='none'&&occurrence?occurrence:task?.date||date||focusedDay);
   $('editCategory').value=task?.category||'personal';
   $('editPriority').value=task?.priority||'normal';
@@ -2395,7 +2578,10 @@ function openEditor(source='new',id=null,occurrence=null,date=null,atMinutes=nul
 }
 function submitEditor(event){
   event.preventDefault();
-  const title=$('editTitle').value.trim(),date=$('editDate').value;
+  const title=$('editTitle').value.trim(),scopeChoice=$('editScope').value;
+  const scope=scopeChoice==='week'||scopeChoice==='month'?scopeChoice:'day';
+  const rawDate=$('editDate').value;
+  const date=scopeChoice==='inbox'?'':rawDate?periodAnchor(rawDate,scope):'';
   const measureMode=$('editMeasure').value;
   const minutes=minutesFromParts($('editHours').value,$('editMinutes').value);
   const actual=$('editActual').value===''?null:Number($('editActual').value);
@@ -2406,6 +2592,11 @@ function submitEditor(event){
   const repeatInterval=Number($('editRepeatInterval').value||2);
   const subtasks=collectEditorSubtasks();
   if(!title||Number.isNaN(minutes)){showEditError('Введите название и правильное время.');return;}
+  if((scope==='week'||scope==='month')&&!date){
+    showEditError('Выберите дату нужной недели или месяца.');return;
+  }
+  if(scope!=='day'&&repeat!=='none'){showEditError('Повторение доступно для задач на день.');return;}
+  if(scope!=='day'&&measureMode==='interval'){showEditError('Конкретный час доступен для задач на день.');return;}
   if(measureMode==='count'&&(!Number.isInteger(targetCount)||targetCount<1||targetCount>100000
     ||(actualCount!==null&&(!Number.isInteger(actualCount)||actualCount<0||actualCount>100000)))){
     showEditError('Укажите количество повторений и фактическое число.');return;
@@ -2414,7 +2605,7 @@ function submitEditor(event){
   if(repeat==='interval'&&(!Number.isInteger(repeatInterval)||repeatInterval<2||repeatInterval>365)){
     showEditError('Укажите период от 2 до 365 дней.');return;
   }
-  const fields={title:title.slice(0,120),date,start:measureMode==='interval'?$('editStart').value:'',
+  const fields={title:title.slice(0,120),date,scope,start:measureMode==='interval'?$('editStart').value:'',
     end:measureMode==='interval'?$('editEnd').value:'',
     plannedMinutes:measureMode==='count'?0:minutes,actualMinutes:actual,
     category:$('editCategory').value,priority:$('editPriority').value,repeat,
@@ -2543,11 +2734,17 @@ function renderAnalytics(){
   const days=statsScope==='month'
     ?Array.from({length:parseDate(last).getDate()},(_,i)=>addDays(first,i))
     :Array.from({length:7},(_,i)=>addDays(week,i));
-  const stats=timeStats(all),scope=statsScope==='month'?'месяца':'недели';
+  // Period plans are counted once in their own period, never as daily tasks.
+  const periodPlans=statsScope==='month'
+    ?periodTasksForMonth(state.tasks,week)
+    :periodTasksForWeek(state.tasks,week).filter(t=>t.scope==='week');
+  const combined=[...all,...periodPlans];
+  const stats=timeStats(combined),periodStats=timeStats(periodPlans);
+  const scope=statsScope==='month'?'месяца':'недели';
   const cards=[['Задач',stats.total],['Завершено',stats.done],['План',formatMinutes(stats.plan)],
     ['Факт',formatMinutes(stats.fact)]];
   const cats=Object.keys(CATEGORIES).map(category=>{
-    const entries=all.filter(t=>t.category===category),s=timeStats(entries);
+    const entries=combined.filter(t=>t.category===category),s=timeStats(entries);
     return {category,name:CATEGORIES[category],...s};
   }).filter(x=>x.total>0).sort((a,b)=>b.plan-a.plan);
   $('statsContent').innerHTML='<div class="stats-scope"><button type="button" data-stats-scope="week" '
@@ -2557,6 +2754,8 @@ function renderAnalytics(){
       '<div class="metric-box"><small>'+label+'</small><strong>'+n+'</strong></div>').join('')+'</div>'
     +'<p>Выполнение '+scope+': '+stats.completion+'%. '
     +(stats.plan>0&&stats.measured?'Факт / план: '+Math.round(stats.fact/stats.plan*100)+'%.':'Незаписанное время не считается фактом.')+'</p>'
+    +'<p>Планы без конкретной даты: '+periodStats.done+' из '+periodStats.total
+    +' выполнено. В строках по дням они не дублируются.</p>'
     +'<h3>По категориям</h3>'
     +(stats.countPlan?'<p>Повторения: '+stats.countFact+' из '+stats.countPlan+'</p>':'')
     +(cats.length?cats.map(cat=>'<div class="stat-day"><div style="flex:1"><strong>'
@@ -2687,6 +2886,15 @@ async function importData(file){
 
 let focusStartedAt=0,focusCheckpointSeconds=0;
 let focusTaskDate=null;
+function setFocusDuration(minutes){
+  if(focusRunning)return;
+  if(!Number.isInteger(minutes)||minutes<1||minutes>240){
+    notify('Укажите длительность от 1 до 240 минут');return;
+  }
+  focusDurationMinutes=minutes;
+  saveUIPrefs();
+  resetTimer();
+}
 function creditFocusTime(){
   if(!focusRunning||!focusTaskId)return;
   const elapsed=Math.max(0,Math.floor((Date.now()-focusStartedAt)/1000));
@@ -2714,7 +2922,7 @@ function refreshTimer(){
   const s=focusRemaining;
   $('timerFace').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
   const ring=$('timerFace').closest('.timer-ring');
-  if(ring)ring.style.setProperty('--timer-ratio',Math.max(0,Math.min(100,s/1500*100))+'%');
+  if(ring)ring.style.setProperty('--timer-ratio',Math.max(0,Math.min(100,s/(focusDurationMinutes*60)*100))+'%');
 }
 function timerTick(){
   if(!focusRunning)return;
@@ -2737,7 +2945,7 @@ function toggleTimer(){
     focusRemaining=Math.max(0,Math.ceil((focusEndsAt-Date.now())/1000));
     focusRunning=false;clearInterval(timerHandle);
   }else{
-    if(focusRemaining<=0)focusRemaining=25*60;
+    if(focusRemaining<=0)focusRemaining=focusDurationMinutes*60;
     const selector=$('focusTaskSelect');
     if(selector)focusTaskId=selector.value||null;
     focusTaskDate=focusedDay;
@@ -2745,13 +2953,15 @@ function toggleTimer(){
     focusEndsAt=Date.now()+focusRemaining*1000;
     focusRunning=true;timerHandle=setInterval(timerTick,500);
   }
+  if($('focusDurationPreset'))$('focusDurationPreset').disabled=focusRunning;
+  if($('focusCustomMinutes'))$('focusCustomMinutes').disabled=focusRunning;
   if($('focusTaskSelect'))$('focusTaskSelect').disabled=focusRunning;
   if($('timerToggle'))$('timerToggle').textContent=focusRunning?'Пауза':'Начать';
   refreshTimer();
 }
 function resetTimer(){
   if(focusRunning)creditFocusTime();
-  focusRunning=false;clearInterval(timerHandle);focusRemaining=25*60;focusCarryReset();
+  focusRunning=false;clearInterval(timerHandle);focusRemaining=focusDurationMinutes*60;focusCarryReset();
   if($('timerToggle'))$('timerToggle').textContent='Начать';
   if($('focusTaskSelect'))$('focusTaskSelect').disabled=false;
   refreshTimer();
@@ -2805,6 +3015,18 @@ function setupClick(){
       else if(verb==='edit-inbox')openEditor('inbox',id);
       else if(verb==='inbox-today')addInboxToDay(id,today());
       else if(verb==='toggle-subtask')toggleSubtask(id,date,action.dataset.subId,action.checked);
+      else if(verb==='period-status')changeStatus(id,state.tasks.find(t=>t.id===id)?.date||focusedDay);
+      else if(verb==='period-edit'||verb==='period-schedule'){
+        const task=state.tasks.find(t=>t.id===id);
+        if(!task)return;
+        closeDialog('periodDialog');
+        openEditor('task',id);
+        if(verb==='period-schedule'){
+          $('editScope').value='day';
+          $('editDate').value=focusedDay;
+          toggleEditorExtras();
+        }
+      }
       else if(verb==='start-focus'){
         if(focusRunning&&focusTaskId!==id){notify('Сначала остановите текущий таймер');return;}
         if(!focusRunning)resetTimer();
@@ -2918,6 +3140,15 @@ function setup(){
   $('saveReview').addEventListener('click',saveReview);
   $('rollTomorrow').addEventListener('click',rollTomorrow);
   $('openStats').addEventListener('click',openAnalytics);
+  $('openPeriodPlans').addEventListener('click',()=>{renderPeriodDialog();openDialog('periodDialog');});
+  $('newWeekPlan').addEventListener('click',()=>{
+    closeDialog('periodDialog');openEditor('new',null,null,week);
+    $('editScope').value='week';toggleEditorExtras();
+  });
+  $('newMonthPlan').addEventListener('click',()=>{
+    closeDialog('periodDialog');openEditor('new',null,null,week);
+    $('editScope').value='month';toggleEditorExtras();
+  });
   $('openTemplates').addEventListener('click',openTemplates);
   $('openTrash').addEventListener('click',()=>{renderTrash();openDialog('trashDialog');});
   $('autoCarry').checked=state.settings?.autoCarry===true;
@@ -2934,6 +3165,8 @@ function setup(){
   $('templateCreateForm').addEventListener('submit',createTemplate);
   $('cancelTemplateEdit').addEventListener('click',resetTemplateEditor);
   $('editMeasure').addEventListener('change',toggleEditorExtras);
+  $('editScope').addEventListener('change',toggleEditorExtras);
+  $('editDate').addEventListener('change',toggleEditorExtras);
   $('editRepeat').addEventListener('change',toggleEditorExtras);
   $('addSubtask').addEventListener('click',addEditorSubtask);
   $('newSubtask').addEventListener('keydown',event=>{
@@ -2949,13 +3182,30 @@ function setup(){
       if(focusRunning){notify('Сначала остановите таймер');event.target.value=focusedDay;return;}
       chooseDate(event.target.value);view='focus';render();
     }
+    if(event.target.id==='focusDurationPreset'&&!focusRunning){
+      const custom=event.target.value==='custom';
+      $('focusCustomLabel').hidden=!custom;
+      if(custom){
+        $('focusCustomMinutes').value=focusDurationMinutes;
+        $('focusCustomMinutes').focus();
+      }else setFocusDuration(Number(event.target.value));
+    }
+    if(event.target.id==='focusCustomMinutes'&&!focusRunning){
+      const minutes=Number(event.target.value);
+      if(event.target.value!==''&&Number.isInteger(minutes)&&minutes>=1&&minutes<=240){
+        setFocusDuration(minutes);
+      }else{
+        notify('Укажите длительность от 1 до 240 минут');
+        event.target.value=focusDurationMinutes;
+      }
+    }
     if(event.target.id==='focusTaskSelect'&&!focusRunning){
       const next=event.target.value||null;
       if(next!==focusTaskId)focusRemainderSeconds=0;
       focusTaskId=next;
     }
   });
-  for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog','trashDialog']){
+  for(const id of ['taskDialog','reviewDialog','statsDialog','templateDialog','trashDialog','periodDialog']){
     $(id).addEventListener('click',event=>{if(event.target===$(id))closeDialog(id);});
   }
   document.addEventListener('keydown',event=>{
