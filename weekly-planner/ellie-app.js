@@ -63,7 +63,8 @@ function renderInbox(){
 function card(t,day){
   const status=statusOf(t,day),done=status==='done';
   const estimate=planned(t),sub=[dot(t.category),escapeHTML(CATEGORIES[t.category]||'Другое')];
-  if(t.start)sub.push('· '+escapeHTML(t.start));
+  if(t.start)sub.push(' · '+escapeHTML(t.start));
+  if(estimate>0)sub.push(' · '+formatMinutes(estimate));
   const meta=sub.join('');
   return '<article class="task-tile '+(done?'done ':'')+'priority-'+escapeHTML(t.priority||'normal')
     +'" data-source="task" draggable="true" data-id="'+escapeHTML(t.id)+'" data-date="'+day+'">'
@@ -72,7 +73,6 @@ function card(t,day){
     +'" aria-label="Изменить статус: '+escapeHTML(t.title)+'">'+(done?'✓':status==='partial'?'−':'')+'</button>'
     +'<button type="button" class="task-edit" data-action="edit-task" data-id="'+escapeHTML(t.id)+'" data-date="'+day+'">'
     +'<span class="item-title">'+escapeHTML(t.title)+'</span><span class="item-subline">'+meta+'</span></button>'
-    +(estimate>0?'<span class="time-chip">'+formatMinutes(estimate)+'</span>':'')
     +'</article>';
 }
 function renderBoard(){
@@ -80,30 +80,37 @@ function renderBoard(){
   $('boardView').innerHTML=Array.from({length:7},(_,i)=>{
     const date=addDays(week,i),tasks=all.filter(t=>t.occurrenceDate===date),now=date===today();
     const estimate=tasks.reduce((sum,t)=>sum+planned(t),0);
+    const weekday=WEEKDAYS[i],dayNumber=parseDate(date).getDate();
     return '<section class="day-column '+(now?'today ':'')+(i>=5?'weekend':'')
-      +'" data-drop-date="'+date+'" aria-label="'+WEEKDAYS[i]+' '+dayLabel(date)+'">'
-      +'<div class="day-heading"><span class="day-name"><strong class="'+(now?'today-number':'')+'">'
-      +shortDays[i]+' '+parseDate(date).getDate()+'</strong></span><span class="day-estimate">'
-      +(estimate?formatMinutes(estimate):'')+'</span></div>'
-      +'<button type="button" class="day-add" data-action="add-day" data-date="'+date+'">＋ Добавить задачу</button>'
-      +'<div class="day-tasks">'+tasks.map(t=>card(t,date)).join('')+'</div></section>';
+      +'" data-drop-date="'+date+'" aria-label="'+weekday+' '+dayLabel(date)+'">'
+      +'<div class="day-heading"><div class="day-heading-main"><span class="day-weekday">'+weekday
+      +'</span><strong class="day-number">'+dayNumber+'</strong></div>'
+      +(estimate?'<span class="day-estimate" title="Запланировано времени">'+formatMinutes(estimate)+'</span>':'')
+      +'</div><div class="day-tasks">'+tasks.map(t=>card(t,date)).join('')+'</div>'
+      +'<button type="button" class="day-add" data-action="add-day" data-date="'+date
+      +'" aria-label="Добавить задачу: '+weekday+' '+dayNumber+'"><span class="add-symbol" aria-hidden="true">＋</span> Новая задача</button>'
+      +'</section>';
   }).join('');
 }
 function renderCalendar(){
   const tasks=allTasks(),startHour=6,endHour=23;
+  // Keep the entire 06:00–23:00 time grid inside the available desktop height.
+  // All placement math shares this scale, including drag/drop.
+  const hourHeight=Math.max(33,Math.min(56,(window.innerHeight-226)/(endHour-startHour)));
+  const offset=minutes=>(minutes-startHour*60)*hourHeight/60;
   const head='<div class="timeline-head"><span></span>'
     +Array.from({length:7},(_,i)=>'<div>'+shortDays[i]+' '+parseDate(addDays(week,i)).getDate()+'</div>').join('')
     +'</div>';
   const labels='<div class="hour-labels">'+Array.from({length:endHour-startHour+1},(_,i)=>
-    '<span class="hour-label" style="top:'+(i*60)+'px">'+String(i+startHour).padStart(2,'0')+':00</span>').join('')+'</div>';
+    '<span class="hour-label" style="top:'+(i*hourHeight)+'px">'+String(i+startHour).padStart(2,'0')+':00</span>').join('')+'</div>';
   const columns=Array.from({length:7},(_,i)=>{
     const date=addDays(week,i);
     return '<div class="calendar-day" data-drop-date="'+date+'">'+tasks.filter(t=>t.occurrenceDate===date&&t.start).map(t=>{
       const start=timeMinutes(t.start);if(Number.isNaN(start))return '';
       const mins=planned(t)>0?planned(t):60;
-      const top=Math.max(0,start-startHour*60);
-      if(top>(endHour-startHour)*60)return '';
-      const ht=Math.min((endHour-startHour)*60-top,Math.max(25,mins));
+      const top=Math.max(0,offset(start));
+      if(top>(endHour-startHour)*hourHeight)return '';
+      const ht=Math.min((endHour-startHour)*hourHeight-top,Math.max(24,mins*hourHeight/60));
       return '<div class="time-block '+escapeHTML(t.category)+'" draggable="true" data-source="task" data-id="'
         +escapeHTML(t.id)+'" data-date="'+date+'" style="top:'+top+'px;height:'+ht
         +'px" title="'+escapeHTML(t.title)+'"><strong>'+escapeHTML(t.title)
@@ -111,7 +118,8 @@ function renderCalendar(){
     }).join('')+'</div>';
   }).join('');
   const unscheduled=tasks.filter(t=>!t.start).length;
-  $('calendarView').innerHTML=head+'<div class="timeline-body">'+labels+columns+'</div>'
+  $('calendarView').innerHTML=head+'<div class="timeline-body" style="height:'+((endHour-startHour)*hourHeight)
+    +'px;--hour-height:'+hourHeight+'px">'+labels+columns+'</div>'
     +'<div class="calendar-unscheduled">Перетаскивай задачи на свободное время с 06:00 до 23:00. '
     +unscheduled+' дел без конкретного времени — на вкладке «Задачи».</div>';
 }
@@ -435,7 +443,8 @@ function setupDrag(){
     if(target.classList.contains('calendar-day')){
       const rect=target.getBoundingClientRect();
       const y=event.clientY-rect.top;
-      at=Math.round((360+Math.max(0,y))/15)*15;
+      const scale=parseFloat(target.parentElement.style.getPropertyValue('--hour-height'))||60;
+      at=Math.round((360+Math.max(0,y)*60/scale)/15)*15;
       at=Math.max(360,Math.min(1350,at));
     }
     const date=target.dataset.dropDate;
@@ -470,7 +479,8 @@ function setupClick(){
     }
     if(event.target.closest('.calendar-day')&&event.target===event.target.closest('.calendar-day')){
       const target=event.target;
-      const mins=Math.round((360+event.clientY-target.getBoundingClientRect().top)/15)*15;
+      const scale=parseFloat(target.parentElement.style.getPropertyValue('--hour-height'))||60;
+      const mins=Math.round((360+(event.clientY-target.getBoundingClientRect().top)*60/scale)/15)*15;
       openEditor('new',null,null,target.dataset.dropDate,Math.max(360,Math.min(1350,mins)));
     }
   });
@@ -517,6 +527,7 @@ function setup(){
     if(event.key.toLowerCase()==='n'){event.preventDefault();$('inboxInput').focus();}
   });
   setupDrag();setupClick();
+  window.addEventListener('resize',()=>{if(view==='calendar')renderCalendar();});
   render();
 }
 setup();
