@@ -273,6 +273,7 @@ function renderFocus(){
   if(!focusRunning&&!ordered.some(t=>t.id===focusTaskId))focusTaskId=ordered.find(t=>!t.done)?.id||ordered[0]?.id||null;
   const priorities=ordered.slice(0,3),later=ordered.slice(3);
   const percent=summary.completion,hasFact=summary.measured>0;
+  const focusPreset=[15,25,45,60].includes(focusDurationMinutes)?String(focusDurationMinutes):'custom';
   const selectOptions=ordered.map(t=>'<option value="'+escapeHTML(t.id)+'" '+(t.id===focusTaskId?'selected':'')+'>'+escapeHTML(t.title)+'</option>').join('');
   $('focusView').innerHTML='<div class="focus-list">'
     +'<div class="focus-header"><div><span class="eyebrow">Главное на день</span><h2>План на '+dayLabel(focusedDay)+'</h2></div>'
@@ -294,8 +295,15 @@ function renderFocus(){
     +'<label class="field focus-task-select"><span>Учитывать время для задачи</span>'
     +'<select id="focusTaskSelect" '+(focusRunning?'disabled':'')+'><option value="">Без привязки</option>'
     +selectOptions+'</select></label>'
+    +'<div class="focus-duration-controls"><label class="field"><span>Продолжительность</span>'
+    +'<select id="focusDurationPreset" '+(focusRunning?'disabled':'')+'>'
+    +[15,25,45,60].map(n=>'<option value="'+n+'" '+(focusPreset===String(n)?'selected':'')+'>'+n+' мин</option>').join('')
+    +'<option value="custom" '+(focusPreset==='custom'?'selected':'')+'>Своё время</option></select></label>'
+    +'<label id="focusCustomLabel" class="field" '+(focusPreset==='custom'?'':'hidden')+'><span>Минуты (1–240)</span>'
+    +'<input id="focusCustomMinutes" type="number" min="1" max="240" step="1" value="'+focusDurationMinutes+'" '
+    +(focusRunning?'disabled':'')+' aria-label="Своя длительность таймера в минутах" /></label></div>'
     +'<div class="timer-ring"><div class="timer-face" id="timerFace">25:00</div></div>'
-    +'<p>25 минут работы. Каждая полная минута записывается в фактическое время выбранной задачи.</p>'
+    +'<p>Каждая полная минута записывается в фактическое время выбранной задачи.</p>'
     +'<div class="timer-actions"><button type="button" class="primary-action" id="timerToggle">'
     +(focusRunning?'Пауза':'Начать')+'</button><button type="button" class="quiet-action" id="timerReset">Сброс</button></div>'
     +'<p class="focus-timer-note">Останови таймер, чтобы сменить задачу. Незавершённые минуты не округляются вверх.</p></div>';
@@ -775,6 +783,15 @@ async function importData(file){
 
 let focusStartedAt=0,focusCheckpointSeconds=0;
 let focusTaskDate=null;
+function setFocusDuration(minutes){
+  if(focusRunning)return;
+  if(!Number.isInteger(minutes)||minutes<1||minutes>240){
+    notify('Укажите длительность от 1 до 240 минут');return;
+  }
+  focusDurationMinutes=minutes;
+  saveUIPrefs();
+  resetTimer();
+}
 function creditFocusTime(){
   if(!focusRunning||!focusTaskId)return;
   const elapsed=Math.max(0,Math.floor((Date.now()-focusStartedAt)/1000));
@@ -833,6 +850,8 @@ function toggleTimer(){
     focusEndsAt=Date.now()+focusRemaining*1000;
     focusRunning=true;timerHandle=setInterval(timerTick,500);
   }
+  if($('focusDurationPreset'))$('focusDurationPreset').disabled=focusRunning;
+  if($('focusCustomMinutes'))$('focusCustomMinutes').disabled=focusRunning;
   if($('focusTaskSelect'))$('focusTaskSelect').disabled=focusRunning;
   if($('timerToggle'))$('timerToggle').textContent=focusRunning?'Пауза':'Начать';
   refreshTimer();
@@ -1036,6 +1055,23 @@ function setup(){
     if(event.target.id==='focusDate'){
       if(focusRunning){notify('Сначала остановите таймер');event.target.value=focusedDay;return;}
       chooseDate(event.target.value);view='focus';render();
+    }
+    if(event.target.id==='focusDurationPreset'&&!focusRunning){
+      const custom=event.target.value==='custom';
+      $('focusCustomLabel').hidden=!custom;
+      if(custom){
+        $('focusCustomMinutes').value=focusDurationMinutes;
+        $('focusCustomMinutes').focus();
+      }else setFocusDuration(Number(event.target.value));
+    }
+    if(event.target.id==='focusCustomMinutes'&&!focusRunning){
+      const minutes=Number(event.target.value);
+      if(event.target.value!==''&&Number.isInteger(minutes)&&minutes>=1&&minutes<=240){
+        setFocusDuration(minutes);
+      }else{
+        notify('Укажите длительность от 1 до 240 минут');
+        event.target.value=focusDurationMinutes;
+      }
     }
     if(event.target.id==='focusTaskSelect'&&!focusRunning){
       const next=event.target.value||null;
