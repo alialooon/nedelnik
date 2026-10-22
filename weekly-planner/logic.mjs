@@ -68,26 +68,27 @@ export function validateTask(task) {
   if (!validMinutes(task.actualMinutes,true)) return 'Фактическое время должно быть целым числом минут.';
   if (!Object.hasOwn(CATEGORIES,task.category)) return 'Выберите категорию.';
   if (!['low','normal','high'].includes(task.priority)) return 'Выберите важность.';
-  if (!['none','weekly'].includes(task.repeat)) return 'Выберите повторение.';
+  if (!['none','daily','weekly'].includes(task.repeat)) return 'Выберите повторение.';
   if (typeof task.notes!=='string' || task.notes.length>5000) return 'Комментарий слишком длинный.';
   return null;
 }
 export function occurrencesForWeek(tasks,monday) {
   const sunday=addDays(monday,6),results=[];
   for(const task of tasks) {
-    if(task.repeat==='weekly') {
-      const day=(parseDate(task.date).getDay()+6)%7;
-      const date=addDays(monday,day);
-      if(date>=task.date) results.push({
-        ...task,occurrenceDate:date,
-        status:task.statusByDate?.[date] ?? ((task.completedDates||[]).includes(date)?'done':'todo'),
-        done:(task.statusByDate?.[date]??((task.completedDates||[]).includes(date)?'done':'todo'))==='done',
-        actualMinutes:task.actualByDate?.[date]??null,
-        actualCount:task.actualCountByDate?.[date]??null
-      });
+    if(task.repeat==='weekly' || task.repeat==='daily') {
+      const dates=task.repeat==='daily'
+        ?Array.from({length:7},(_,i)=>addDays(monday,i))
+        :[addDays(monday,(parseDate(task.date).getDay()+6)%7)];
+      for(const date of dates) {
+        if(date<task.date)continue;
+        const status=task.statusByDate?.[date] ?? ((task.completedDates||[]).includes(date)?'done':'todo');
+        results.push({...task,occurrenceDate:date,status,done:status==='done',
+          actualMinutes:task.actualByDate?.[date]??null,
+          actualCount:task.actualCountByDate?.[date]??null});
+      }
     } else if(task.date>=monday && task.date<=sunday) {
-      results.push({...task,occurrenceDate:task.date,
-        status:task.status??(task.completed?'done':'todo'),done:(task.status??(task.completed?'done':'todo'))==='done'});
+      const status=task.status??(task.completed?'done':'todo');
+      results.push({...task,occurrenceDate:task.date,status,done:status==='done'});
     }
   }
   return results.sort((a,b)=>a.occurrenceDate.localeCompare(b.occurrenceDate)
@@ -152,6 +153,28 @@ function sanitizeCountByDate(value) {
   return Object.fromEntries(Object.entries(value).filter(([date,count])=>
     parseDate(date)&&Number.isInteger(count)&&count>=0&&count<=100000).slice(-520));
 }
+function sanitizeInbox(value) {
+  if(!Array.isArray(value))return [];
+  if(value.length>3000)throw new Error('Слишком много дел без даты.');
+  const ids=new Set();
+  return value.map((item,i)=>{
+    const title=typeof item?.title==='string'?item.title.trim().slice(0,120):'';
+    const plannedMinutes=item?.plannedMinutes??0;
+    const category=Object.hasOwn(CATEGORIES,item?.category)?item.category:'personal';
+    const priority=['low','normal','high'].includes(item?.priority)?item.priority:'normal';
+    if(!title || !validMinutes(plannedMinutes))throw new Error('Некорректное дело без даты.');
+    let id=typeof item?.id==='string' && item.id.length<150?item.id:'';
+    if(!id||ids.has(id))id='inbox-'+i+'-'+Date.now();
+    ids.add(id);
+    return {id,title,plannedMinutes,category,priority,
+      notes:typeof item?.notes==='string'?item.notes.slice(0,5000):''};
+  });
+}
+function sanitizeReviews(value) {
+  if(!value || typeof value!=='object' || Array.isArray(value))return {};
+  return Object.fromEntries(Object.entries(value).filter(([day,v])=>parseDate(day)&&
+    typeof v==='string').slice(-1200).map(([day,v])=>[day,v.slice(0,5000)]));
+}
 export function sanitizeBackup(value) {
   if(!value || typeof value!=='object' || value.version!==1
     || !Array.isArray(value.tasks) || value.tasks.length>10000) throw new Error('Неизвестный формат резервной копии.');
@@ -185,9 +208,10 @@ export function sanitizeBackup(value) {
   if(rawTemplates.length>2000)throw new Error('Слишком много дел в общем списке.');
   const templateIDs=new Set();
   const templates=rawTemplates.map((t,i)=>sanitizeTemplate(t,i,templateIDs));
-  return {version:1,tasks,templates,dayNotes:plainNotesMap(value.dayNotes),
+  return {version:1,tasks,templates,inbox:sanitizeInbox(value.inbox),
+    reviews:sanitizeReviews(value.reviews),dayNotes:plainNotesMap(value.dayNotes),
     weekNotes:plainNotesMap(value.weekNotes),theme:'dark'};
 }
 export function blankData() {
-  return {version:1,tasks:[],templates:[],dayNotes:{},weekNotes:{},theme:'dark'};
+  return {version:1,tasks:[],templates:[],inbox:[],reviews:{},dayNotes:{},weekNotes:{},theme:'dark'};
 }
