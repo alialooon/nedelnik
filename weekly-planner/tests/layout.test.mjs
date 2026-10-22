@@ -118,7 +118,7 @@ test('Native launcher goes straight to planner and exposes trusted in-app update
   assert.doesNotMatch(native,/message\.Text = "Opening planner/);
   assert.match(app,/webview\.postMessage\('nedelnik:ready'\)/);
   assert.match(css,/Align every hour to its grid line/);
-  assert.match(css,/\.calendar-viewport \.hour-label\{\s*transform:translateY\(-50%\)/);
+  assert.match(css,/\.calendar-viewport \.hour-label,\s*\.calendar-viewport \.hour-label:last-child\{\s*transform:translateY\(-50%\)/);
   assert.match(css,/\.calendar-viewport \.hour-label:nth-last-child\(2\)/);
   assert.match(css,/\.calendar-viewport \.hour-label:last-child\{\s*transform:translateY\(-50%\)/);
   assert.match(native,/PostWebMessageAsString/);
