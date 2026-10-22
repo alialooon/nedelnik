@@ -1244,9 +1244,13 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
   outline:none!important;
   box-shadow:none!important;
 }
-dialog .field input:is(:focus,:focus-visible),
-dialog .field textarea:is(:focus,:focus-visible),
-dialog .field select:is(:focus,:focus-visible){
+/* Match the specificity of the older editor focus rules so the fill never flashes white. */
+.editor-dialog .field input:is(:focus,:focus-visible),
+.editor-dialog .field textarea:is(:focus,:focus-visible),
+.editor-dialog .field select:is(:focus,:focus-visible),
+.panel-dialog .field input:is(:focus,:focus-visible),
+.panel-dialog .field textarea:is(:focus,:focus-visible),
+.panel-dialog .field select:is(:focus,:focus-visible){
   border-color:#d8e3f1!important;
   background:#fcfdff;
 }
