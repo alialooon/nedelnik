@@ -536,7 +536,6 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
   overflow:hidden;
 }
 .calendar-viewport .hour-label{
-  transform:translateY(2px);
   font-size:10px;
   line-height:12px;
 }
@@ -574,7 +573,7 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 @media(max-height:650px){
   .calendar-viewport .timeline-head{height:31px;flex-basis:31px}
   .calendar-viewport .timeline-head div{padding:7px 2px}
-  .calendar-viewport .hour-label{font-size:9px;line-height:10px;transform:translateY(1px)}
+  .calendar-viewport .hour-label{font-size:9px;line-height:10px}
   .calendar-viewport .calendar-unscheduled{font-size:9px;min-height:20px;max-height:22px}
 }
 /* A single thin active field border replaces the thick multi-layer focus ring. */
@@ -592,13 +591,7 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 }
 
 
-/* Keep the first and last hour labels inside very short windows. */
-.calendar-viewport .hour-label:last-child{transform:translateY(-50%)}
-@media(max-height:700px){
-  .calendar-viewport .hour-label{font-size:9px;line-height:10px}
-  .calendar-viewport .hour-label:nth-child(2n):not(:last-child){display:none}
-  .calendar-viewport .hour-label:last-child{display:block;transform:translateY(-50%)}
-}
+
 
 
 /* Native WebView2 updater is available quietly inside the existing overflow menu. */
@@ -614,24 +607,28 @@ dialog{border-color:#dde4ee;border-radius:15px;box-shadow:0 25px 80px rgba(25,39
 
 
 
-/* Align every hour to its grid line; keep 00:00 and 23:00 in bounds. */
-.calendar-viewport .hour-label,
-.calendar-viewport .hour-label:last-child{
-  transform:translateY(-50%);
+/* Center each of 24 hour captions inside its hour row, including 00:00 and 23:00. */
+.calendar-viewport .hour-labels{
+  width:100%;
 }
-.calendar-viewport .hour-label:first-child{
-  transform:translateY(1px);
+.calendar-viewport .hour-label{
+  display:block;
+  top:auto;
+  transform:translateY(-50%);
+  box-sizing:border-box;
+  width:100%;
+  padding:0 8px 0 0;
+  text-align:right;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";
+  font-size:10px;
+  line-height:1;
 }
 @media(max-height:700px){
-  .calendar-viewport .hour-label,
-  .calendar-viewport .hour-label:last-child{
-    transform:translateY(-50%);
-  }
-  .calendar-viewport .hour-label:first-child{
-    transform:translateY(1px);
-  }
-  .calendar-viewport .hour-label:nth-last-child(2){
-    display:none;
+  .calendar-viewport .hour-label{
+    font-size:9px;
+    line-height:1;
   }
 }
 
@@ -1227,3 +1224,50 @@ dialog .template-row{border-color:#e0e9f6;border-radius:11px}
 }
 .planner .task-tile.priority-high{border-left:3px solid #df788f}
 .planner .task-tile.priority-low{border-left:3px solid #83c4a8}
+
+
+/* Text-entry focus is visually neutral everywhere, including the quick-add wrapper.
+   The visible caret still signals typing; buttons retain their keyboard focus ring. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+       textarea,select):is(:focus,:focus-visible){
+  outline:none!important;
+  outline-offset:0!important;
+  box-shadow:none!important;
+  transition:none;
+}
+.inbox-panel .quick-add:focus-within{
+  border-color:#d5e1f1;
+  box-shadow:0 2px 10px rgba(75,121,192,.052);
+}
+.quick-add input:is(:focus,:focus-visible){
+  border:0;
+  outline:none!important;
+  box-shadow:none!important;
+}
+dialog .field input:is(:focus,:focus-visible),
+dialog .field textarea:is(:focus,:focus-visible),
+dialog .field select:is(:focus,:focus-visible){
+  border-color:#d8e3f1!important;
+  background:#fcfdff;
+}
+#focusDate:is(:focus,:focus-visible){border-color:#dbe3ec!important}
+#jumpDate:is(:focus,:focus-visible){border-color:#d9e5f4!important}
+
+/* Templates: a discreet trash action that never affects scheduled tasks. */
+.template-row{gap:10px;border-color:#e1eaf5;border-radius:11px;background:#fbfdff}
+.template-row strong{min-width:0;overflow-wrap:anywhere;color:#374b66}
+.template-row .template-add{
+  flex:none;border:1px solid #dce7f4;border-radius:9px;
+  background:#fff;color:#4f79b1;padding:7px 9px;white-space:nowrap;
+}
+.template-row .template-add:hover{border-color:#b6cef0;background:#eef6ff}
+.template-row .template-delete{
+  display:inline-grid;place-items:center;flex:none;
+  width:32px;height:32px;padding:0;
+  border:1px solid transparent;border-radius:9px;
+  background:transparent;color:#a2acb9;
+}
+.template-row .template-delete .ui-icon{width:16px;height:16px}
+.template-row .template-delete:hover{
+  color:#bd5765;background:#fff0f1;border-color:#f1d6d9;
+}
