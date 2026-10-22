@@ -590,6 +590,39 @@ function setupClick(){
     }
   });
 }
+function setupNativeUpdates(){
+  const bridge=window.chrome?.webview;
+  if(!bridge || typeof bridge.postMessage!=='function')return;
+  const button=$('checkUpdates'),label=$('updateStatus');
+  button.hidden=false;
+  label.hidden=false;
+  function showStatus(status,version){
+    const versionText=version&&version!=='?'?' · '+version:'';
+    const messages={
+      checking:'Проверяем обновления…',
+      current:'Установлена актуальная версия'+versionText,
+      updated:'Обновлено до версии'+versionText,
+      failed:'Не удалось проверить GitHub. Локальная версия работает.'
+    };
+    label.textContent=messages[status]||'';
+    label.hidden=!messages[status];
+    button.disabled=status==='checking';
+    button.textContent=status==='checking'?'Проверка…':'Проверить обновления';
+  }
+  bridge.addEventListener('message',event=>{
+    if(typeof event.data!=='string')return;
+    const result=/^nedelnik:update:(checking|current|updated|failed):([a-f0-9?]{1,16})$/.exec(event.data);
+    if(!result)return;
+    showStatus(result[1],result[2]);
+    if(result[1]==='updated')notify('Планировщик обновлён'+(result[2]!=='?'?' · '+result[2]:''));
+  });
+  button.addEventListener('click',()=>{
+    if(button.disabled)return;
+    showStatus('checking','');
+    bridge.postMessage('nedelnik:check-updates');
+  });
+  showStatus('checking','');
+}
 function setup(){
   $('inboxForm').addEventListener('submit',event=>{
     event.preventDefault();captureInbox($('inboxInput').value);$('inboxInput').value='';$('inboxInput').focus();
@@ -637,6 +670,7 @@ function setup(){
     if(event.key.toLowerCase()==='n'){event.preventDefault();$('inboxInput').focus();}
   });
   setupDrag();setupClick();
+  setupNativeUpdates();
   document.querySelector('.workspace').classList.toggle('inbox-hidden',savedUI.inboxHidden);
   $('inboxToggle').setAttribute('aria-expanded',String(!savedUI.inboxHidden));
   decorateIcons();
