@@ -18,6 +18,18 @@ try{
     try {
       const board=document.querySelectorAll('#boardView .day-column').length;
       document.body.dataset.probeBoard=String(board);
+      const toolbar=document.querySelector('.app-header.app-header-macos');
+      const tabs=document.querySelectorAll('.header-mode-picker [data-view]');
+      const active=toolbar?.querySelector('.header-mode-picker button.active');
+      const day=document.querySelector('.day-column.today');
+      document.body.dataset.probeMac=toolbar&&tabs.length===3
+        &&document.querySelectorAll('.mode-picker').length===1
+        &&toolbar.contains(document.querySelector('#openReview'))
+        &&toolbar.contains(document.querySelector('#openStats'))
+        &&getComputedStyle(toolbar).display==='grid'
+        &&active&&getComputedStyle(active).backgroundImage!=='none'
+        &&day&&parseFloat(getComputedStyle(day).borderRadius)>=12
+        ?'pass':'fail';
       document.querySelector('[data-view="calendar"]').click();
       document.body.dataset.probeCalendar=document.querySelector('#calendarView .timeline-body')
         &&document.querySelector('.timebox-empty')?'pass':'fail';
@@ -87,7 +99,7 @@ try{
   assert.match(dom,/id="weekProgress">/);
   const bodyTag=dom.match(/<body\b[^>]*>/)?.[0]||'';
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
-  for(const name of ['calendar','allhours','thin-focus','focus','example','inbox','sidebar','preferences','icons']){
+  for(const name of ['mac','calendar','allhours','thin-focus','focus','example','inbox','sidebar','preferences','icons']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
       'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,1250));
   }
