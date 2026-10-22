@@ -125,7 +125,31 @@ try{
         &&document.querySelector('#templateCount').textContent==='0'
         &&document.querySelectorAll('#templateContent [data-template-delete]').length===0
         &&document.querySelector('#templateDialog').open?'pass':'fail';
-      document.querySelector('#templateDialog').close();
+      // The in-dialog quick creation must persist a reusable template without
+      // adding a dated task. Using it should add a copy to the undated inbox.
+      const quickTemplate=document.querySelector('#templateCreateForm');
+      document.querySelector('#templateNewTitle').value='Зарядка';
+      document.querySelector('#templateNewCategory').value='health';
+      document.querySelector('#templateNewMinutes').value='90';
+      const tasksBeforeQuick=after.tasks.length,inboxBeforeQuick=after.inbox.length;
+      quickTemplate.requestSubmit();
+      const direct=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      const quickSaved=direct.templates.length===1
+        &&direct.templates[0].title==='Зарядка'
+        &&direct.templates[0].category==='health'
+        &&direct.templates[0].plannedMinutes===90
+        &&direct.tasks.length===tasksBeforeQuick
+        &&direct.inbox.length===inboxBeforeQuick
+        &&document.querySelector('#templateCount').textContent==='1'
+        &&document.querySelector('#templateNewTitle').value===''
+        &&document.querySelector('#templateDialog').open;
+      document.querySelector('#templateContent [data-template]').click();
+      const used=JSON.parse(localStorage.getItem('nedelnik-planner-v1'));
+      document.body.dataset.probeDirectTemplate=quickSaved
+        &&used.inbox.length===inboxBeforeQuick+1
+        &&used.inbox.some(t=>t.title==='Зарядка'&&t.plannedMinutes===90)
+        &&used.templates.length===1
+        &&used.tasks.length===tasksBeforeQuick?'pass':'fail';
       document.body.dataset.probeIcons=document.querySelector('#prevPeriod .ui-icon')
         &&document.querySelector('#openStats .ui-icon')?'pass':'fail';
     } catch(error){
@@ -151,7 +175,7 @@ try{
   assert.match(dom,/id="weekProgress">/);
   const bodyTag=dom.match(/<body\b[^>]*>/)?.[0]||'';
   assert.ok(bodyTag.includes('data-probe-board="7"'),'Initial board did not render');
-  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','focus','example','inbox','sidebar','preferences','icons']){
+  for(const name of ['mac','calendar','hour-align','allhours','neutral-focus','templates','direct-template','focus','example','inbox','sidebar','preferences','icons']){
     assert.ok(bodyTag.includes('data-probe-'+name+'="pass"'),
       'Interactive browser check failed: '+name+'; '+bodyTag.slice(0,1250));
   }
