@@ -57,6 +57,15 @@ namespace NedelnikLauncher
                 Application.Run(new PlannerWindow());
                 return;
             }
+            if (args.Length > 0 && args[0] == "--old-tasks")
+            {
+                try { OpenPlannerLegacy(); }
+                catch (Exception error)
+                {
+                    MessageBox.Show(error.Message, "Nedelnik", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                return;
+            }
             if (args.Length > 0 && args[0] == "--webview-check")
             {
                 try
