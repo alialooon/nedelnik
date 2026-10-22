@@ -109,7 +109,15 @@ test('Native launcher goes straight to planner and exposes trusted in-app update
   assert.match(program,/"Arguments", "--planner"/);
   assert.match(native,/WebMessageReceived \+= OnPlannerMessage/);
   assert.match(native,/string\.Equals\(args\.Source, expected, StringComparison\.OrdinalIgnoreCase\)/);
-  assert.match(native,/args\.TryGetWebMessageAsString\(\) == "nedelnik:check-updates"/);
+  assert.match(native,/request == "nedelnik:check-updates"/);
+  assert.match(native,/request == "nedelnik:ready"/);
+  assert.match(native,/Opacity = 0/);
+  assert.match(native,/Opacity = 1/);
+  assert.match(native,/TryRevealPlanner/);
+  assert.match(native,/startupTimer\.Interval = 25000/);
+  assert.doesNotMatch(native,/message\.Text = "Opening planner/);
+  assert.match(app,/webview\.postMessage\('nedelnik:ready'\)/);
+  assert.match(css,/\.calendar-viewport \.hour-label:last-child\{\s*transform:translateY\(2px\)/);
   assert.match(native,/PostWebMessageAsString/);
   assert.match(native,/CoreWebView2\.Reload\(\)/);
   assert.match(native,/Path\.Combine\(Program\.Home, "webview-profile"\)/);
