@@ -114,3 +114,12 @@ test('Week/month scope survives JSON backup and older tasks keep daily planning'
   const legacy={...make({id:'older-task'})};delete legacy.scope;
   assert.equal(sanitizeBackup({...blankData(),tasks:[legacy]}).tasks[0].scope,'day');
 });
+
+
+test('Month goal follows the selected day when a week crosses month boundaries',()=>{
+  const oct=make({id:'oct',scope:'month',date:'2026-10-01',start:'',end:''});
+  const nov=make({id:'nov',scope:'month',date:'2026-11-01',start:'',end:''});
+  const week='2026-10-26';
+  assert.deepEqual(periodTasksForWeek([oct,nov],week,'2026-10-31').map(t=>t.id),['oct']);
+  assert.deepEqual(periodTasksForWeek([oct,nov],week,'2026-11-01').map(t=>t.id),['nov']);
+});
