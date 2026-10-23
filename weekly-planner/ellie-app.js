@@ -296,6 +296,12 @@ function renderCalendar(){
       +'<strong>Расписание пока свободно</strong><span>Перетащи задачу из списка без даты на нужный час</span></div>':'')
     +'</div><div class="calendar-unscheduled">Все 24 часа на одном экране · '
     +unscheduled+' задач без времени — на вкладке «Задачи».</div>';
+  // At short window heights keep each caption inside its proportional hour row.
+  const grid=$('calendarView').querySelector('.timeline-body');
+  if(grid){
+    const row=grid.clientHeight/24;
+    grid.style.setProperty('--hour-font',Math.min(10,Math.max(4,row-1))+'px');
+  }
 }
 function renderFocus(){
   const tasks=dayTasks(focusedDay);
