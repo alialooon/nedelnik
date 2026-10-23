@@ -1778,9 +1778,9 @@ function periodAnchor(date,scope='day') {
   if(scope==='month')return date.slice(0,7)+'-01';
   return date;
 }
-function periodTasksForWeek(tasks,monday) {
-  if(!parseDate(monday)||startOfWeek(monday)!==monday)return [];
-  const month=periodAnchor(monday,'month');
+function periodTasksForWeek(tasks,monday,monthReference=monday) {
+  if(!parseDate(monday)||startOfWeek(monday)!==monday||!parseDate(monthReference))return [];
+  const month=periodAnchor(monthReference,'month');
   return tasks.filter(t=>(t.scope==='week'&&t.date===monday)
     ||(t.scope==='month'&&t.date===month))
     .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}))
@@ -2260,7 +2260,7 @@ function renderBoard(){
   }).join('');
 }
 function renderPeriodPlans(){
-  const entries=periodTasksForWeek(state.tasks,week);
+  const entries=periodTasksForWeek(state.tasks,week,focusedDay);
   const w=entries.filter(t=>t.scope==='week'),m=entries.filter(t=>t.scope==='month');
   const unfinished=entries.filter(t=>!t.done).length;
   $('periodStripLabel').textContent='Планы периода · '+w.length+' на неделю · '+m.length
@@ -2268,10 +2268,10 @@ function renderPeriodPlans(){
   if($('periodDialog').open)renderPeriodDialog();
 }
 function renderPeriodDialog(){
-  const entries=periodTasksForWeek(state.tasks,week);
+  const entries=periodTasksForWeek(state.tasks,week,focusedDay);
   const groups=[
     {scope:'week',label:'На неделю · '+weekLabel(week)},
-    {scope:'month',label:'На месяц · '+parseDate(week).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}
+    {scope:'month',label:'На месяц · '+parseDate(focusedDay).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}
   ];
   $('periodTaskList').innerHTML=groups.map(group=>{
     const tasks=entries.filter(t=>t.scope===group.scope);
@@ -2734,8 +2734,8 @@ function openAnalytics(){
 }
 
 function renderAnalytics(){
-  const month=parseDate(week);
-  const monthKey=week.slice(0,7);
+  const month=parseDate(focusedDay);
+  const monthKey=focusedDay.slice(0,7);
   const first=monthKey+'-01',next= new Date(month.getFullYear(),month.getMonth()+1,1);
   const last=toISO(new Date(next.getFullYear(),next.getMonth(),0,12));
   const firstWeek=startOfWeek(first);
@@ -2749,8 +2749,8 @@ function renderAnalytics(){
     :Array.from({length:7},(_,i)=>addDays(week,i));
   // Period plans are counted once in their own period, never as daily tasks.
   const periodPlans=statsScope==='month'
-    ?periodTasksForMonth(state.tasks,week)
-    :periodTasksForWeek(state.tasks,week).filter(t=>t.scope==='week');
+    ?periodTasksForMonth(state.tasks,focusedDay)
+    :periodTasksForWeek(state.tasks,week,focusedDay).filter(t=>t.scope==='week');
   const combined=[...all,...periodPlans];
   const stats=timeStats(combined),periodStats=timeStats(periodPlans);
   const scope=statsScope==='month'?'месяца':'недели';
@@ -3159,7 +3159,7 @@ function setup(){
     $('editScope').value='week';toggleEditorExtras();
   });
   $('newMonthPlan').addEventListener('click',()=>{
-    closeDialog('periodDialog');openEditor('new',null,null,week);
+    closeDialog('periodDialog');openEditor('new',null,null,focusedDay);
     $('editScope').value='month';toggleEditorExtras();
   });
   $('openTemplates').addEventListener('click',openTemplates);
