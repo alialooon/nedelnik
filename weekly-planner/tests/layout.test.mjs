@@ -237,8 +237,8 @@ test('Week/month goals have dedicated drawer, editor scope and no daily-grid dup
   }
   assert.match(app,/function renderPeriodPlans\(/);
   assert.match(app,/function renderPeriodDialog\(/);
-  assert.match(app,/periodTasksForWeek\(state\.tasks,week\)/);
-  assert.match(app,/periodTasksForMonth\(state\.tasks,week\)/);
+  assert.match(app,/periodTasksForWeek\(state\.tasks,week,focusedDay\)/);
+  assert.match(app,/periodTasksForMonth\(state\.tasks,focusedDay\)/);
   assert.match(app,/data-action="period-status"/);
   assert.match(app,/data-action="period-schedule"/);
   assert.match(app,/const date=scopeChoice==='inbox'\?''/);
