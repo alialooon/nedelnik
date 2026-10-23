@@ -33,9 +33,9 @@ export function periodAnchor(date,scope='day') {
   if(scope==='month')return date.slice(0,7)+'-01';
   return date;
 }
-export function periodTasksForWeek(tasks,monday) {
-  if(!parseDate(monday)||startOfWeek(monday)!==monday)return [];
-  const month=periodAnchor(monday,'month');
+export function periodTasksForWeek(tasks,monday,monthReference=monday) {
+  if(!parseDate(monday)||startOfWeek(monday)!==monday||!parseDate(monthReference))return [];
+  const month=periodAnchor(monthReference,'month');
   return tasks.filter(t=>(t.scope==='week'&&t.date===monday)
     ||(t.scope==='month'&&t.date===month))
     .map(t=>({...t,done:t.status==='done',status:t.status||'todo'}))
